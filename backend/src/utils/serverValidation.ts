@@ -75,7 +75,8 @@ export function configureCors(
       app.use(
             cors({
                   origin: frontendOrigin,
-                  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+                  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+                  allowedHeaders: ["Content-Type", "Authorization"],
                   credentials: true,
             }),
       );

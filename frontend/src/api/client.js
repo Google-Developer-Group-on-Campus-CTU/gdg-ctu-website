@@ -1,25 +1,53 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
+let authTokenProvider = null;
+
+/**
+ * Register a global async token getter (wired to Clerk `useAuth().getToken()`
+ * via `<AuthTokenProvider>`). Keeps all call sites unchanged.
+ */
+export function setAuthTokenProvider(fn) {
+  authTokenProvider = typeof fn === 'function' ? fn : null;
+}
+
+export function getAuthTokenProvider() {
+  return authTokenProvider;
+}
+
+export async function getAuthToken() {
+  try {
+    if (typeof authTokenProvider !== 'function') return null;
+    return await authTokenProvider();
+  } catch {
+    return null;
+  }
+}
 /**
  * Minimal fetch wrapper for the GDGoC-CTU backend.
  *
- * Set VITE_API_URL to the backend origin *including* the base path, e.g.
- * `https://<backend-host>/GDGoC-CTU-Main/v0.0.1`, then call with the
- * resource path, e.g. `apiFetch('/events')`.
- *
- * Sends cookies (`credentials: 'include'`) and JSON headers by default.
- * Throws an Error on non-OK responses (with `error.status` and
+ * Sends cookies (`credentials: 'include'`), JSON headers, and the Clerk
+ * session JWT (`Authorization: Bearer <token>`) when a token provider is
+ * registered. Throws an Error on non-OK responses (with `error.status` and
  * `error.body` attached when available).
  */
 export async function apiFetch(path, options = {}) {
   const { headers, ...rest } = options;
 
+  const mergedHeaders = {
+    'Content-Type': 'application/json',
+    ...headers,
+  };
+
+  if (!mergedHeaders.Authorization) {
+    const token = await getAuthToken();
+    if (token) {
+      mergedHeaders.Authorization = `Bearer ${token}`;
+    }
+  }
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
+    headers: mergedHeaders,
     ...rest,
   });
 
