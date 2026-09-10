@@ -25,7 +25,7 @@ import {
 } from "../../config/redis/redis.services";
 import {
       uploadMedia,
-      deleteMediaCloudinaryService,
+      deleteMedia as deleteMediaCloudinaryService,
 } from "../../config/cloudinary/cloudinary.services";
 import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper";
 // DTO for the multipart "create with image" endpoint.
@@ -77,7 +77,12 @@ export const createTeamMemberService = async (
             // Database creation failed, delete the uploaded photo immediately
             await deleteMediaCloudinaryService(
                   uploadResult.public_id,
-                  uploadResult.resource_type,
+                  (uploadResult.resource_type === "auto"
+                        ? "image"
+                        : uploadResult.resource_type) as
+                        | "image"
+                        | "video"
+                        | "raw",
             );
             throw new AppError(
                   400,
