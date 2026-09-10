@@ -1,4 +1,4 @@
-import { Express } from "express";
+import { Express, Request, Response } from "express";
 import cors from "cors";
 import logger from "./logger";
 
@@ -87,6 +87,19 @@ export function configureCors(
 
 // Configure fallback routes — API-only, frontend hosted separately
 export function configureEnvironmentRoutes(app: Express) {
+      // Top-level liveness probes for Render / load-balancer health checks.
+      // Render probes GET / by default; must return 200 or deploy stays stuck
+      // in "Deploying". Keep versioned /GDGoC-CTU-Main/v0.0.1/health as well.
+      const liveness = (_req: Request, res: Response) => {
+            res.status(200).json({
+                  success: true,
+                  status: "ok",
+                  service: "gdg-ctu-backend",
+                  timestamp: new Date().toISOString(),
+            });
+      };
+      app.get("/", liveness);
+      app.get("/health", liveness);
       // Catch-all: return 404 for unmatched routes
       app.use((_req, res) => {
             res.status(404).json({ message: "API endpoint not found" });
