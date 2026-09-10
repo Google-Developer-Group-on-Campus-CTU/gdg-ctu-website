@@ -1,4 +1,4 @@
-import { apiFetch, API_BASE_URL } from './client.js';
+import { apiFetch, API_BASE_URL, getAuthToken } from './client.js';
 import { qs } from './feed.js';
 
 export { qs };
@@ -61,9 +61,15 @@ export const mediaApi = {
     const form = new FormData();
     form.append('file', file);
     if (altText) form.append('alt_text', altText);
+    const headers = {};
+    const token = await getAuthToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     const response = await fetch(`${API_BASE_URL}/media`, {
       method: 'POST',
       credentials: 'include',
+      headers,
       body: form,
     });
     if (!response.ok) {

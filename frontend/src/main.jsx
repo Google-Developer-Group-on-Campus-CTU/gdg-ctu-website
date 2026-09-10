@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ClerkProvider } from '@clerk/clerk-react'
+import { AuthTokenProvider } from './api/auth.js'
 import './index.css'
 import App from './App.jsx'
 
@@ -14,7 +15,9 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     {clerkPubKey ? (
       <ClerkProvider publishableKey={clerkPubKey}>
-        <App />
+        <AuthTokenProvider>
+          <App />
+        </AuthTokenProvider>
       </ClerkProvider>
     ) : (
       <App />
