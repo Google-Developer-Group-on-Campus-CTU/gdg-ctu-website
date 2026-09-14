@@ -1,7 +1,9 @@
 import { AppError } from "../../utils/http";
 import { getPaginationMeta, Pagination } from "../../utils/pagination";
-import { getAdminById } from "../admins/models/admin.queries";
-import { getMediaById } from "../media/models/media.queries";
+import { getAdminByIdService } from "../admins/admin.services";
+import { createMediaService } from "../media/media.services";
+import { uploadMedia } from "../../config/cloudinary/cloudinary.services";
+import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper";
 import { EventStatus } from "./models/event";
 import {
       countEvents,
@@ -17,9 +19,9 @@ import { CreateEventDTO, UpdateEventDTO, Event } from "./event.validations";
 import {
       getCache,
       setCache,
-      deleteCache,
       clearCacheByPrefix,
 } from "../../config/redis/redis.services";
+import { cleanupReplacedMedia } from "../../utils/mediaHelper";
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
@@ -40,40 +42,62 @@ const getPublishedAtForStatus = (
       return null;
 };
 
-const validateEventReferences = async (
-      data: Pick<CreateEventDTO, "createdBy"> &
-            Partial<Pick<CreateEventDTO, "coverMediaId">>,
-) => {
-      if (!(await getAdminById(data.createdBy))) {
+const assertAdminExists = async (adminId: string) => {
+      if (!(await getAdminByIdService(adminId))) {
             throw new AppError(
-                  400,
-                  "createdBy must reference an existing admin",
-            );
-      }
-
-      if (data.coverMediaId && !(await getMediaById(data.coverMediaId))) {
-            throw new AppError(
-                  400,
-                  "coverMediaId must reference existing media",
+                  404,
+                  "Admin user not found. You must be a registered admin to create an event.",
             );
       }
 };
+// END OF HELPER VALIDATION FUNCTIONS
 
 // MAIN SERVICE FUNCTIONS
-export const createEventService = async (data: CreateEventDTO) => {
-      if (await getEventBySlug(data.slug)) {
+interface CreateEventDataWithImageDTO {
+      eventData: CreateEventDTO;
+      file?: Buffer;
+      uploadedBy?: string;
+}
+interface UpdateEventDataWithImageDTO {
+      id: string;
+      event: UpdateEventDTO;
+      file?: Buffer;
+      uploadedBy?: string;
+}
+
+export const createEventService = async (data: CreateEventDataWithImageDTO) => {
+      if (await getEventBySlug(data.eventData.slug)) {
             throw new AppError(409, "Event slug already exists");
       }
 
-      await validateEventReferences(data);
+      if (!data.uploadedBy) {
+            throw new AppError(401, "Admin ID missing: Unauthorized");
+      }
+
+      await assertAdminExists(data.uploadedBy);
+      let coverMediaId = data.eventData.coverMediaId ?? undefined;
+
+      // If an image file is provided, upload to Cloudinary and create a media record
+      if (data.file && data.uploadedBy) {
+            const uploadResult = await uploadMedia(data.file, {
+                  folder: "media",
+                  resourceType: "image",
+            });
+            const mediaData = createMediaRecord(uploadResult, data.uploadedBy);
+            const mediaRecord = await createMediaService(mediaData);
+            coverMediaId = mediaRecord.id;
+      }
 
       const eventData: NewEventRecord = {
-            ...data,
-            publishedAt: getPublishedAtForStatus(data.status),
+            ...data.eventData,
+            createdBy: data.uploadedBy,
+            coverMediaId,
+            publishedAt: getPublishedAtForStatus(data.eventData.status),
       };
 
       await clearCacheByPrefix("events:");
-      return insertEvent(eventData);
+      const event = await insertEvent(eventData);
+      return event;
 };
 
 export const getEventsService = async (pagination: Pagination) => {
@@ -130,60 +154,81 @@ export const getEventBySlugService = async (slug: string) => {
       return event;
 };
 
-export const updateEventService = async (id: string, data: UpdateEventDTO) => {
-      const event = await getEventById(id);
-
+export const updateEventService = async (data: UpdateEventDataWithImageDTO) => {
+      const event = await getEventById(data.id);
       if (!event) {
             throw new AppError(404, "Event not found");
       }
 
-      if (data.slug && data.slug !== event.slug) {
-            const existingEvent = await getEventBySlug(data.slug);
+      if (data.event.slug && data.event.slug !== event.slug) {
+            const existingEvent = await getEventBySlug(data.event.slug);
 
             if (existingEvent) {
                   throw new AppError(409, "Event slug already exists");
             }
       }
 
-      if (data.createdBy && !(await getAdminById(data.createdBy))) {
-            throw new AppError(
-                  400,
-                  "createdBy must reference an existing admin",
-            );
+      if (!data.uploadedBy) {
+            throw new AppError(401, "Admin ID missing: Unauthorized");
       }
+      await assertAdminExists(data.uploadedBy);
 
-      if (data.coverMediaId && !(await getMediaById(data.coverMediaId))) {
-            throw new AppError(
-                  400,
-                  "coverMediaId must reference existing media",
-            );
-      }
-
-      const startAt = data.startAt ?? event.startAt;
-      const endAt = data.endAt ?? event.endAt;
+      const startAt = data.event.startAt ?? event.startAt;
+      const endAt = data.event.endAt ?? event.endAt;
 
       if (endAt < startAt) {
             throw new AppError(400, "endAt must not be earlier than startAt");
       }
 
-      const eventUpdate: Partial<NewEventRecord> = {
-            ...data,
-            updatedAt: new Date(),
-      };
-      const publishedAt = getPublishedAtForStatus(
-            data.status,
-            event.publishedAt,
-      );
+      // Keep track of existing cover media so we can clean up if replaced
+      const oldCoverMediaId = event.coverMediaId ?? undefined;
 
-      if (publishedAt !== undefined) {
-            eventUpdate.publishedAt = publishedAt;
+      try {
+            let newCoverMediaId = oldCoverMediaId;
+
+            // If a new image file is supplied, upload it and create a new media record.
+            if (data.file && data.uploadedBy) {
+                  const uploadResult = await uploadMedia(data.file, {
+                        folder: "media",
+                        resourceType: "image",
+                  });
+                  const mediaData = createMediaRecord(
+                        uploadResult,
+                        data.uploadedBy,
+                  );
+                  const newMedia = await createMediaService(mediaData);
+                  newCoverMediaId = newMedia.id;
+            }
+
+            // Prepare the update payload, including possibly new coverMediaId
+            const eventUpdate: Partial<NewEventRecord> = {
+                  ...data.event,
+                  coverMediaId: newCoverMediaId,
+                  updatedAt: new Date(),
+            };
+
+            const publishedAt = getPublishedAtForStatus(
+                  data.event.status,
+                  event.publishedAt,
+            );
+
+            if (publishedAt !== undefined) {
+                  eventUpdate.publishedAt = publishedAt;
+            }
+
+            const updatedEvent = await updateEvent(data.id, eventUpdate);
+            await Promise.all([
+                  cleanupReplacedMedia(oldCoverMediaId, newCoverMediaId),
+                  clearCacheByPrefix(`events:`),
+            ]);
+
+            return updatedEvent;
+      } catch (error) {
+            throw new AppError(
+                  401,
+                  "An Error has Occured: Failed to update team member data",
+            );
       }
-
-      const updatedEvent = await updateEvent(id, eventUpdate);
-
-      await deleteCache(`events:${id}`);
-      await clearCacheByPrefix(`events:`);
-      return updatedEvent;
 };
 
 export const deleteEventService = async (id: string) => {
@@ -193,7 +238,9 @@ export const deleteEventService = async (id: string) => {
             throw new AppError(404, "Event not found");
       }
 
-      await deleteCache(`events:${id}`);
-      await clearCacheByPrefix(`events:`);
-      await deleteEvent(id);
+      deleteEvent(id);
+      await Promise.all([
+            cleanupReplacedMedia(event.coverMediaId, null),
+            clearCacheByPrefix(`events:`),
+      ]);
 };
