@@ -1,16 +1,36 @@
-# React + Vite
+# Frontend (GDG-CTU website)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+This is the website visitors see, plus the private `/admin` dashboard. For the full project guide, setup steps, and troubleshooting, see the **root [`README.md`](../README.md)** and [`docs/GETTING-STARTED.md`](../docs/GETTING-STARTED.md).
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+cd frontend
+npm install
+copy .env.example .env
+```
 
-## React Compiler
+(On Mac/Linux: `cp .env.example .env`.)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Fill in `frontend/.env` (see `docs/GETTING-STARTED.md` for the walkthrough):
 
-## Expanding the Oxlint configuration
+- `VITE_API_URL` — backend address **including** `/GDGoC-CTU-Main/v0.0.1` (local example: `http://localhost:3000/GDGoC-CTU-Main/v0.0.1`)
+- `VITE_CLERK_PUBLISHABLE_KEY` — from the SAME Clerk app the backend uses
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+> After changing `.env`, restart the dev server — settings starting with `VITE_` load only at startup.
+
+## Commands (run from `frontend/`)
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Starts the site for coding with instant refresh (`vite`, usually at `http://localhost:5173`) |
+| `npm run build` | Builds the publish-ready site into `dist/` |
+| `npm run preview` | Shows the built site locally before publishing |
+| `npm run lint` | Checks code style with `oxlint` (fix warnings before opening a PR) |
+
+## Notes
+
+- Page addresses live in `src/App.jsx` (public pages vs `/admin` pages guarded by `ProtectedRoute`).
+- All backend calls go through `apiFetch` in `src/api/client.js` (it adds your login token automatically).
+- Page refresh on `/about`, `/events`, etc. works online thanks to `vercel.json` (sends all addresses to `index.html`).
+- Deploy goes to Vercel (root folder `frontend`, build `npm run build`, output `dist`) — full steps in `docs/deployment-plan.md`.
