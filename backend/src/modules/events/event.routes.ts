@@ -1,3 +1,4 @@
+import upload from "../../middleware/upload";
 import { Router } from "express";
 import {
       createEvent,
@@ -10,11 +11,11 @@ import {
 
 const router = Router();
 
-router.post("/", createEvent);
+router.post("/", upload.single("file"), createEvent);
 router.get("/", listEvents);
 router.get("/slug/:slug", getEventBySlug);
 router.get("/:id", getEvent);
-router.patch("/:id", updateEvent);
+router.patch("/:id", upload.single("file"), updateEvent);
 router.delete("/:id", removeEvent);
 
 export default router;
