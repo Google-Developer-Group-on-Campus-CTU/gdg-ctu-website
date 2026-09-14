@@ -14,8 +14,6 @@ export const teamMembers = pgTable("team_members", {
       firstName: varchar("first_name", { length: 100 }).notNull(),
       lastName: varchar("last_name", { length: 100 }).notNull(),
       slug: varchar("slug", { length: 255 }).notNull().unique(),
-      // Required role title (max 80, Q12). Dept trio nullable (Q3=b).
-      roleTitle: varchar("role_title", { length: 80 }).notNull(),
       bio: text("bio"),
       department: varchar("department", { length: 255 }),
       program: varchar("program", { length: 255 }),
