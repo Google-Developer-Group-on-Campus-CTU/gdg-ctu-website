@@ -1,7 +1,4 @@
-import {
-      uploadMedia,
-      deleteMedia as cloudinaryDeleteMedia,
-} from "../../config/cloudinary/cloudinary.services";
+import { deleteMediaCloudinaryService } from "../../config/cloudinary/cloudinary.services";
 import { AppError } from "../../utils/http";
 import { getAdminById } from "../admins/models/admin.queries";
 import { getPaginationMeta, Pagination } from "../../utils/pagination";
@@ -14,7 +11,7 @@ import {
       mediaHasReferences,
       updateMedia,
 } from "./models/media.queries";
-import { UpdateMediaDTO, CreateMediaDTO, Media } from "./media.validations";
+import { UpdateMediaDTO, Media } from "./media.validations";
 import {
       getCache,
       setCache,
@@ -114,7 +111,7 @@ export const deleteMediaService = async (id: string) => {
       // Delete from Cloudinary using publicId and resourceType.
       // Tolerate Cloudinary being disabled (503) so DB cleanup still proceeds.
       try {
-            await cloudinaryDeleteMedia(
+            await deleteMediaCloudinaryService(
                   media.publicId,
                   media.resourceType as "image" | "video" | "raw",
             );
