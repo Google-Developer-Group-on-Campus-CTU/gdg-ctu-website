@@ -3,6 +3,7 @@ import { getPaginationMeta, Pagination } from "../../utils/pagination";
 import {
       createMemberTerm,
       getMemberTerms,
+      getMemberTermByMemberAndTerm,
       countMemberTerms,
       getMemberTermById,
       updateMemberTerm,
@@ -42,11 +43,36 @@ export const createMemberTermService = async (data: CreateMemberTermsDTO) => {
             throw new AppError(404, "Term not found");
       }
 
+      // Prevent duplicate member-term assignments
+      const existingMemberTerm = await getMemberTermByMemberAndTerm(
+            data.memberId,
+            data.termId,
+      );
+
+      if (existingMemberTerm) {
+            throw new AppError(
+                  409,
+                  "Team member is already assigned to this term",
+            );
+      }
+
       // Invalidate related caches before persisting
       await clearCacheByPrefix("member-terms:");
 
       // Insert the record
       return createMemberTerm(data);
+};
+
+/**
+ * Retrieve a MemberTerm by memberId and termId.
+ * Returns the existing record or null.
+ */
+export const getMemberTermByMemberAndTermService = async (
+      memberId: string,
+      termId: string,
+) => {
+      const existing = await getMemberTermByMemberAndTerm(memberId, termId);
+      return existing ?? null;
 };
 
 export const getMemberTermsService = async (pagination: Pagination) => {

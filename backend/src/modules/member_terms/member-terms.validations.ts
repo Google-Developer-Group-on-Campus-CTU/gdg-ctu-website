@@ -10,9 +10,15 @@ export const CreateMemberTermsSchema = createInsertSchema(memberTerms)
             updatedAt: true,
       })
       .extend({
-            memberId: z.uuid({ message: "Member ID must be a valid UUID." }),
-            termId: z.uuid({ message: "Term ID must be a valid UUID." }),
-            role: z.string({ message: "Role is required." }),
+            memberId: z.uuid({
+                  message: "Member ID must be a valid UUID.",
+            }),
+            termId: z.uuid({
+                  message: "Term ID must be a valid UUID.",
+            }),
+            role: z.string({
+                  message: "Role is required.",
+            }),
             displayOrder: z.number().int().nonnegative().optional(),
             isActive: z.boolean().optional(),
       });
@@ -22,6 +28,18 @@ export const UpdateMemberTermSchema = CreateMemberTermsSchema.partial().refine(
       "At least one field is required",
 );
 
+/**
+ * Used when assigning/updating a team member's term.
+ * The memberId comes from the route/service, so it is not accepted here.
+ */
+export const UpdateTeamMemberTermSchema = CreateMemberTermsSchema.pick({
+      termId: true,
+      role: true,
+});
+
 export type MemberTerms = z.infer<typeof MemberTermsSchema>;
 export type CreateMemberTermsDTO = z.infer<typeof CreateMemberTermsSchema>;
 export type UpdateMemberTermDTO = z.infer<typeof UpdateMemberTermSchema>;
+export type UpdateTeamMemberTermDTO = z.infer<
+      typeof UpdateTeamMemberTermSchema
+>;
