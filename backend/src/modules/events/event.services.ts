@@ -22,6 +22,12 @@ import {
       clearCacheByPrefix,
 } from "../../config/redis/redis.services";
 import { cleanupReplacedMedia } from "../../utils/mediaHelper";
+import {
+      rollbackCloudinaryUpload,
+      CloudinaryUploadResult,
+} from "../../config/cloudinary/utils/cloudinary-rollback-helper";
+import logger from "../../utils/logger";
+import { assertAdminExists } from "../auth/assertAdminExistsHelper";
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
@@ -40,15 +46,6 @@ const getPublishedAtForStatus = (
       }
 
       return null;
-};
-
-const assertAdminExists = async (adminId: string) => {
-      if (!(await getAdminByIdService(adminId))) {
-            throw new AppError(
-                  404,
-                  "Admin user not found. You must be a registered admin to create an event.",
-            );
-      }
 };
 // END OF HELPER VALIDATION FUNCTIONS
 
@@ -77,27 +74,48 @@ export const createEventService = async (data: CreateEventDataWithImageDTO) => {
       await assertAdminExists(data.uploadedBy);
       let coverMediaId = data.eventData.coverMediaId ?? undefined;
 
-      // If an image file is provided, upload to Cloudinary and create a media record
-      if (data.file && data.uploadedBy) {
-            const uploadResult = await uploadMedia(data.file, {
-                  folder: "media",
-                  resourceType: "image",
+      let uploadResult: CloudinaryUploadResult | null = null;
+      try {
+            // If an image file is provided, upload to Cloudinary and create a media record
+            if (data.file && data.uploadedBy) {
+                  const uploadResult = await uploadMedia(data.file, {
+                        folder: "media",
+                        resourceType: "image",
+                  });
+                  const mediaData = createMediaRecord(
+                        uploadResult,
+                        data.uploadedBy,
+                  );
+                  const mediaRecord = await createMediaService(mediaData);
+                  coverMediaId = mediaRecord.id;
+            }
+
+            const eventData: NewEventRecord = {
+                  ...data.eventData,
+                  createdBy: data.uploadedBy,
+                  coverMediaId,
+                  publishedAt: getPublishedAtForStatus(data.eventData.status),
+            };
+
+            await clearCacheByPrefix("events:");
+            const event = await insertEvent(eventData);
+            return event;
+      } catch (error: any) {
+            if (uploadResult) {
+                  await rollbackCloudinaryUpload(uploadResult);
+            }
+
+            logger.error("Failed to create event data", {
+                  message: error.message,
+                  stack: error.stack,
             });
-            const mediaData = createMediaRecord(uploadResult, data.uploadedBy);
-            const mediaRecord = await createMediaService(mediaData);
-            coverMediaId = mediaRecord.id;
+
+            if (error instanceof AppError) {
+                  throw error;
+            }
+
+            throw new AppError(400, "Failed to create event data");
       }
-
-      const eventData: NewEventRecord = {
-            ...data.eventData,
-            createdBy: data.uploadedBy,
-            coverMediaId,
-            publishedAt: getPublishedAtForStatus(data.eventData.status),
-      };
-
-      await clearCacheByPrefix("events:");
-      const event = await insertEvent(eventData);
-      return event;
 };
 
 export const getEventsService = async (pagination: Pagination) => {
@@ -183,6 +201,8 @@ export const updateEventService = async (data: UpdateEventDataWithImageDTO) => {
       // Keep track of existing cover media so we can clean up if replaced
       const oldCoverMediaId = event.coverMediaId ?? undefined;
 
+      // Track the Cloudinary upload result so we can roll back if DB fails
+      let uploadResult: CloudinaryUploadResult | null = null;
       try {
             let newCoverMediaId = oldCoverMediaId;
 
@@ -223,7 +243,20 @@ export const updateEventService = async (data: UpdateEventDataWithImageDTO) => {
             ]);
 
             return updatedEvent;
-      } catch (error) {
+      } catch (error: any) {
+            if (uploadResult) {
+                  await rollbackCloudinaryUpload(uploadResult);
+            }
+
+            logger.error("Failed to update event data", {
+                  message: error.message,
+                  stack: error.message,
+            });
+
+            if (error instanceof AppError) {
+                  throw error;
+            }
+
             throw new AppError(
                   401,
                   "An Error has Occured: Failed to update team member data",
