@@ -4,7 +4,7 @@ import {
       AppError,
       getPagination,
       getStringParam,
-      handleControllerError as handleError,
+      handleControllerError,
       validateBody,
       validateUuid,
 } from "../../utils/http";
@@ -83,7 +83,7 @@ export const createTeamMemberWithImage = async (
                   message: error.message,
                   stack: error.stack,
             });
-            return handleError(
+            return handleControllerError(
                   res,
                   error,
                   "Failed to create team member with image",
@@ -100,7 +100,11 @@ export const listTeamMembers = async (req: Request, res: Response) => {
                   .status(200)
                   .json({ success: true, teamMembers, pagination });
       } catch (error: any) {
-            return handleError(res, error, "Failed to list team members");
+            return handleControllerError(
+                  res,
+                  error,
+                  "Failed to list team members",
+            );
       }
 };
 
@@ -110,7 +114,11 @@ export const getTeamMember = async (req: Request, res: Response) => {
             const teamMember = await getTeamMemberByIdService(id);
             return res.status(200).json({ success: true, teamMember });
       } catch (error: any) {
-            return handleError(res, error, "Failed to get team member");
+            return handleControllerError(
+                  res,
+                  error,
+                  "Failed to get team member",
+            );
       }
 };
 
@@ -120,7 +128,11 @@ export const getTeamMemberBySlug = async (req: Request, res: Response) => {
             const teamMember = await getTeamMemberBySlugService(slug);
             return res.status(200).json({ success: true, teamMember });
       } catch (error: any) {
-            return handleError(res, error, "Failed to get team member");
+            return handleControllerError(
+                  res,
+                  error,
+                  "Failed to get team member",
+            );
       }
 };
 
@@ -128,6 +140,18 @@ export const updateTeamMember = async (req: Request, res: Response) => {
       try {
             const id = validateUuid(req.params.id);
             const file = (req as any).file?.buffer;
+
+            const termId =
+                  typeof req.body.termId === "string" &&
+                  req.body.termId.trim() !== ""
+                        ? req.body.termId.trim()
+                        : undefined;
+
+            const role =
+                  typeof req.body.role === "string" &&
+                  req.body.role.trim() !== ""
+                        ? req.body.role.trim()
+                        : undefined;
 
             const memberPayload = extractMultipartPayload(req.body, "member", [
                   "uploadedBy",
@@ -145,12 +169,20 @@ export const updateTeamMember = async (req: Request, res: Response) => {
                   });
             }
 
-            const updated = await updateTeamMemberService({
-                  id,
-                  memberData: memberData,
-                  file: file,
-                  uploadedBy: clerkId ?? "",
-            });
+            const updated = await updateTeamMemberService(
+                  {
+                        id,
+                        memberData,
+                        file,
+                        uploadedBy: clerkId,
+                  },
+                  termId && role
+                        ? {
+                                termId,
+                                role,
+                          }
+                        : undefined,
+            );
 
             return res.status(200).json({
                   success: true,
@@ -158,7 +190,11 @@ export const updateTeamMember = async (req: Request, res: Response) => {
                   teamMember: updated,
             });
       } catch (error) {
-            return handleError(res, error, "Failed to update team member");
+            return handleControllerError(
+                  res,
+                  error,
+                  "Failed to update team member",
+            );
       }
 };
 
@@ -171,6 +207,10 @@ export const removeTeamMember = async (req: Request, res: Response) => {
                   message: "Team member deleted successfully",
             });
       } catch (error: any) {
-            return handleError(res, error, "Failed to delete team member");
+            return handleControllerError(
+                  res,
+                  error,
+                  "Failed to delete team member",
+            );
       }
 };

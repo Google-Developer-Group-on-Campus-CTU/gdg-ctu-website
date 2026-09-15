@@ -23,15 +23,18 @@ import {
       deleteMediaCloudinaryService,
 } from "../../config/cloudinary/cloudinary.services";
 import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper";
-import { createMemberTermService } from "../member_terms/member-terms.services";
+import {
+      createMemberTermService,
+      getMemberTermByMemberAndTermService,
+      updateMemberTermService,
+} from "../member_terms/member-terms.services";
 import { cleanupReplacedMedia } from "../../utils/mediaHelper";
 import logger from "../../utils/logger";
-import { getTermByIdService } from "../terms/terms.services";
-
-const isCloudinaryDisabledError = (error: any): boolean =>
-      (error instanceof AppError && error.statusCode === 503) ||
-      (typeof error?.message === "string" &&
-            error.message.includes("not configured"));
+import {
+      rollbackCloudinaryUpload,
+      CloudinaryUploadResult,
+} from "../../config/cloudinary/utils/cloudinary-rollback-helper";
+import { assertAdminExists } from "../auth/assertAdminExistsHelper";
 // DTO for the multipart "create with image" endpoint.
 interface CreateTeamMemberWithImageDTO {
       memberData: NewTeamMemberRecord;
@@ -66,20 +69,22 @@ export const createTeamMemberService = async (
             throw new AppError(409, "Team member slug already exists");
       }
 
-      if (!(await getTermByIdService(termData.termId))) {
-            throw new AppError(409, "Term not found");
+      if (!data.uploadedBy) {
+            throw new AppError(401, "Admin ID missing: Unauthorized");
       }
+      await assertAdminExists(data.uploadedBy);
 
-      // Upload the profile image to cloudinary
-      const uploadResult = await uploadMedia(data.file, {
-            folder: "media",
-            resourceType: "image",
-      });
-      // Normalize the data for Database meta data storing
-      const mediaData = createMediaRecord(uploadResult, data.uploadedBy);
-      const userProfileImage = await createMediaService(mediaData);
-
+      let uploadResult: CloudinaryUploadResult | null = null;
       try {
+            // Upload the profile image to cloudinary
+            uploadResult = await uploadMedia(data.file, {
+                  folder: "media",
+                  resourceType: "image",
+            });
+            // Normalize the data for Database meta data storing
+            const mediaData = createMediaRecord(uploadResult, data.uploadedBy);
+            const userProfileImage = await createMediaService(mediaData);
+
             const teamMember = await insertTeamMember(
                   data.memberData,
                   userProfileImage.id,
@@ -93,22 +98,10 @@ export const createTeamMemberService = async (
             await clearCacheByPrefix("team-members:");
             return teamMember;
       } catch (error: any) {
-            // Database creation failed, delete the uploaded photo immediately.
-            try {
-                  await deleteMediaCloudinaryService(
-                        uploadResult.public_id,
-                        (uploadResult.resource_type === "auto"
-                              ? "image"
-                              : uploadResult.resource_type) as
-                              "image" | "video" | "raw",
-                  );
-            } catch (cleanupError: any) {
-                  if (!isCloudinaryDisabledError(cleanupError)) {
-                        throw cleanupError;
-                  }
-                  logger.warn(
-                        "Cloudinary disabled - skipping Cloudinary rollback delete",
-                  );
+            // Moved the cloduinary rollback to a reusable function
+            // found at the config cloudinary folder
+            if (uploadResult) {
+                  await rollbackCloudinaryUpload(uploadResult);
             }
 
             // Log the actual root cause before throwing the AppError
@@ -184,11 +177,17 @@ export const getTeamMemberBySlugService = async (slug: string) => {
 
 export const updateTeamMemberService = async (
       data: UpdateTeamMemberDataWithImageDTO,
+      termData?: FetchMemberTermDetailsDTO,
 ) => {
       const teamMember = await getTeamMemberById(data.id);
       if (!teamMember) {
             throw new AppError(404, "Team member not found");
       }
+
+      if (!data.uploadedBy) {
+            throw new AppError(401, "Admin ID missing: Unauthorized");
+      }
+      await assertAdminExists(data.uploadedBy);
 
       if (data.memberData.slug && data.memberData.slug !== teamMember.slug) {
             const existingTeamMember = await getTeamMemberBySlug(
@@ -204,8 +203,7 @@ export const updateTeamMemberService = async (
       const oldMediaId = teamMember.profileMediaId ?? undefined;
 
       // Track the Cloudinary upload result so we can roll back if DB fails
-      let uploadResult: any = null;
-
+      let uploadResult: CloudinaryUploadResult | null = null;
       try {
             let newMediaId = oldMediaId;
 
@@ -230,6 +228,28 @@ export const updateTeamMemberService = async (
                   updatedAt: new Date(),
             });
 
+            if (termData?.termId && termData?.role) {
+                  // Check if the member already has an assignment for this term
+                  const existingMemberTerm =
+                        await getMemberTermByMemberAndTermService(
+                              teamMember.id,
+                              termData.termId,
+                        );
+
+                  if (existingMemberTerm) {
+                        // Update only the role – preserves the original record (history)
+                        await updateMemberTermService(existingMemberTerm.id, {
+                              role: termData.role,
+                        });
+                  } else {
+                        // No existing assignment – create a new one
+                        await createMemberTermService({
+                              ...termData,
+                              memberId: teamMember.id,
+                        });
+                  }
+            }
+
             await Promise.all([
                   cleanupReplacedMedia(oldMediaId, newMediaId),
                   clearCacheByPrefix("team-members:"),
@@ -237,40 +257,22 @@ export const updateTeamMemberService = async (
 
             return toTeamMemberResponse(updatedTeamMember);
       } catch (error: any) {
-            // Guard clause: Rollback Cloudinary upload if DB/subsequent steps fail
+            // Moved the cloduinary rollback to a reusable function
+            // found at the config cloudinary folder
             if (uploadResult) {
-                  try {
-                        await deleteMediaCloudinaryService(
-                              uploadResult.public_id,
-                              (uploadResult.resource_type === "auto"
-                                    ? "image"
-                                    : uploadResult.resource_type) as
-                                    "image" | "video" | "raw",
-                        );
-                  } catch (cleanupError: any) {
-                        if (!isCloudinaryDisabledError(cleanupError)) {
-                              logger.error(
-                                    "Failed to delete Cloudinary media during rollback",
-                                    {
-                                          message: cleanupError.message,
-                                    },
-                              );
-                        } else {
-                              logger.warn(
-                                    "Cloudinary disabled - skipping Cloudinary rollback delete",
-                              );
-                        }
-                  }
+                  await rollbackCloudinaryUpload(uploadResult);
             }
 
             logger.error("Failed to update team member data", {
                   message: error.message,
                   stack: error.stack,
             });
-            throw new AppError(
-                  400, // Changed from 401 to 400 since this isn't an auth error
-                  "An Error has Occured: Failed to update team member data",
-            );
+
+            if (error instanceof AppError) {
+                  throw error;
+            }
+
+            throw new AppError(400, "Failed to update team member data");
       }
 };
 
