@@ -7,14 +7,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../css/events_design.css">
+    <link rel="stylesheet" href="../../css/events_design.css">
 </head>
 <body>
     <div class="hero">
-        <img class="doodle doodle-1" src="../public/legacy-images/miscellaneous/Group 168.png" alt="Doodle 1">
-        <img class="doodle doodle-3" src="../public/legacy-images/miscellaneous/Group 169.png" alt="Doodle 2">
-        <img class="doodle doodle-2" src="../public/legacy-images/miscellaneous/Group 170.png" alt="Doodle 3">
-        <img class="doodle doodle-4" src="../public/legacy-images/miscellaneous/Group 171.png" alt="Doodle 4">
+        <img class="doodle doodle-1" src="../../public/legacy-images/miscellaneous/Group 168.png" alt="Doodle 1">
+        <img class="doodle doodle-3" src="../../public/legacy-images/miscellaneous/Group 169.png" alt="Doodle 2">
+        <img class="doodle doodle-2" src="../../public/legacy-images/miscellaneous/Group 170.png" alt="Doodle 3">
+        <img class="doodle doodle-4" src="../../public/legacy-images/miscellaneous/Group 171.png" alt="Doodle 4">
 
         <button class="events-btn" disabled>
             <span class="dot"></span>
@@ -27,9 +27,117 @@
         <p>From hands-on workshops to community meetups, discover the</p>
         <p>events where CTU students learn, connect, and build together.</p>
 
-        <a href="#" target="_blank" class="cta-btn">
-            View Upcoming Events <div><h1 class="arrow-down">↓</h1></div>
+        <a href="#upcoming-events" class="cta-btn">
+            View Upcoming Events <div><span class="arrow-down">↓</span></div>
         </a>
+
+        <hr id="upcoming-events">
+        
+        <button class="upcoming-events-btn" disabled>
+            <span class="up-dot"></span>
+            UPCOMING EVENTS
+        </button>
+
+        <h1>What's happening next</h1>
+
+        <div class="carousel-wrapper">
+            <div class="carousel" id="carousel">
+                <div class="card"></div>
+                <div class="card"></div>
+                <div class="card"></div>
+                <div class="card"></div>
+                <div class="card"></div>
+                <div class="card"></div>
+            </div>
+            <button class="carousel-arrow-left" onclick="scrollCarouselLeft()">‹</button>
+            <button class="carousel-arrow-right" onclick="scrollCarouselRight()">›</button>
+        </div>
+
+        <hr>
+
+        <button class="featured-events-btn" disabled>
+            <span class="feat-dot"></span>
+            FEATURED EVENTS
+        </button>
+
+        <h1>More to learn.</h1>
+        <h1>More to build.</h1>
+
+        <div class="carousel-wrapper">
+            <div class="carousel" id="carousel">
+                <div class="card-featured"></div>
+            </div>
+        </div>
+
+        <hr>
+
+        <button class="past-events-btn" disabled>
+            <span class="past-dot"></span>
+                PAST EVENTS
+        </button>
+
+        <h1>What we've</h1>
+        <h1>built together</h1>
+
+        <div class="card-rows">
+                <div class="card-past"></div>
+                <div class="card-past"></div>
+                <div class="card-past"></div>
+                <div class="card-past"></div>
+                <div class="card-past"></div>
+                <div class="card-past"></div>
+                <div class="card-past"></div>
+                <div class="card-past"></div>
+                <div class="card-past"></div>
+                <div class="card-past"></div>
+                <div class="card-past"></div>
+                <div class="card-past"></div>
+        </div>
+
+        <hr>
+
+        <div class="box-event">
+            <div class="dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-blue"></span>
+                <span class="dot dot-green"></span>
+                <span class="dot dot-yellow"></span>
+            </div>
+
+            <h2>Don't just watch from</h2>
+            <h2>the sidelines.</h2>
+            <p>Come learn, meet people, and build something with us.</p>
+
+            <a href="#" class="register">Register now <span class="arrow-diagonal">↗</span></a>
+        </div>
+
     </div>
 </body>
+<script>
+
+const carousel = document.getElementById('carousel');
+const wrapper = document.querySelector('.carousel-wrapper');
+
+function updateFades() {
+    const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+    const scrollPos = carousel.scrollLeft;
+
+    wrapper.classList.toggle('show-left', scrollPos > 5);
+
+    wrapper.classList.toggle('show-right', scrollPos < maxScroll - 5);
+}
+
+carousel.addEventListener('scroll', updateFades);
+window.addEventListener('load', updateFades);
+
+function scrollCarouselLeft() {
+    const carousel = document.getElementById('carousel');
+    carousel.scrollBy({ left: -220, behavior: 'smooth' });
+}
+
+function scrollCarouselRight() {
+    const carousel = document.getElementById('carousel');
+    carousel.scrollBy({ left: 220, behavior: 'smooth' });
+}
+</script>
 </html>
