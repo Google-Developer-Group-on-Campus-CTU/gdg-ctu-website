@@ -29,6 +29,12 @@ export const getTermById = async (id: string) => {
       return term;
 };
 
+// Retrieve a term by its unique name – used to enforce name uniqueness on creation
+export const getTermByName = async (name: string) => {
+      const [term] = await db.select().from(terms).where(eq(terms.name, name));
+      return term;
+};
+
 export const updateTerm = async (id: string, data: Partial<NewTermRecord>) => {
       const [term] = await db
             .update(terms)
