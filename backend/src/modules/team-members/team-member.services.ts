@@ -49,13 +49,14 @@ interface FetchMemberTermDetailsDTO {
 // DTO for multipart updating member data with image
 interface UpdateTeamMemberDataWithImageDTO {
       id: string;
-      memberData: UpdateTeamMemberDTO;
-      file: Buffer;
+      memberData?: UpdateTeamMemberDTO;
+      file?: Buffer;
       uploadedBy: string;
 }
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
+const DEFAULT_MEMBER_MEDIA_FOLDER = "team-members-media";
 
 // Validate Response
 export const toTeamMemberResponse = (teamMember: TeamMember | null) =>
@@ -78,7 +79,7 @@ export const createTeamMemberService = async (
       try {
             // Upload the profile image to cloudinary
             uploadResult = await uploadMedia(data.file, {
-                  folder: "media",
+                  folder: DEFAULT_MEMBER_MEDIA_FOLDER,
                   resourceType: "image",
             });
             // Normalize the data for Database meta data storing
@@ -189,7 +190,7 @@ export const updateTeamMemberService = async (
       }
       await assertAdminExists(data.uploadedBy);
 
-      if (data.memberData.slug && data.memberData.slug !== teamMember.slug) {
+      if (data.memberData?.slug && data.memberData.slug !== teamMember.slug) {
             const existingTeamMember = await getTeamMemberBySlug(
                   data.memberData.slug,
             );
@@ -210,7 +211,7 @@ export const updateTeamMemberService = async (
             // If a new file is supplied, upload it and create a new media record.
             if (data.file && data.uploadedBy) {
                   uploadResult = await uploadMedia(data.file, {
-                        folder: "media",
+                        folder: DEFAULT_MEMBER_MEDIA_FOLDER,
                         resourceType: "image",
                   });
                   const mediaData = createMediaRecord(
@@ -221,9 +222,12 @@ export const updateTeamMemberService = async (
                   newMediaId = newMedia.id;
             }
 
+            // Prepare member updates – may be undefined (image‑only or term‑only updates)
+            const memberUpdates: UpdateTeamMemberDTO =
+                  data.memberData ?? ({} as UpdateTeamMemberDTO);
             // Update the team‑member, ensuring we include the (possibly new) profileMediaId.
             const updatedTeamMember = await updateTeamMember(data.id, {
-                  ...data.memberData,
+                  ...memberUpdates,
                   profileMediaId: newMediaId,
                   updatedAt: new Date(),
             });
@@ -278,7 +282,6 @@ export const updateTeamMemberService = async (
 
 export const deleteTeamMemberService = async (id: string) => {
       const teamMember = await getTeamMemberById(id);
-
       if (!teamMember) {
             throw new AppError(404, "Team member not found");
       }

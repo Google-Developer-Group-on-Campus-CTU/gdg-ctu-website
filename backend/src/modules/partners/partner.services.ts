@@ -24,6 +24,9 @@ import logger from "../../utils/logger";
 import { assertAdminExists } from "../auth/assertAdminExistsHelper";
 import { clearCacheByPrefix } from "../../config/redis/redis.services";
 
+// Folder directory for partners media
+const DEFAULT_PARTNERS_MEDIA_FOLDER = "partners-media";
+
 export const createPartnerService = async (
       data: CreatePartnerDTO,
       clerkId: string,
@@ -44,7 +47,7 @@ export const createPartnerService = async (
             let logoMediaId = data.logoMediaId ?? undefined;
             if (file) {
                   const uploadResult = await uploadMedia(file, {
-                        folder: "media",
+                        folder: DEFAULT_PARTNERS_MEDIA_FOLDER,
                         resourceType: "image",
                   });
                   const mediaData = createMediaRecord(uploadResult, clerkId);
@@ -145,7 +148,7 @@ export const updatePartnerService = async (
             // If a new logo image is supplied, upload it and replace the existing media
             if (file) {
                   uploadResult = await uploadMedia(file, {
-                        folder: "media",
+                        folder: DEFAULT_PARTNERS_MEDIA_FOLDER,
                         resourceType: "image",
                   });
                   const mediaData = createMediaRecord(uploadResult, clerkId);
