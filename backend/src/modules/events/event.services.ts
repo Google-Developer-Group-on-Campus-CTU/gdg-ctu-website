@@ -31,6 +31,7 @@ import { assertAdminExists } from "../auth/assertAdminExistsHelper";
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
+const DEFAULT_EVENT_MEDIA_FOLDER = "event-media";
 
 // HELPER VALIDATION FUNCTIONS
 const getPublishedAtForStatus = (
@@ -79,7 +80,7 @@ export const createEventService = async (data: CreateEventDataWithImageDTO) => {
             // If an image file is provided, upload to Cloudinary and create a media record
             if (data.file && data.uploadedBy) {
                   const uploadResult = await uploadMedia(data.file, {
-                        folder: "media",
+                        folder: DEFAULT_EVENT_MEDIA_FOLDER,
                         resourceType: "image",
                   });
                   const mediaData = createMediaRecord(
@@ -209,7 +210,7 @@ export const updateEventService = async (data: UpdateEventDataWithImageDTO) => {
             // If a new image file is supplied, upload it and create a new media record.
             if (data.file && data.uploadedBy) {
                   const uploadResult = await uploadMedia(data.file, {
-                        folder: "media",
+                        folder: DEFAULT_EVENT_MEDIA_FOLDER,
                         resourceType: "image",
                   });
                   const mediaData = createMediaRecord(
