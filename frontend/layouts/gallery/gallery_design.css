@@ -24,7 +24,7 @@ body {
 }
 
 /* pill badge */
-.events-btn {
+.gallery-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -42,7 +42,7 @@ body {
     margin-top: -50px;
 }
 
-.events-btn .dot {
+.gallery-btn .dot {
     display: inline-block;
     flex-shrink: 0;
     width: 10px;
@@ -82,7 +82,7 @@ p:nth-of-type(2) {
     justify-content: center;
     gap: 20px;
     height: 45px;
-    width: 300px;
+    width: 250px;
     background: #5ADB6C;
     border-radius: 999px;
     color: #1a1a1a;
@@ -104,10 +104,10 @@ p:nth-of-type(2) {
     height: 60px;
 }
 
-.doodle-1 { top: 45px;  left: 20%;  padding: 20px; height: 70px;  width: 70px; }
-.doodle-2 { top: 30px;  right: 16%; padding: 20px; width: 120px; height: 120px; }
-.doodle-3 { top: 250px; left: 13%;  padding: 20px; width: 100px; height: 100px; transform: rotate(15deg); }
-.doodle-4 { top: 250px; right: 13%; padding: 20px; width: 100px; height: 100px; }
+.doodle-1 { top: 45px;  left: 15%;  padding: 20px; height: 120px;  width: 120px; }
+.doodle-2 { top: 30px;  right: 13%; padding: 20px; width: 140px; height: 140px; }
+.doodle-3 { top: 250px; left: 13%;  padding: 20px; width: 120px; height: 120px; transform: rotate(15deg); }
+.doodle-4 { top: 250px; right: 13%; padding: 20px; width: 120px; height: 120px; }
 
 .doodle path,
 .doodle circle {
@@ -134,7 +134,7 @@ hr {
   width: 100%;
 }
 
-.upcoming-events-btn {
+.captured-moments-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -152,7 +152,7 @@ hr {
     margin-top: 50px;
 }
 
-.upcoming-events-btn .up-dot {
+.captured-moments-btn .cap-dot {
     flex-shrink: 0;
     width: 10px;
     height: 10px;
