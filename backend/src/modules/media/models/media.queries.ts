@@ -3,6 +3,7 @@ import { db } from "../../../config/connectDB";
 import { Pagination } from "../../../utils/pagination";
 import { eventSpeakers } from "../../event-speakers/models/event-speaker";
 import { events } from "../../events/models/event";
+import { memberTerms } from "../../member_terms/models/member-terms";
 import { siteContent } from "../../site-content/models/site-content";
 import { teamMembers } from "../../team-members/models/team-member";
 import { media } from "./media";
@@ -67,11 +68,19 @@ export const mediaHasReferences = async (id: string) => {
             .where(eq(eventSpeakers.profileMediaId, id))
             .limit(1);
 
+      const [memberTerm] = await db
+            .select({ id: memberTerms.id })
+            .from(memberTerms)
+            .where(eq(memberTerms.profileMediaId, id))
+            .limit(1);
+
       const [content] = await db
             .select({ id: siteContent.id })
             .from(siteContent)
             .where(eq(siteContent.mediaId, id))
             .limit(1);
 
-      return Boolean(teamMember || event || eventSpeaker || content);
+      return Boolean(
+            teamMember || event || eventSpeaker || memberTerm || content,
+      );
 };

@@ -14,6 +14,7 @@ import {
       getTeamMemberByIdService,
       getTeamMemberBySlugService,
       getTeamMembersService,
+      getActiveTeamMembersByTermService,
       updateTeamMemberService,
 } from "./team-member.services";
 import { UpdateTeamMemberDTO } from "./team-member.validations";
@@ -125,6 +126,35 @@ export const getTeamMemberBySlug = async (req: Request, res: Response) => {
                   res,
                   error,
                   "Failed to get team member",
+            );
+      }
+};
+
+export const listTeamMembersByTerm = async (req: Request, res: Response) => {
+      try {
+            const termId = validateUuid(req.params.termId, "termId");
+            // Filters
+            const termName = getStringParam(req.params.termName, "termName");
+            const currentOnly = req.body.currentOnly;
+            const featuredOnly = req.body.featuredOnly;
+
+            const teamMembers = await getActiveTeamMembersByTermService({
+                  termId,
+                  termName,
+                  currentOnly,
+                  featuredOnly,
+            });
+            return res.status(200).json({
+                  success: true,
+                  count: teamMembers.length,
+                  message: `Successfully listed team members for term ${termId}`,
+                  teamMembers,
+            });
+      } catch (error: any) {
+            return handleControllerError(
+                  res,
+                  error,
+                  "Failed to list team members by term",
             );
       }
 };
