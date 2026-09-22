@@ -249,6 +249,13 @@ p:nth-of-type(2) {
     border-radius: 20px;
 }
 
+.action-img {
+    width: 250px;
+    height: 120px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
 hr {
   margin-top: 80px;
   border: none;
