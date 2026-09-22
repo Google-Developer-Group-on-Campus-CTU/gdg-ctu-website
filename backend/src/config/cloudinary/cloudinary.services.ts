@@ -2,6 +2,8 @@
 import { UploadApiOptions, UploadApiResponse } from "cloudinary";
 import cloudinary, { isCloudinaryEnabled } from "./cloudinary.config";
 import { AppError } from "../../utils/http";
+import { createMediaRecord } from "./utils/cloudinary-media-data-helper";
+import { insertBulkMediaService } from "../../modules/media/media.services";
 
 /**
  * Cloudinary upload service.
@@ -103,6 +105,51 @@ export async function uploadMedia(
             uploadStream.end(buffer);
       });
 }
+
+/**
+ * Handles bulk Cloudinary uploads and local DB metadata storage.
+ * @returns Array of local database UUIDs/IDs for the uploaded media.
+ */
+interface BulkUploadOptions {
+      files: Express.Multer.File[];
+      folderPath: string; // e.g., "teams/galleries" (will prepend GDGoC/ automatically via uploadMedia)
+      uploadedBy: string; // User ID performing the action
+}
+
+export const processBulkMediaUpload = async ({
+      files,
+      folderPath,
+      uploadedBy,
+}: BulkUploadOptions): Promise<string[]> => {
+      if (!files || !files.length) {
+            throw new AppError(
+                  400,
+                  "Files not found, cannot proceed to bulk upload",
+            );
+      }
+
+      // Upload all files concurrently to cloudinary
+      const uploadPromises = files.map((file) =>
+            uploadMedia(file.buffer, {
+                  folder: `GDGoC/${folderPath}` || `GDGoC`,
+                  resourceType: "image",
+            }),
+      );
+
+      const cloudinaryResults = await Promise.all(uploadPromises);
+
+      // Map cloudinary results to the NewMediaRecord DTO
+      const mediaRecordsToInsert = cloudinaryResults.map((result) =>
+            createMediaRecord(result, uploadedBy),
+      );
+
+      // Store metadata to local DB
+      const savedMediaRecords =
+            await insertBulkMediaService(mediaRecordsToInsert);
+
+      // Return the local database IDs for referencing
+      return savedMediaRecords.map((record) => record.id);
+};
 
 /**
  * Delete a Cloudinary asset by its public ID.
