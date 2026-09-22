@@ -39,7 +39,7 @@ fetch('../partials/index.html')
     
     document.querySelectorAll('.nav-links a, .mobile-nav a').forEach(link => {
     link.classList.remove('active');
-    if (link.textContent.trim() === 'Events') {
+    if (link.textContent.trim() === 'Gallery') {
         link.classList.add('active');
     }
     });
