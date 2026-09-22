@@ -8,7 +8,7 @@
       margin: 0;
       background: #fff;
       color: #111;
-      font-family: "Google Sans Flex", "Google Sans", Arial, Helvetica, sans-serif;
+      font-family: 'Google Sans Flex', sans-serif;
       overflow-x: hidden;
     }
 
@@ -285,7 +285,7 @@
         linear-gradient(#eeeeee 1px, transparent 1px),
         linear-gradient(90deg, #eeeeee 1px, transparent 1px);
       background-size: 26px 26px;
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: 'Google Sans Flex', sans-serif;
     }
 
     .footer-content {
@@ -298,7 +298,10 @@
       box-sizing: border-box;
     }
 
-    .footer-brand { width: 52%; position: relative; }
+    .footer-brand { 
+      width: 52%; 
+      position: relative; 
+    }
 
     .gdg-symbol {
       position: relative;
@@ -353,26 +356,39 @@
 
     .big-logo {
       position: absolute;
-      left: clamp(-40px, -4vw, -20px);
+      left: 98%;
+      transform: translateX(-50%);  /* ADD */
       top: clamp(185px, 20vw, 205px);
-      white-space: nowrap;
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: clamp(65px, 10.5vw, 155px);
-      font-weight: 900;
-      line-height: 1;
-      letter-spacing: clamp(-5px, -0.6vw, -8px);
-      color: white;
-      -webkit-text-stroke: 2px #111;
       display: flex;
-      align-items: baseline;
+      align-items: center;
+      justify-content: center;
+      width: 1100px;
+      margin-top: -15px;
+    }
+    
+    .gdg-logo {
+      width: clamp(1200px, 34vw, 1200px);
+      height: auto;
+      align-items: center;
+      justify-content: center;
     }
 
-    .big-logo span { display: inline-block; -webkit-text-stroke: 2px #111; }
-    .big-logo .blue   { color: #4285f4; }
-    .big-logo .red    { color: #ea4335; }
-    .big-logo .yellow { color: #fbbc05; }
-    .big-logo .green  { color: #34a853; }
-    .big-logo .dash   { color: #ea4335; margin-left: 3px; margin-right: 3px; }
+    .mail-decor {
+      text-decoration: none;
+      transition: text-decoration-color 1s ease;
+    }
+    .mail-decor:hover {
+      text-decoration: underline;
+    }
+
+    .address-decor {
+      text-decoration: none;
+      transition: text-decoration-color 1s ease;
+    }
+
+    .address-decor:hover {
+      text-decoration: underline;
+    }
 
     .footer-links {
       display: flex;
@@ -406,12 +422,12 @@
     .footer-column a:hover { text-decoration: underline; }
 
     .contact { min-width: clamp(120px, 12vw, 155px); }
-    .contact > a:first-of-type { text-decoration: underline; margin-bottom: 15px; }
+    .contact > a:first-of-type { margin-bottom: 15px; }
     .address-title { margin-bottom: 9px !important; }
     .address {
       font-size: clamp(9px, 0.8vw, 11px) !important;
-      line-height: 1.15 !important;
-      text-decoration: underline !important;
+      line-height: 1.5 !important;
+
     }
 
     /* ==========================================
