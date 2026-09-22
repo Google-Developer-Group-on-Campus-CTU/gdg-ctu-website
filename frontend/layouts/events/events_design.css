@@ -416,6 +416,100 @@ h2:nth-of-type(2) {
     transform: rotate(10deg);
 }
 
+.track-containers {
+    display: flex;
+    gap: 24px;
+    padding: 40px 20px;
+}
+
+/* The outer box that holds everything — this defines the card's size */
+.track-one {
+    position: relative;
+    margin-top: 5px;
+    width: 260px;
+    height: 400px;
+}
+
+/* The card outline image fills the whole box, sits behind everything */
+.track-one-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* The badge pill sits centered, overlapping the top edge */
+.track-one-logo {
+    position: absolute;
+    top: 1px;             
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;               
+    height: 37px;             
+    width: 90px;
+}
+
+/* Everything below the badge — icon, text, button */
+.track-one-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 50px 24px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+}
+
+.image-track-one {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-top: 20px;
+}
+
+.track-title {
+    font-family: 'Google Sans Flex', sans-serif;
+    font-size: 25px;
+    font-weight: 400;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+.track-desc {
+    font-family: 'Google Sans Flex', sans-serif;
+    font-size: 16.5px;
+    color: #1a1a1a;
+    line-height: 1.6;
+    margin: 0;
+    flex-grow: 1;
+}
+
+.track-btn-one {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 35px;
+    width: 160px;
+    background: #5ADB6C;
+    border-radius: 999px;
+    color: #1a1a1a;
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    border: 2px solid black;
+}
+
+.track-btn-one:hover {
+  background: #3cd8a1;
+}
+
+
 @media (max-width: 1024px) {
     h1 { font-size: 56px; }
 
