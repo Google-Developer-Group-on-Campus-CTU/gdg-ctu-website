@@ -13,6 +13,7 @@ export const ADMIN_NAV = [
   { to: '/admin/gallery', label: 'Gallery' },
   { to: '/admin/content', label: 'Content' },
   { to: '/admin/media', label: 'Media' },
+  { to: '/admin/invites', label: 'Invites' },
   { to: '/admin/settings', label: 'Settings' },
 ];
 

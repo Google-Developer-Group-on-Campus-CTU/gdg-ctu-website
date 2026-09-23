@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/requireAuth.js";
 import adminRoutes from "./admins/admin.routes.js";
+import adminInviteRoutes from "./admin-invites/admin-invite.routes.js";
+import publicAdminInviteRoutes from "./admin-invites/public-admin-invite.routes.js";
 import authRoutes from "./auth/auth.routes.js";
 import eventHostRoutes from "./event-hosts/event-hosts.routes.js";
 import eventAttendeeRoutes from "./event-attendees/event-attendees.routes.js";
@@ -26,6 +28,7 @@ const protectedRouter = Router();
 
 protectedRouter.use(requireAuth);
 protectedRouter.use("/admins", adminRoutes);
+protectedRouter.use("/admin-invites", adminInviteRoutes);
 protectedRouter.use("/auth", authRoutes);
 protectedRouter.use("/team-members", teamMemberRoutes);
 protectedRouter.use("/events", eventRoutes);
@@ -50,6 +53,7 @@ const publicMounts = [
       ["/public/content", publicContentRoutes],
       ["/public/partners", publicPartnersRoutes],
       ["/public/gallery", publicGalleryRoutes],
+      ["/public/admin-invites", publicAdminInviteRoutes],
 ] as const;
 
 export function registerPublicRoutes(target: Router) {
