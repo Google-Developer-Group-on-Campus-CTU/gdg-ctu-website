@@ -131,7 +131,7 @@ export const processBulkMediaUpload = async ({
       // Upload all files concurrently to cloudinary
       const uploadPromises = files.map((file) =>
             uploadMedia(file.buffer, {
-                  folder: `GDGoC/${folderPath}` || `GDGoC`,
+                  folder: `/${folderPath}`,
                   resourceType: "image",
             }),
       );
