@@ -17,15 +17,7 @@ import {
       checkHostMembership,
       checkTeamMemberExists,
 } from "../event-roster/event-roster.services.js";
-import {
-      getCache,
-      setCache,
-      deleteCache,
-      clearCacheByPrefix,
-} from "../../config/redis/redis.services.js";
 
-// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
-const DEFAULT_CACHE_TTL_SECONDS = 60;
 export const toEventHostResponse = (host: EventHostRecord) => {
       // No sensitive fields to strip currently
       return host;
@@ -38,7 +30,6 @@ export const createEventHostService = async (data: NewEventHostRecord) => {
 
       const host = await insertEventHost(data);
 
-      await clearCacheByPrefix(`hosts:`);
       return toEventHostResponse(host);
 };
 
@@ -51,21 +42,6 @@ export const listEventHostsService = async (
             await checkEventExists(eventId);
       }
 
-      // Per-event keys share the `hosts:` prefix so existing
-      // clearCacheByPrefix("hosts:") invalidation covers them.
-      const cacheKey = eventId
-            ? `hosts:event:${eventId}:${pagination.page}:${pagination.limit}`
-            : `hosts:${pagination.page}:${pagination.limit}`;
-
-      // Check Cache
-      const cached = await getCache<{
-            hosts: EventHostRecord[];
-            pagination: ReturnType<typeof getPaginationMeta>;
-      }>(cacheKey);
-
-      if (cached) return cached;
-
-      // Cache Miss
       const [hosts, total] = await Promise.all([
             eventId
                   ? getEventHostsByEventId(eventId, pagination)
@@ -73,29 +49,19 @@ export const listEventHostsService = async (
             eventId ? countEventHostsByEventId(eventId) : countEventHosts(),
       ]);
 
-      const res = {
+      return {
             hosts: hosts.map(toEventHostResponse),
             pagination: getPaginationMeta(pagination, total),
       };
-
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
 };
 
 export const getEventHostService = async (id: string) => {
-      const cacheKey = `hosts:${id}`;
-      const cachedHost = await getCache<EventHostRecord>(cacheKey);
-      if (cachedHost) return cachedHost;
-
       const host = await getEventHostById(id);
       if (!host) {
             throw new AppError(404, "Event host not found");
       }
 
-      const res = toEventHostResponse(host);
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-
-      return res;
+      return toEventHostResponse(host);
 };
 
 export const updateEventHostService = async (
@@ -124,9 +90,6 @@ export const updateEventHostService = async (
 
       const updated = await updateEventHost(id, data);
 
-      await deleteCache(`hosts:${id}`);
-      await clearCacheByPrefix("hosts:");
-
       return toEventHostResponse(updated);
 };
 
@@ -136,7 +99,5 @@ export const deleteEventHostService = async (id: string) => {
             throw new AppError(404, "Event host not found");
       }
 
-      await deleteCache(`hosts:${id}`);
-      await clearCacheByPrefix("hosts:");
       await deleteEventHost(id);
 };

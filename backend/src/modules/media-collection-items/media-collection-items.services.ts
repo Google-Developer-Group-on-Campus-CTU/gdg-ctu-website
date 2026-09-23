@@ -15,15 +15,6 @@ import {
       MediaCollectionItemRecord,
       UpdateMediaCollectionItemDTO,
 } from "./media-collection-items.validations.js";
-import {
-      getCache,
-      setCache,
-      deleteCache,
-      clearCacheByPrefix,
-} from "../../config/redis/redis.services.js";
-
-// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
-const DEFAULT_CACHE_TTL_SECONDS = 60;
 
 export const toMediaCollectionItemResponse = (
       item: MediaCollectionItemRecord,
@@ -44,56 +35,33 @@ export const createMediaCollectionItemService = async (
       }
 
       const item = await insertMediaCollectionItem(data);
-      await clearCacheByPrefix("collection-items:");
       return toMediaCollectionItemResponse(item);
 };
 
 export const listMediaCollectionItemsService = async (
       pagination: Pagination,
 ) => {
-      const cacheKey = `collection-items:${pagination.page}:${pagination.limit}`;
-
-      // Check Cache
-      const cached = await getCache<{
-            collections: MediaCollectionItemRecord[];
-            pagination: ReturnType<typeof getPaginationMeta>;
-      }>(cacheKey);
-
-      if (cached) return cached;
-
-      // Cache Miss
       const [items, total] = await Promise.all([
             getMediaCollectionItems(pagination),
             countMediaCollectionItems(),
       ]);
 
-      const res = {
+      return {
             items: items.map(toMediaCollectionItemResponse),
             pagination: getPaginationMeta(pagination, total),
       };
-
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
 };
 
 export const getMediaCollectionItemService = async (
       collectionId: string,
       mediaId: string,
 ) => {
-      const cacheKey = `collection-items:${collectionId}:${mediaId}`;
-      const cachedCollection =
-            await getCache<MediaCollectionItemRecord>(cacheKey);
-      if (cachedCollection) return cachedCollection;
-
       const item = await getMediaCollectionItem(collectionId, mediaId);
       if (!item) {
             throw new AppError(404, "Media collection item not found");
       }
 
-      const res = toMediaCollectionItemResponse(item);
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-
-      return res;
+      return toMediaCollectionItemResponse(item);
 };
 
 export const updateMediaCollectionItemService = async (
@@ -114,8 +82,6 @@ export const updateMediaCollectionItemService = async (
       }
 
       const item = await updateMediaCollectionItem(collectionId, mediaId, updates);
-      await deleteCache(`collection-items:${collectionId}:${mediaId}`);
-      await clearCacheByPrefix("collection-items:");
       return toMediaCollectionItemResponse(item);
 };
 
@@ -128,7 +94,5 @@ export const deleteMediaCollectionItemService = async (
             throw new AppError(404, "Media collection item not found");
       }
 
-      await deleteCache(`collection-items:${collectionId}:${mediaId}`);
-      await clearCacheByPrefix("collection-items:");
       await deleteMediaCollectionItem(collectionId, mediaId);
 };

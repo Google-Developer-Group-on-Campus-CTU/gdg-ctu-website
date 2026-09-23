@@ -16,15 +16,6 @@ import {
       MediaCollectionRecord,
       UpdateMediaCollectionDTO,
 } from "./media-collections.validations.js";
-import {
-      getCache,
-      setCache,
-      deleteCache,
-      clearCacheByPrefix,
-} from "../../config/redis/redis.services.js";
-
-// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
-const DEFAULT_CACHE_TTL_SECONDS = 60;
 
 export const toMediaCollectionResponse = (col: MediaCollectionRecord) => col; // no sensitive fields
 
@@ -52,50 +43,28 @@ export const createMediaCollectionService = async (
 
       const col = await insertMediaCollection(data);
 
-      await clearCacheByPrefix("collections:");
       return toMediaCollectionResponse(col);
 };
 
 export const listMediaCollectionsService = async (pagination: Pagination) => {
-      const cacheKey = `collections:${pagination.page}:${pagination.limit}`;
-
-      // Check Cache
-      const cached = await getCache<{
-            collections: MediaCollectionRecord[];
-            pagination: ReturnType<typeof getPaginationMeta>;
-      }>(cacheKey);
-
-      if (cached) return cached;
-
-      // Cache Miss
       const [collections, total] = await Promise.all([
             getMediaCollections(pagination),
             countMediaCollections(),
       ]);
 
-      const res = {
+      return {
             collections: collections.map(toMediaCollectionResponse),
             pagination: getPaginationMeta(pagination, total),
       };
-
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
 };
 
 export const getMediaCollectionService = async (id: string) => {
-      const cacheKey = `collections:${id}`;
-      const cachedCollection = await getCache<MediaCollectionRecord>(cacheKey);
-      if (cachedCollection) return cachedCollection;
-
       const col = await getMediaCollectionById(id);
       if (!col) {
             throw new AppError(404, "Media collection not found");
       }
 
-      const res = toMediaCollectionResponse(col);
-
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
+      return toMediaCollectionResponse(col);
 };
 
 export const updateMediaCollectionService = async (
@@ -130,9 +99,6 @@ export const updateMediaCollectionService = async (
 
       const updated = await updateMediaCollection(id, data);
 
-      await deleteCache(`collections:${id}`);
-      await clearCacheByPrefix("collections:");
-
       return toMediaCollectionResponse(updated);
 };
 
@@ -143,7 +109,5 @@ export const deleteMediaCollectionService = async (id: string) => {
       }
       
       // Optional: could check for items referencing collection before delete
-      await deleteCache(`collections:${id}`);
-      await clearCacheByPrefix("collections:");
       await deleteMediaCollection(id);
 };

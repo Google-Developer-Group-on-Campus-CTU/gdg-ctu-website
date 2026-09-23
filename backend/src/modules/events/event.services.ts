@@ -15,12 +15,7 @@ import {
       NewEventRecord,
       updateEvent,
 } from "./models/event.queries.js";
-import { CreateEventDTO, UpdateEventDTO, Event } from "./event.validations.js";
-import {
-      getCache,
-      setCache,
-      clearCacheByPrefix,
-} from "../../config/redis/redis.services.js";
+import { CreateEventDTO, UpdateEventDTO } from "./event.validations.js";
 import { cleanupReplacedMedia } from "../../utils/mediaHelper.js";
 import {
       rollbackCloudinaryUpload,
@@ -29,8 +24,6 @@ import {
 import logger from "../../utils/logger.js";
 import { assertAdminExists } from "../auth/assertAdminExistsHelper.js";
 
-// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
-const DEFAULT_CACHE_TTL_SECONDS = 60;
 const DEFAULT_EVENT_MEDIA_FOLDER = "event-media";
 
 // HELPER VALIDATION FUNCTIONS
@@ -98,7 +91,6 @@ export const createEventService = async (data: CreateEventDataWithImageDTO) => {
                   publishedAt: getPublishedAtForStatus(data.eventData.status),
             };
 
-            await clearCacheByPrefix("events:");
             const event = await insertEvent(eventData);
             return event;
       } catch (error: any) {
@@ -120,56 +112,32 @@ export const createEventService = async (data: CreateEventDataWithImageDTO) => {
 };
 
 export const getEventsService = async (pagination: Pagination) => {
-      const cacheKey = `events:${pagination.page}:${pagination.limit}`;
-
-      // Check Cache
-      const cached = await getCache<{
-            events: Event[];
-            pagination: ReturnType<typeof getPaginationMeta>;
-      }>(cacheKey);
-
-      if (cached) return cached;
-
-      // Cache Miss
       const [events, total] = await Promise.all([
             getEvents(pagination),
             countEvents(),
       ]);
 
-      const res = {
+      return {
             events,
             pagination: getPaginationMeta(pagination, total),
       };
-
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
 };
 
 export const getEventByIdService = async (id: string) => {
-      const cacheKey = `events:${id}`;
-      const cachedEvent = await getCache<Event>(cacheKey);
-      if (cachedEvent) return cachedEvent;
-
       const event = await getEventById(id);
       if (!event) {
             throw new AppError(404, "Event not found");
       }
 
-      await setCache(cacheKey, event, DEFAULT_CACHE_TTL_SECONDS);
       return event;
 };
 
 export const getEventBySlugService = async (slug: string) => {
-      const cacheKey = `events:${slug}`;
-      const cachedEvent = await getCache<Event>(cacheKey);
-      if (cachedEvent) return cachedEvent;
-
       const event = await getEventBySlug(slug);
       if (!event) {
             throw new AppError(404, "Event not found");
       }
 
-      await setCache(cacheKey, event, DEFAULT_CACHE_TTL_SECONDS);
       return event;
 };
 
@@ -238,10 +206,7 @@ export const updateEventService = async (data: UpdateEventDataWithImageDTO) => {
             }
 
             const updatedEvent = await updateEvent(data.id, eventUpdate);
-            await Promise.all([
-                  cleanupReplacedMedia(oldCoverMediaId, newCoverMediaId),
-                  clearCacheByPrefix(`events:`),
-            ]);
+            await cleanupReplacedMedia(oldCoverMediaId, newCoverMediaId);
 
             return updatedEvent;
       } catch (error: any) {
@@ -273,8 +238,5 @@ export const deleteEventService = async (id: string) => {
       }
 
       deleteEvent(id);
-      await Promise.all([
-            cleanupReplacedMedia(event.coverMediaId, null),
-            clearCacheByPrefix(`events:`),
-      ]);
+      await cleanupReplacedMedia(event.coverMediaId, null);
 };

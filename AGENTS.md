@@ -10,7 +10,7 @@ Two separate npm projects, no workspace. Run commands from the touched side only
 
 ## Env (never commit `.env`)
 
-- Backend: `copy example.env .env`. Frontend: `copy .env.example .env`. Keys: backend `PORT,NODE_ENV,DB_URL,FR_ORIGIN,CLOUDINARY_URL,CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY,REDIS_URL`; frontend only `VITE_API_URL`.
+- Backend: `copy example.env .env`. Frontend: `copy .env.example .env`. Keys: backend `PORT,NODE_ENV,DB_URL,FR_ORIGIN,CLOUDINARY_URL,CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY`; frontend only `VITE_API_URL`.
 - Frontend auth is Better Auth (`frontend/src/lib/auth-client.ts`) pointed at `VITE_API_URL` — session is an HTTP-only cookie, no frontend auth keys. Missing `VITE_API_URL` = admin shows "disabled", public pages still work.
 - Restart after any env change: backend `.env` and any `VITE_*` change require stopping + `npm run dev` (Vite bakes `VITE_*` at startup).
 
@@ -20,11 +20,11 @@ Two separate npm projects, no workspace. Run commands from the touched side only
 - Auth: 401 = not signed in, 403 = signed in but not active admin. Writes go through `requireAuth` / protected router (`backend/src/modules/index.ts`); public reads live under `/public/*` + `/health`.
 - CORS: `FR_ORIGIN` must exactly match the frontend origin, no trailing `/` (local: `http://localhost:5173`). Mismatch = browser CORS block; fix + restart backend.
 - Frontend calls: use `apiFetch(path, opts)` from `frontend/src/api/client.js` — base is `VITE_API_URL`, always `credentials: 'include'` (the Better Auth session cookie rides along; no Authorization header). Throws with `error.status`/`error.body` on non-OK.
-- Boot is all-or-nothing: `connectDB → Cloudinary → Redis → listen`, any failure exits (`server.ts:34-48`). Missing/wrong `DB_URL`/`REDIS_URL`/`CLOUDINARY_URL` = server won't start.
+- Boot is all-or-nothing: `connectDB → Cloudinary → listen`, any failure exits (`server.ts:34-48`). Missing/wrong `DB_URL`/`CLOUDINARY_URL` = server won't start.
 
 ## Code layout
 
-- Backend: `src/server.ts` entry; one dir per domain in `src/modules/` (admins, auth, events, event-*, team-members, media*, site-content, terms, partners, health, public); schema co-located at `src/modules/**/models/*.ts`, migrations emitted to `drizzle/` (postgres). Shared: `src/middleware/` (auth/validation/multer upload), `src/config/` (env/db/cloudinary/redis), `src/utils/` (Winston `logger`, validation). Validate input with Zod, log with `logger` not `console.log`.
+- Backend: `src/server.ts` entry; one dir per domain in `src/modules/` (admins, auth, events, event-*, team-members, media*, site-content, terms, partners, health, public); schema co-located at `src/modules/**/models/*.ts`, migrations emitted to `drizzle/` (postgres). Shared: `src/middleware/` (auth/validation/multer upload), `src/config/` (env/db/cloudinary), `src/utils/` (Winston `logger`, validation). Validate input with Zod, log with `logger` not `console.log`.
 - Frontend: `index.html → src/main.jsx` (no auth provider needed) `→ src/App.jsx` (`BrowserRouter`). Public routes `/, /about, /team, /events[/:slug], /gallery[/:slug], /partners, /contact`; admin `/admin/login` open, everything else under `<ProtectedRoute><AdminShell>`. Keep both `vercel.json` SPA rewrites (`/(.*) → /index.html`) or deep links refresh to 404.
 
 ## DB / deploy

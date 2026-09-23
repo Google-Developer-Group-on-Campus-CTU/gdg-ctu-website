@@ -14,7 +14,6 @@ const ENV = {
       DB_URL: process.env.DB_URL,
       FR_ORIGIN: process.env.FR_ORIGIN,
       CLOUDINARY_URL: process.env.CLOUDINARY_URL,
-      REDIS_URL: process.env.REDIS_URL,
       // Better Auth — secret signs/encrypts session cookies; URL is the
       // public backend origin (or the full auth base URL), used for
       // redirects/OAuth callbacks. Validated fatally at boot.

@@ -19,15 +19,6 @@ import {
       CreateAdminDTO,
       UpdateAdminDTO,
 } from "./admin.validations.js";
-import {
-      getCache,
-      setCache,
-      deleteCache,
-      clearCacheByPrefix,
-} from "../../config/redis/redis.services.js";
-
-// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
-const DEFAULT_CACHE_TTL_SECONDS = 60;
 
 export const toAdminResponse = (admin: AdminRecord) => {
       // Public API shape. Passwords never reach this point — they live in
@@ -72,52 +63,28 @@ export const createAdminService = async (data: CreateAdminDTO) => {
                   passwordHash: await hashPassword(data.password),
             });
       }
-
-      await clearCacheByPrefix("admins:");
       return toAdminResponse(record);
 };
 
 export const getAdminsService = async (pagination: Pagination) => {
-      const cacheKey = `admins:${pagination.page}:${pagination.limit}`;
-
-      // Check Cache
-      const cached = await getCache<{
-            admins: ReturnType<typeof toAdminResponse>[];
-            pagination: ReturnType<typeof getPaginationMeta>;
-      }>(cacheKey);
-
-      if (cached) return cached;
-
-      // Cache Miss
       const [admins, total] = await Promise.all([
             getAdmins(pagination),
             countAdmins(),
       ]);
 
-      const res = {
+      return {
             admins: admins.map(toAdminResponse),
             pagination: getPaginationMeta(pagination, total),
       };
-
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
 };
 
 export const getAdminByIdService = async (id: string) => {
-      const cacheKey = `admins:${id}`;
-      const cachedAdmin =
-            await getCache<ReturnType<typeof toAdminResponse>>(cacheKey);
-      if (cachedAdmin) return cachedAdmin;
-
       const admin = await getAdminById(id);
       if (!admin) {
             throw new AppError(404, "Admin not found");
       }
 
-      const res = toAdminResponse(admin);
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-
-      return res;
+      return toAdminResponse(admin);
 };
 
 export const updateAdminService = async (id: string, data: UpdateAdminDTO) => {
@@ -155,9 +122,6 @@ export const updateAdminService = async (id: string, data: UpdateAdminDTO) => {
 
       const updatedAdmin = await updateAdmin(id, patch);
 
-      await deleteCache(`admins:${id}`);
-      await clearCacheByPrefix("admins:");
-
       return toAdminResponse(updatedAdmin);
 };
 
@@ -175,7 +139,5 @@ export const deleteAdminService = async (id: string) => {
             );
       }
 
-      await deleteCache(`admins:${id}`);
-      await clearCacheByPrefix("admins:");
       await deleteAdmin(id);
 };

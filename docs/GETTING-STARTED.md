@@ -62,7 +62,6 @@ The **backend** is the part that stores data (events, team members, photos info)
    | `CLOUDINARY_URL` | Your image-service login — from Cloudinary, looks like `cloudinary://key:secret@name` |
    | `CLERK_PUBLISHABLE_KEY` | Starts with `pk_test_...` — from your Clerk app |
    | `CLERK_SECRET_KEY` | Starts with `sk_test_...` — from the SAME Clerk app |
-   | `REDIS_URL` | Your fast-memory address — from Upstash, looks like `redis://...` |
 
 4. Set up the database tables once (only after `DB_URL` is filled in):
 
@@ -89,7 +88,6 @@ All of these have free plans that are enough for learning:
 - **Neon (database — where all text/data is stored):** sign up at [neon.tech](https://neon.tech), create a project, copy the connection string into `DB_URL`. (Drizzle ORM — the tool our code uses to talk to the database — works with this automatically.)
 - **Clerk (login service — handles sign-in so we never store passwords):** sign up at [clerk.com](https://clerk.com), create an application, copy the **Publishable key** and **Secret key** into the backend `.env`. (The frontend no longer needs a Clerk key — sign-in goes through the backend.)
 - **Cloudinary (image hosting):** sign up at [cloudinary.com](https://cloudinary.com/), copy your `CLOUDINARY_URL` (found in your Cloudinary dashboard) into the backend `.env`.
-- **Upstash (Redis — fast temporary memory that speeds up repeated reads):** sign up at [upstash.com](https://upstash.com), create a Redis database, copy its URL into `REDIS_URL`.
 - Later, for publishing: **Render** (runs the backend online) at [render.com](https://render.com) and **Vercel** (runs the website online) at [vercel.com](https://vercel.com). You don't need these to code locally. Full publish steps: `docs/deployment-plan.md`.
 
 ## Step 4: Set up the frontend (the website)

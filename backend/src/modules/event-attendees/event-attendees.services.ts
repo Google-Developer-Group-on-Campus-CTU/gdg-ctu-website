@@ -16,15 +16,7 @@ import {
       checkAttendeeMembership,
       checkEventExists,
 } from "../event-roster/event-roster.services.js";
-import {
-      getCache,
-      setCache,
-      deleteCache,
-      clearCacheByPrefix,
-} from "../../config/redis/redis.services.js";
 
-// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
-const DEFAULT_CACHE_TTL_SECONDS = 60;
 export const toEventAttendeeResponse = (att: EventAttendeeRecord) => att;
 
 export const createEventAttendeeService = async (
@@ -35,7 +27,6 @@ export const createEventAttendeeService = async (
 
       const att = await insertEventAttendee(data);
 
-      await clearCacheByPrefix(`attendees:`);
       return toEventAttendeeResponse(att);
 };
 
@@ -48,21 +39,6 @@ export const listEventAttendeesService = async (
             await checkEventExists(eventId);
       }
 
-      // Per-event keys share the `attendees:` prefix so existing
-      // clearCacheByPrefix("attendees:") invalidation covers them.
-      const cacheKey = eventId
-            ? `attendees:event:${eventId}:${pagination.page}:${pagination.limit}`
-            : `attendees:${pagination.page}:${pagination.limit}`;
-
-      // Check Cache
-      const cached = await getCache<{
-            attendees: EventAttendeeRecord[];
-            pagination: ReturnType<typeof getPaginationMeta>;
-      }>(cacheKey);
-
-      if (cached) return cached;
-
-      // Cache Miss
       const [atts, total] = await Promise.all([
             eventId
                   ? getEventAttendeesByEventId(eventId, pagination)
@@ -72,29 +48,19 @@ export const listEventAttendeesService = async (
                   : countEventAttendees(),
       ]);
 
-      const res = {
+      return {
             attendees: atts.map(toEventAttendeeResponse),
             pagination: getPaginationMeta(pagination, total),
       };
-
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
 };
 
 export const getEventAttendeeService = async (id: string) => {
-      const cacheKey = `attendees:${id}`;
-      const cachedAttendee = await getCache<EventAttendeeRecord>(cacheKey);
-      if (cachedAttendee) return cachedAttendee;
-
       const att = await getEventAttendeeById(id);
       if (!att) {
             throw new AppError(404, "Event attendee not found");
       }
 
-      const res = toEventAttendeeResponse(att);
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-
-      return res;
+      return toEventAttendeeResponse(att);
 };
 
 export const updateEventAttendeeService = async (
@@ -122,9 +88,6 @@ export const updateEventAttendeeService = async (
 
       const updated = await updateEventAttendee(id, data);
 
-      await deleteCache(`attendees:${id}`);
-      await clearCacheByPrefix(`attendees:`);
-
       return toEventAttendeeResponse(updated);
 };
 
@@ -134,7 +97,5 @@ export const deleteEventAttendeeService = async (id: string) => {
             throw new AppError(404, "Event attendee not found");
       }
 
-      await deleteCache(`attendees:${id}`);
-      await clearCacheByPrefix(`attendees:`);
       await deleteEventAttendee(id);
 };

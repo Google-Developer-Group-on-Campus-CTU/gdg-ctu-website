@@ -1,8 +1,6 @@
 import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
-import { redisStorage } from "@better-auth/redis-storage";
-import { Redis } from "ioredis";
 import { count } from "drizzle-orm";
 import ENV, { AUTH_BASE_PATH } from "./env.js";
 import { db } from "./connectDB.js";
@@ -50,24 +48,6 @@ const trustedOrigins = (ENV.FR_ORIGIN ?? "")
 const hasGoogleProvider = Boolean(
       ENV.GOOGLE_CLIENT_ID && ENV.GOOGLE_CLIENT_SECRET,
 );
-
-// Redis-backed secondary storage for sessions (reuse REDIS_URL). lazyConnect:
-// the client is connected during the boot chain via connectAuthRedis() so a
-// down Redis fails the boot all-or-nothing, and tools that merely import this
-// config (better-auth CLI / drizzle-kit) never open a connection.
-const redisClient = ENV.REDIS_URL
-      ? new Redis(ENV.REDIS_URL, { lazyConnect: true })
-      : null;
-redisClient?.on("error", (err: Error) =>
-      logger.error("Better Auth Redis (ioredis) error", { message: err.message }),
-);
-
-/** Connect the Better Auth Redis client — no-op when REDIS_URL is unset. */
-export async function connectAuthRedis(): Promise<void> {
-      if (!redisClient || redisClient.status !== "wait") return;
-      await redisClient.connect();
-      logger.info("Better Auth Redis connection established");
-}
 
 export const auth = betterAuth({
       secret,
@@ -154,9 +134,6 @@ export const auth = betterAuth({
             trustedProxyHeaders: true,
             database: { joins: true },
       },
-      secondaryStorage: redisClient
-            ? redisStorage({ client: redisClient })
-            : undefined,
       database: drizzleAdapter(db, {
             provider: "pg",
             schema: {

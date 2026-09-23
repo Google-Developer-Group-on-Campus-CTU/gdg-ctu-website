@@ -9,7 +9,7 @@ Order matters: **backend first** (its URL is needed for `FR_ORIGIN` and `VITE_AP
   `PORT` (injected by host — just reference it), `NODE_ENV=production`,
   `FR_ORIGIN=https://<frontend-url>` (exact match, no trailing slash),
   `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` (same Clerk app as the frontend),
-  `DB_URL` (Neon Postgres), `REDIS_URL` (Upstash or hosted Redis), `CLOUDINARY_URL`.
+  `DB_URL` (Neon Postgres), `CLOUDINARY_URL`.
 - Run DB migrations against the production database once: `npm run db:migrate` from `backend/`
   (needs `DB_URL` set; or use the host's one-off job / release command feature).
 - Push branch `chore/repo-cleanup` (or merge it to `main` first and deploy from `main`).
