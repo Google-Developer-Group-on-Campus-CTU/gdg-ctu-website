@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=swap');
+
 /* Shared styles for the GDGoC-CTU site, inspired by the legacy static site.
    Google GDG palette, basic layout only — no animations. */
 
@@ -17,11 +19,16 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
   color: var(--text);
   background: var(--bg);
+  overflow-x: clip;
 }
 
 a {
