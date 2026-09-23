@@ -73,9 +73,45 @@ export const partnersApi = resource('/partners');
 /** Gallery albums extend media-collections; items live in media-collection-items (spec §4.6, "extend, don't fork"). */
 export const albumsApi = resource('/media-collections');
 export const albumItemsApi = resource('/media-collection-items');
+/**
+ * Admin site-content API. The backend wraps every single-row response in
+ * `{ success, siteContent }`, so each method unwraps to the row itself —
+ * callers (ContentEditor) get the id/fields directly instead of the envelope.
+ */
+const unwrapContent = (payload) => payload?.siteContent ?? payload;
+
 export const contentApi = {
   ...resource('/site-content'),
-  getBySection: (key) => apiFetch(`/site-content/section/${encodeURIComponent(key)}`),
+  get: (id) =>
+    apiFetch(`/site-content/${encodeURIComponent(id)}`).then(unwrapContent),
+  create: (body) =>
+    apiFetch('/site-content', { method: 'POST', body: JSON.stringify(body) }).then(unwrapContent),
+  update: (id, body) =>
+    apiFetch(`/site-content/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }).then(unwrapContent),
+  getBySection: (key) =>
+    apiFetch(`/site-content/section/${encodeURIComponent(key)}`).then(unwrapContent),
+  /**
+   * sectionKey fallback when the editor has no row id yet: resolve the key
+   * through the read-only GET /section/:sectionKey, then PATCH by UUID
+   * (PATCH /:id is the only writable path — :id is validateUuid-checked).
+   */
+  updateBySection: async (key, body) => {
+    const row = await apiFetch(`/site-content/section/${encodeURIComponent(key)}`).then(unwrapContent);
+    const id = getId(row);
+    if (!id) {
+      const err = new Error(`No site content row for section "${key}"`);
+      err.status = 404;
+      err.body = { message: `No site content row for section "${key}"` };
+      throw err;
+    }
+    return apiFetch(`/site-content/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }).then(unwrapContent);
+  },
 };
 export const mediaApi = {
   ...resource('/media'),

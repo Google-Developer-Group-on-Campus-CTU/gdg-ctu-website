@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { albumsApi, albumItemsApi, getId } from '../../api/resources.js';
-import { useAdminList, useDebouncedValue } from '../../admin/editorial.js';
+import { ADMIN_ENTITY_ROUTES, useAdminList, useDebouncedValue } from '../../admin/editorial.js';
 import { AdminListPage, EmptyState, StatusPill } from '../../components/admin/shared.jsx';
 
 export default function AdminGallery() {
@@ -41,7 +41,7 @@ export default function AdminGallery() {
           <h1>Gallery</h1>
           <p className="admin-muted">Manual albums + curated featured photos. Albums reuse media-collections.</p>
         </div>
-        <Link className="gdg-btn gdg-btn-primary" to="/admin/gallery/albums/new">+ New album</Link>
+        <Link className="gdg-btn gdg-btn-primary" to={ADMIN_ENTITY_ROUTES.gallery.new}>+ New album</Link>
       </div>
       <AdminListPage
         loading={loading}
@@ -52,7 +52,7 @@ export default function AdminGallery() {
         errorContext="load albums"
         isEmpty={rows.length === 0}
         empty={
-          <EmptyState title="No albums yet" hint="Manually create an album, then add photos from the Media picker." actionLabel="+ New album" actionTo="/admin/gallery/albums/new" />
+          <EmptyState title="No albums yet" hint="Manually create an album, then add photos from the Media picker." actionLabel="+ New album" actionTo={ADMIN_ENTITY_ROUTES.gallery.new} />
         }
       >
         <div className="admin-table-wrap">
@@ -63,7 +63,7 @@ export default function AdminGallery() {
                 const id = getId(a) ?? a.slug;
                 return (
                   <tr key={id}>
-                    <td><Link to={`/admin/gallery/albums/${id}`}>{a.title ?? '(untitled)'}</Link></td>
+                    <td><Link to={ADMIN_ENTITY_ROUTES.gallery.detail(id)}>{a.title ?? '(untitled)'}</Link></td>
                     <td>{a.event_id ?? a.eventId ?? '—'}</td>
                     <td>{counts[id] ?? counts[a.id] ?? 0}</td>
                     <td>{a.is_featured ? '★' : '—'}</td>

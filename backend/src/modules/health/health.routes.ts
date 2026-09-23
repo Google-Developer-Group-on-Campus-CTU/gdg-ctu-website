@@ -1,15 +1,9 @@
 import { Router } from "express";
+import { livenessHandler } from "../../utils/liveness.js";
 
 /** Liveness probe — replaces GET /admins as the deployment health check. */
 const router = Router();
 
-router.get("/", (_req, res) => {
-      res.status(200).json({
-            success: true,
-            status: "ok",
-            service: "gdg-ctu-backend",
-            timestamp: new Date().toISOString(),
-      });
-});
+router.get("/", livenessHandler);
 
 export default router;

@@ -27,6 +27,7 @@ import AdminContent from './pages/admin/Content.jsx';
 import ContentEditor from './pages/admin/ContentEditor.jsx';
 import AdminMedia from './pages/admin/Media.jsx';
 import AdminSettings from './pages/admin/Settings.jsx';
+import { ADMIN_ENTITY_ROUTES } from './admin/editorial.js';
 
 function PublicLayout() {
   return (
@@ -37,6 +38,33 @@ function PublicLayout() {
     </>
   );
 }
+
+// Page elements keyed by the canonical ADMIN_ENTITY_ROUTES entity. The route
+// PATHS themselves live only in src/admin/editorial.js — this table binds
+// elements to those paths (one route definition, no path copies).
+const ADMIN_ENTITY_PAGES = {
+  events: { list: <AdminEvents />, detail: <EventDetail /> },
+  team: { list: <AdminTeam />, detail: <TeamDetail /> },
+  partners: { list: <AdminPartners />, detail: <PartnerDetail /> },
+  gallery: { list: <AdminGallery />, detail: <AlbumDetail /> },
+  content: { list: <AdminContent />, detail: <ContentEditor /> },
+  media: { list: <AdminMedia />, detail: null },
+};
+
+// Derive the admin entity routes from the canonical map: the list route always;
+// the `new` route when distinct from the list; the detail route as
+// `detail(':param')` (e.g. '/admin/events/:id', '/admin/content/:sectionKey').
+const adminEntityRoutes = Object.entries(ADMIN_ENTITY_ROUTES).flatMap(([key, entity]) => {
+  const page = ADMIN_ENTITY_PAGES[key];
+  const routes = [{ path: entity.list, element: page.list }];
+  if (entity.new && entity.new !== entity.list) {
+    routes.push({ path: entity.new, element: page.detail });
+  }
+  if (entity.detail && entity.param) {
+    routes.push({ path: entity.detail(`:${entity.param}`), element: page.detail });
+  }
+  return routes;
+});
 
 // Data router is required for useBlocker (used by useDirtyGuard in
 // src/admin/editorial.js). Same route tree as before, object form.
@@ -65,21 +93,7 @@ const router = createBrowserRouter([
         element: <AdminShell />,
         children: [
           { path: '/admin', element: <AdminDashboard /> },
-          { path: '/admin/events', element: <AdminEvents /> },
-          { path: '/admin/events/new', element: <EventDetail /> },
-          { path: '/admin/events/:id', element: <EventDetail /> },
-          { path: '/admin/team', element: <AdminTeam /> },
-          { path: '/admin/team/new', element: <TeamDetail /> },
-          { path: '/admin/team/:id', element: <TeamDetail /> },
-          { path: '/admin/partners', element: <AdminPartners /> },
-          { path: '/admin/partners/new', element: <PartnerDetail /> },
-          { path: '/admin/partners/:id', element: <PartnerDetail /> },
-          { path: '/admin/gallery', element: <AdminGallery /> },
-          { path: '/admin/gallery/albums/new', element: <AlbumDetail /> },
-          { path: '/admin/gallery/albums/:id', element: <AlbumDetail /> },
-          { path: '/admin/content', element: <AdminContent /> },
-          { path: '/admin/content/:sectionKey', element: <ContentEditor /> },
-          { path: '/admin/media', element: <AdminMedia /> },
+          ...adminEntityRoutes,
           { path: '/admin/invites', element: <AdminInvites /> },
           { path: '/admin/users', element: <AdminUsers /> },
           { path: '/admin/settings', element: <AdminSettings /> },

@@ -26,8 +26,8 @@ import {
       clearCacheByPrefix,
 } from "../../config/redis/redis.services.js";
 
-// Constant value for cache timeout
-const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
+// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
+const DEFAULT_CACHE_TTL_SECONDS = 60;
 
 export const toAdminResponse = (admin: AdminRecord) => {
       // Public API shape. Passwords never reach this point — they live in
@@ -99,7 +99,7 @@ export const getAdminsService = async (pagination: Pagination) => {
             pagination: getPaginationMeta(pagination, total),
       };
 
-      await setCache(cacheKey, res, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
       return res;
 };
 
@@ -115,7 +115,7 @@ export const getAdminByIdService = async (id: string) => {
       }
 
       const res = toAdminResponse(admin);
-      await setCache(cacheKey, res, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
 
       return res;
 };

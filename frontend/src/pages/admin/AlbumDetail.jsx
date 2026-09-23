@@ -2,21 +2,47 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiFetch } from '../../api/client.js';
 import { albumItemsApi, albumsApi, getId, mediaApi } from '../../api/resources.js';
-import { MAX_FEATURED_PHOTOS, checkSlugUnique, slugify, useDirtyGuard, validateAlbum } from '../../admin/editorial.js';
+import { ADMIN_ENTITY_ROUTES, MAX_FEATURED_PHOTOS, checkSlugUnique, slugify, useDirtyGuard, validateAlbum } from '../../admin/editorial.js';
 import { ErrorState, Field, FormSummary, LoadingSkeleton, focusSummary, inputProps, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
+import { authClient } from '../../lib/auth-client';
 
-const EMPTY = { title: '', slug: '', coverMediaId: '', coverAlt: '', eventId: '', date: '', description: '', is_featured: false, is_active: true, status: 'draft' };
+const EMPTY = { title: '', slug: '', coverMediaId: '', eventId: '', date: '', description: '', is_featured: false, is_active: true };
 
+/**
+ * Backend row → form state. Single-row responses are wrapped `{ success, collection }`,
+ * the album's primary field is `name` (not `title`), flags are camelCase, and there is
+ * no coverAlt/status column (spec alt is backend-pending; visibility is `isActive`).
+ */
 function toForm(item = {}) {
+  const src = item?.collection ?? item;
   return {
-    title: item.title ?? '', slug: item.slug ?? '',
-    coverMediaId: item.coverMediaId ?? item.cover_media_id ?? '',
-    coverAlt: item.coverAlt ?? item.cover_alt ?? '',
-    eventId: item.eventId ?? item.event_id ?? '',
-    date: (item.date ?? '').toString().slice(0, 10),
-    description: item.description ?? '',
-    is_featured: !!item.is_featured, is_active: item.is_active ?? true,
-    status: String(item.status ?? 'draft').toLowerCase(),
+    title: src.name ?? src.title ?? '', slug: src.slug ?? '',
+    coverMediaId: src.coverMediaId ?? src.cover_media_id ?? '',
+    eventId: src.eventId ?? src.event_id ?? '',
+    date: (src.date ?? '').toString().slice(0, 10),
+    description: src.description ?? '',
+    is_featured: !!(src.is_featured ?? src.isFeatured),
+    is_active: (src.is_active ?? src.isActive) !== false,
+  };
+}
+
+/**
+ * Form state → CreateMediaCollectionSchema / UpdateMediaCollectionSchema body
+ * (backend/src/modules/media-collections/media-collections.validations.ts).
+ * `title` maps to required `name`; empty uuid/date fields become `null` (an empty
+ * string fails `z.uuid()`/`z.coerce.date()`); flags map to camelCase. `createdBy`
+ * is added at the create call site from the Better Auth session.
+ */
+function toApiPayload(v = {}) {
+  return {
+    name: v.title,
+    slug: v.slug,
+    description: v.description ?? '',
+    coverMediaId: v.coverMediaId || null,
+    eventId: v.eventId || null,
+    date: v.date || null,
+    isFeatured: !!v.is_featured,
+    isActive: v.is_active !== false,
   };
 }
 
@@ -51,6 +77,7 @@ export default function AlbumDetail() {
   const isNew = id === 'new';
   const navigate = useNavigate();
   const summaryRef = useRef(null);
+  const { data: session } = authClient.useSession();
   const [tab, setTab] = useState('content');
   const [form, setForm] = useState(EMPTY);
   const [original, setOriginal] = useState(EMPTY);
@@ -81,8 +108,9 @@ export default function AlbumDetail() {
     Promise.all([
       albumsApi.get(id),
       albumItemsApi.list().catch(() => []),
-    ]).then(([album, allItems]) => {
+    ]).then(([albumRes, allItems]) => {
       if (!alive) return;
+      const album = albumRes?.collection ?? albumRes;
       const next = toForm(album);
       setForm(next); setOriginal(next);
       const mine = (Array.isArray(allItems) ? allItems : []).filter((it) => {
@@ -121,19 +149,34 @@ export default function AlbumDetail() {
   if (!isNew && error) return <section aria-label="Album editor"><h1>Album</h1><ErrorState error={error} onRetry={() => window.location.reload()} context="load this album" /></section>;
 
   const persist = async (publish = false) => {
-    const next = publish ? { ...form, status: 'published', is_active: true } : form;
-    const gate = publish ? { ...validateAlbum(next), ...(slugDup ? { slug: 'Slug is already in use.' } : {}) } : {};
+    const next = publish ? { ...form, is_active: true } : form;
+    // `name` (mapped from title) must be non-empty on every save, not just publish.
+    const gate = {
+      ...(String(next.title ?? '').trim() ? {} : { title: 'Title is required.' }),
+      ...(publish ? { ...validateAlbum(next), ...(slugDup ? { slug: 'Slug is already in use.' } : {}) } : {}),
+    };
     setErrors(gate);
     if (Object.keys(gate).length) { focusSummary(summaryRef); setTab('content'); return; }
     setSaving(true); setServerError(null);
     try {
-      const payload = { ...next, eventId: next.eventId || null };
+      const payload = toApiPayload(next);
       let saved;
-      if (isNew) saved = await albumsApi.create({ ...payload, status: publish ? 'published' : 'draft' });
-      else saved = await albumsApi.update(id, payload);
-      const fresh = toForm(saved ?? next);
-      setForm(fresh); setOriginal(fresh); setToast(publish ? 'Published.' : 'Saved as draft.');
-      if (isNew && (getId(saved) ?? saved?.slug)) navigate(`/admin/gallery/albums/${getId(saved) ?? saved.slug}`, { replace: true });
+      if (isNew) {
+        // CreateMediaCollectionSchema requires `createdBy` (must resolve to an
+        // existing user row); the session is the only source for it.
+        const createdBy = session?.user?.id;
+        if (!createdBy) {
+          setServerError('Your session has no user ID — sign out and back in, then retry.');
+          return;
+        }
+        saved = await albumsApi.create({ ...payload, createdBy });
+      } else {
+        saved = await albumsApi.update(id, payload);
+      }
+      const row = saved?.collection ?? saved;
+      const fresh = toForm(row ?? next);
+      setForm(fresh); setOriginal(fresh); setToast(publish ? 'Published.' : 'Saved.');
+      if (isNew && (getId(row) ?? row?.slug)) navigate(ADMIN_ENTITY_ROUTES.gallery.detail(getId(row) ?? row.slug), { replace: true });
     } catch (err) {
       setServerError(err?.body?.message ?? err?.message ?? 'Save failed.');
     } finally { setSaving(false); }
@@ -247,7 +290,7 @@ export default function AlbumDetail() {
     <section aria-label={isNew ? 'New album' : 'Edit album'}>
       <div className="admin-page-head">
         <div><h1>{isNew ? 'New album' : form.title}</h1><p className="admin-muted">Manual create · Media picker · reorder · featured ≤ {MAX_FEATURED_PHOTOS}.</p></div>
-        <Link className="gdg-btn gdg-btn-secondary" to="/admin/gallery">Back to albums</Link>
+        <Link className="gdg-btn gdg-btn-secondary" to={ADMIN_ENTITY_ROUTES.gallery.list}>Back to albums</Link>
       </div>
       {blocker?.state === 'blocked' ? (
         <div className="admin-summary" role="alert"><h3>Unsaved changes</h3>
@@ -282,9 +325,6 @@ export default function AlbumDetail() {
           <div className="admin-form-grid">
             <Field label="Cover media ID" htmlFor="coverMediaId" error={errors.coverMediaId} required>
               <input {...inputProps('coverMediaId', errors.coverMediaId)} value={form.coverMediaId} onChange={(e) => set('coverMediaId', e.target.value)} />
-            </Field>
-            <Field label="Cover alt text" htmlFor="coverAlt" error={errors.coverAlt} required>
-              <input {...inputProps('coverAlt', errors.coverAlt)} value={form.coverAlt} onChange={(e) => set('coverAlt', e.target.value)} />
             </Field>
           </div>
           <div className="admin-form-grid">
@@ -352,11 +392,6 @@ export default function AlbumDetail() {
         <form className="admin-form" onSubmit={(e) => { e.preventDefault(); persist(false); }}>
           <Toggle id="album-featured" label="Highlight album" checked={form.is_featured} onChange={(v) => set('is_featured', v)} />
           <Toggle id="album-active" label="Active (off hides publicly)" checked={form.is_active} onChange={(v) => set('is_active', v)} />
-          <Field label="Status" htmlFor="status" error={errors.status}>
-            <select {...inputProps('status', errors.status)} value={form.status} onChange={(e) => set('status', e.target.value)}>
-              {['draft', 'published', 'archived'].map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </Field>
           <div className="gdg-btn-row">
             <button type="submit" className="gdg-btn gdg-btn-secondary" disabled={saving}>Save settings</button>
             {!isNew ? <button type="button" className="gdg-btn gdg-btn-secondary" onClick={() => setConfirm(true)}>Archive / delete</button> : null}
@@ -368,7 +403,7 @@ export default function AlbumDetail() {
         onCancel={() => setConfirm(false)}
         onConfirm={async () => {
           setSaving(true);
-          try { await albumsApi.update(id, { is_active: false }); navigate('/admin/gallery'); }
+          try { await albumsApi.update(id, { isActive: false }); navigate(ADMIN_ENTITY_ROUTES.gallery.list); }
           catch (err) { setServerError(err?.body?.message ?? err?.message ?? 'Archive failed.'); setSaving(false); setConfirm(false); }
         }} />
     </section>

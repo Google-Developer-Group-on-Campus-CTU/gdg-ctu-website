@@ -22,8 +22,8 @@ import {
       clearCacheByPrefix,
 } from "../../config/redis/redis.services.js";
 
-// Constant value for cache timeout
-const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
+// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
+const DEFAULT_CACHE_TTL_SECONDS = 60;
 
 export const toMediaCollectionItemResponse = (
       item: MediaCollectionItemRecord,
@@ -72,7 +72,7 @@ export const listMediaCollectionItemsService = async (
             pagination: getPaginationMeta(pagination, total),
       };
 
-      await setCache(cacheKey, res, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
       return res;
 };
 
@@ -91,7 +91,7 @@ export const getMediaCollectionItemService = async (
       }
 
       const res = toMediaCollectionItemResponse(item);
-      await setCache(cacheKey, res, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
 
       return res;
 };

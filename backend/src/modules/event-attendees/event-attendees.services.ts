@@ -4,6 +4,8 @@ import {
       insertEventAttendee,
       getEventAttendees,
       countEventAttendees,
+      getEventAttendeesByEventId,
+      countEventAttendeesByEventId,
       getEventAttendeeById,
       updateEventAttendee,
       deleteEventAttendee,
@@ -11,27 +13,46 @@ import {
 import { NewEventAttendeeRecord } from "./models/event-attendee.queries.js";
 import { EventAttendeeRecord } from "./event-attendees.validations.js";
 import {
+      checkAttendeeMembership,
+      checkEventExists,
+} from "../event-roster/event-roster.services.js";
+import {
       getCache,
       setCache,
       deleteCache,
       clearCacheByPrefix,
 } from "../../config/redis/redis.services.js";
 
-// Constant value for cache timeout
-const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
+// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
+const DEFAULT_CACHE_TTL_SECONDS = 60;
 export const toEventAttendeeResponse = (att: EventAttendeeRecord) => att;
 
 export const createEventAttendeeService = async (
       data: NewEventAttendeeRecord,
 ) => {
+      await checkEventExists(data.eventId);
+      await checkAttendeeMembership(data.eventId, data.email);
+
       const att = await insertEventAttendee(data);
 
       await clearCacheByPrefix(`attendees:`);
       return toEventAttendeeResponse(att);
 };
 
-export const listEventAttendeesService = async (pagination: Pagination) => {
-      const cacheKey = `attendees:${pagination.page}:${pagination.limit}`;
+export const listEventAttendeesService = async (
+      pagination: Pagination,
+      eventId?: string,
+) => {
+      // Optional ?eventId filter: 404 when the event does not exist.
+      if (eventId) {
+            await checkEventExists(eventId);
+      }
+
+      // Per-event keys share the `attendees:` prefix so existing
+      // clearCacheByPrefix("attendees:") invalidation covers them.
+      const cacheKey = eventId
+            ? `attendees:event:${eventId}:${pagination.page}:${pagination.limit}`
+            : `attendees:${pagination.page}:${pagination.limit}`;
 
       // Check Cache
       const cached = await getCache<{
@@ -43,8 +64,12 @@ export const listEventAttendeesService = async (pagination: Pagination) => {
 
       // Cache Miss
       const [atts, total] = await Promise.all([
-            getEventAttendees(pagination),
-            countEventAttendees(),
+            eventId
+                  ? getEventAttendeesByEventId(eventId, pagination)
+                  : getEventAttendees(pagination),
+            eventId
+                  ? countEventAttendeesByEventId(eventId)
+                  : countEventAttendees(),
       ]);
 
       const res = {
@@ -52,7 +77,7 @@ export const listEventAttendeesService = async (pagination: Pagination) => {
             pagination: getPaginationMeta(pagination, total),
       };
 
-      await setCache(cacheKey, res, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
       return res;
 };
 
@@ -67,7 +92,7 @@ export const getEventAttendeeService = async (id: string) => {
       }
 
       const res = toEventAttendeeResponse(att);
-      await setCache(cacheKey, res, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
 
       return res;
 };
@@ -80,6 +105,21 @@ export const updateEventAttendeeService = async (
       if (!existing) {
             throw new AppError(404, "Event attendee not found");
       }
+
+      // Re-run integrity checks only when eventId or email change.
+      const nextEventId = data.eventId ?? existing.eventId;
+      const nextEmail = data.email ?? existing.email;
+      const referenceChanged =
+            (data.eventId !== undefined &&
+                  data.eventId !== existing.eventId) ||
+            (data.email !== undefined &&
+                  data.email.toLowerCase() !== existing.email.toLowerCase());
+
+      if (referenceChanged) {
+            await checkEventExists(nextEventId);
+            await checkAttendeeMembership(nextEventId, nextEmail);
+      }
+
       const updated = await updateEventAttendee(id, data);
 
       await deleteCache(`attendees:${id}`);

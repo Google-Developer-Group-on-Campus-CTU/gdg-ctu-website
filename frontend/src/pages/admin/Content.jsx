@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { contentApi } from '../../api/resources.js';
-import { CONTENT_KEYS } from '../../admin/editorial.js';
+import { ADMIN_ENTITY_ROUTES, CONTENT_KEYS } from '../../admin/editorial.js';
 import { useAdminList } from '../../admin/editorial.js';
 import { EmptyState, ErrorState, LoadingSkeleton, StatusPill } from '../../components/admin/shared.jsx';
 
@@ -36,7 +36,7 @@ export default function AdminContent() {
                 const row = byKey.get(key);
                 return (
                   <tr key={key}>
-                    <td><Link to={`/admin/content/${key}`}>{key}</Link></td>
+                    <td><Link to={ADMIN_ENTITY_ROUTES.content.detail(key)}>{key}</Link></td>
                     <td>{row?.title ?? <span className="admin-muted">— not created —</span>}</td>
                     <td>{row ? <StatusPill status={row.status} active={row.is_active} /> : <span className="admin-muted">missing</span>}</td>
                   </tr>

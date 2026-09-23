@@ -30,6 +30,26 @@ export const countEventSpeakers = async () => {
       return result.total;
 };
 
+export const getEventSpeakersByEventId = async (
+      eventId: string,
+      pagination: Pagination,
+) =>
+      db
+            .select()
+            .from(eventSpeakers)
+            .where(eq(eventSpeakers.eventId, eventId))
+            .orderBy(asc(eventSpeakers.lastName), asc(eventSpeakers.firstName))
+            .limit(pagination.limit)
+            .offset(pagination.offset);
+
+export const countEventSpeakersByEventId = async (eventId: string) => {
+      const [result] = await db
+            .select({ total: count() })
+            .from(eventSpeakers)
+            .where(eq(eventSpeakers.eventId, eventId));
+      return result.total;
+};
+
 export const getEventSpeakerById = async (id: string) => {
       const [speaker] = await db
             .select()

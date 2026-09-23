@@ -13,6 +13,7 @@ import {
       deleteEventAttendeeService,
 } from "./event-attendees.services.js";
 import { CreateEventAttendeeSchema, UpdateEventAttendeeSchema } from "./event-attendees.validations.js";
+import { parseOptionalEventId } from "../event-roster/event-roster.validations.js";
 
 export const createEventAttendee = async (req: Request, res: Response) => {
       try {
@@ -27,7 +28,11 @@ export const createEventAttendee = async (req: Request, res: Response) => {
 export const listEventAttendees = async (req: Request, res: Response) => {
       try {
             const paginationQuery = getPagination(req.query);
-            const result = await listEventAttendeesService(paginationQuery);
+            const eventId = parseOptionalEventId(req.query);
+            const result = await listEventAttendeesService(
+                  paginationQuery,
+                  eventId,
+            );
             return res.status(200).json({ success: true, ...result });
       } catch (error) {
             return handleControllerError(res, error, "Failed to list event attendees");

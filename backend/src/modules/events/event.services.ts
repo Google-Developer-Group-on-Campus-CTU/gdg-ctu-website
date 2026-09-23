@@ -29,8 +29,8 @@ import {
 import logger from "../../utils/logger.js";
 import { assertAdminExists } from "../auth/assertAdminExistsHelper.js";
 
-// Constant value for cache timeout
-const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
+// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
+const DEFAULT_CACHE_TTL_SECONDS = 60;
 const DEFAULT_EVENT_MEDIA_FOLDER = "event-media";
 
 // HELPER VALIDATION FUNCTIONS
@@ -141,7 +141,7 @@ export const getEventsService = async (pagination: Pagination) => {
             pagination: getPaginationMeta(pagination, total),
       };
 
-      await setCache(cacheKey, res, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
       return res;
 };
 
@@ -155,7 +155,7 @@ export const getEventByIdService = async (id: string) => {
             throw new AppError(404, "Event not found");
       }
 
-      await setCache(cacheKey, event, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, event, DEFAULT_CACHE_TTL_SECONDS);
       return event;
 };
 
@@ -169,7 +169,7 @@ export const getEventBySlugService = async (slug: string) => {
             throw new AppError(404, "Event not found");
       }
 
-      await setCache(cacheKey, event, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, event, DEFAULT_CACHE_TTL_SECONDS);
       return event;
 };
 

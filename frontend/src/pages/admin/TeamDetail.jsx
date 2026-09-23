@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getId, teamApi } from '../../api/resources.js';
-import { MAX_FEATURED_TEAM, checkSlugUnique, slugify, useDirtyGuard, validateTeam } from '../../admin/editorial.js';
+import { ADMIN_ENTITY_ROUTES, MAX_FEATURED_TEAM, checkSlugUnique, slugify, useDirtyGuard, validateTeam } from '../../admin/editorial.js';
 import { ErrorState, Field, FormSummary, LoadingSkeleton, focusSummary, inputProps, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
 import MediaPicker from '../../components/admin/MediaPicker.jsx';
 
@@ -112,7 +112,7 @@ export default function TeamDetail() {
       else saved = await teamApi.update(id, payload);
       const fresh = toForm(saved ?? next);
       setForm(fresh); setOriginal(fresh); setToast(publish ? 'Published.' : 'Saved as draft.');
-      if (isNew && (getId(saved) ?? saved?.slug)) navigate(`/admin/team/${getId(saved) ?? saved.slug}`, { replace: true });
+      if (isNew && (getId(saved) ?? saved?.slug)) navigate(ADMIN_ENTITY_ROUTES.team.detail(getId(saved) ?? saved.slug), { replace: true });
     } catch (err) {
       setServerError(err?.body?.message ?? err?.message ?? 'Save failed.');
     } finally { setSaving(false); }
@@ -125,7 +125,7 @@ export default function TeamDetail() {
           <h1>{isNew ? 'New member' : `${form.firstName} ${form.lastName}`}</h1>
           <p className="admin-muted">Dept trio nullable · roleTitle required ≤ 80 · Home carousel cap {MAX_FEATURED_TEAM}.</p>
         </div>
-        {!isNew ? <Link className="gdg-btn gdg-btn-secondary" to="/admin/team">Back to list</Link> : null}
+        {!isNew ? <Link className="gdg-btn gdg-btn-secondary" to={ADMIN_ENTITY_ROUTES.team.list}>Back to list</Link> : null}
       </div>
       {blocker?.state === 'blocked' ? (
         <div className="admin-summary" role="alert"><h3>Unsaved changes</h3>
@@ -211,7 +211,7 @@ export default function TeamDetail() {
           setSaving(true);
           try {
             await teamApi.update(id, { is_active: false, status: 'archived' });
-            navigate('/admin/team');
+            navigate(ADMIN_ENTITY_ROUTES.team.list);
           } catch (err) { setServerError(err?.body?.message ?? err?.message ?? 'Archive failed.'); setSaving(false); setConfirmDelete(false); }
         }} />
     </section>

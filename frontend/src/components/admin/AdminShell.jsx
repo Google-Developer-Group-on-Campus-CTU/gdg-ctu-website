@@ -1,17 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { authClient } from '../../lib/auth-client';
-import { adminNewTargetFor } from '../../admin/editorial.js';
+import { ADMIN_ENTITY_ROUTES, adminNewTargetFor } from '../../admin/editorial.js';
 import '../../styles/admin.css';
 
+// Entity nav rows derive from the canonical ADMIN_ENTITY_ROUTES map (list
+// path + label) — non-entity sections stay local here.
 export const ADMIN_NAV = [
   { to: '/admin', label: 'Dashboard', end: true },
-  { to: '/admin/events', label: 'Events' },
-  { to: '/admin/team', label: 'Team' },
-  { to: '/admin/partners', label: 'Partners' },
-  { to: '/admin/gallery', label: 'Gallery' },
-  { to: '/admin/content', label: 'Content' },
-  { to: '/admin/media', label: 'Media' },
+  ...Object.values(ADMIN_ENTITY_ROUTES).map((entity) => ({ to: entity.list, label: entity.label })),
   { to: '/admin/invites', label: 'Invites' },
   { to: '/admin/users', label: 'Users' },
   { to: '/admin/settings', label: 'Settings' },

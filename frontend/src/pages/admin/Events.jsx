@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { eventsApi, getId } from '../../api/resources.js';
-import { timeAgo, useAdminList, useDebouncedValue } from '../../admin/editorial.js';
+import { ADMIN_ENTITY_ROUTES, timeAgo, useAdminList, useDebouncedValue } from '../../admin/editorial.js';
 import { AdminListPage, EmptyState, StatusPill } from '../../components/admin/shared.jsx';
 
 function scopeOf(event) {
@@ -55,7 +55,7 @@ export default function AdminEvents() {
           <h1>Events</h1>
           <p className="admin-muted">Searchable table · ?scope=upcoming|past|featured respected.</p>
         </div>
-        <Link className="gdg-btn gdg-btn-primary" to="/admin/events/new">+ New event</Link>
+        <Link className="gdg-btn gdg-btn-primary" to={ADMIN_ENTITY_ROUTES.events.new}>+ New event</Link>
       </div>
 
       <div className="admin-toolbar">
@@ -82,7 +82,7 @@ export default function AdminEvents() {
             title={data.length === 0 ? 'No events yet' : 'No events match this filter'}
             hint="Create a draft event to get started. Publish only when the gate passes."
             actionLabel="+ New event"
-            actionTo="/admin/events/new"
+            actionTo={ADMIN_ENTITY_ROUTES.events.new}
           />
         }
       >
@@ -111,7 +111,7 @@ export default function AdminEvents() {
                         <span className="admin-muted">—</span>
                       )}
                     </td>
-                    <td><Link to={`/admin/events/${id}`}>{event.title ?? '(untitled)'}</Link></td>
+                    <td><Link to={ADMIN_ENTITY_ROUTES.events.detail(id)}>{event.title ?? '(untitled)'}</Link></td>
                     <td><StatusPill status={event.status} active={active} /></td>
                     <td>{timeAgo(event.startAt ?? event.start_at)}</td>
                     <td>{event.display_order ?? 0}</td>

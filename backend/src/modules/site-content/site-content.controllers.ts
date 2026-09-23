@@ -1,11 +1,13 @@
 import { Request, Response } from "express";
 import {
+      AppError,
       getPagination,
       getStringParam,
       handleControllerError,
       validateBody,
       validateUuid,
 } from "../../utils/http.js";
+import { isSectionKey } from "./section-keys.js";
 import {
       createSiteContentService,
       deleteSiteContentService,
@@ -85,6 +87,11 @@ export const getSiteContentBySectionKey = async (
                   req.params.sectionKey,
                   "sectionKey",
             );
+            // Single section-key contract (section-keys.ts): unknown keys
+            // 404 exactly like a missing row — response shape/code unchanged.
+            if (!isSectionKey(sectionKey)) {
+                  throw new AppError(404, "Site content not found");
+            }
             const siteContent = await getSiteContentBySectionKeyService(
                   sectionKey,
             );
