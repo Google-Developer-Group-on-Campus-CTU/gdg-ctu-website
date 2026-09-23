@@ -7,12 +7,11 @@ import {
       deleteMediaCollectionItem,
 } from "./media-collection-items.controllers.js";
 import { validateParams } from "../../middleware/validateParams.js";
-import { validateQuery } from "../../middleware/validateQuery.js";
 
 const router = Router();
 
 router.post("/", createMediaCollectionItem);
-router.get("/", validateQuery("page", "limit"), listMediaCollectionItems);
+router.get("/", listMediaCollectionItems);
 router.get(
       "/:collectionId/:mediaId",
       validateParams("collectionId", "mediaId"),
