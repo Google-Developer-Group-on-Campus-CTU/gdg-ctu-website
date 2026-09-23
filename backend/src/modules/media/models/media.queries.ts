@@ -1,4 +1,4 @@
-import { count, eq } from "drizzle-orm";
+import { count, eq, inArray } from "drizzle-orm";
 import { db } from "../../../config/connectDB";
 import { Pagination } from "../../../utils/pagination";
 import { eventSpeakers } from "../../event-speakers/models/event-speaker";
@@ -26,6 +26,36 @@ export const insertBulkMedia = async (bulkRecords: NewMediaRecord[]) => {
             .returning({ id: media.id });
 
       return records;
+};
+
+/**
+ * Assign a set of media records to a collection.
+ * This helper isolates DB mutation from the service layer.
+ */
+export const assignMediaToCollection = async (
+      mediaIds: string[],
+      collectionId: string,
+) => {
+      if (!mediaIds.length) return [];
+      const updated = await db
+            .update(media)
+            .set({ collectionId })
+            .where(inArray(media.id, mediaIds))
+            .returning({ id: media.id });
+      return updated;
+};
+
+/**
+ * Remove (detach) specific media items from a collection without deleting them.
+ */
+export const removeMediaFromCollectionByIds = async (mediaIds: string[]) => {
+      if (!mediaIds.length) return [];
+      const updated = await db
+            .update(media)
+            .set({ collectionId: null })
+            .where(inArray(media.id, mediaIds))
+            .returning({ id: media.id });
+      return updated;
 };
 
 export const getMedia = async (pagination: Pagination) =>
