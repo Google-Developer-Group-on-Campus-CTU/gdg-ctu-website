@@ -19,6 +19,12 @@ export const CreateMemberTermsSchema = createInsertSchema(memberTerms)
             role: z.string({
                   message: "Role is required.",
             }),
+            profileMediaId: z
+                  .uuid({
+                        message: "Profile media ID must be a valid UUID.",
+                  })
+                  .nullable()
+                  .optional(),
             displayOrder: z.number().int().nonnegative().optional(),
             isActive: z.boolean().optional(),
       });

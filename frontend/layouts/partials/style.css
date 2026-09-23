@@ -298,7 +298,38 @@
       box-sizing: border-box;
     }
 
-    .footer-brand { width: 52%; position: relative; }
+    .footer-brand {
+      width: 52%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo-name {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-gdg {
+      margin: 0;
+      margin-bottom: 10px;
+      font-size: clamp(16px, 1.6vw, 20px);
+      font-weight: 400;
+      color: #111;
+    }
+
+    .uni-name {
+      margin: 0;
+      font-size: clamp(12px, 1.1vw, 14px);
+      font-weight: 400;
+      color: #555;
+    }
 
     .gdg-symbol {
       position: relative;

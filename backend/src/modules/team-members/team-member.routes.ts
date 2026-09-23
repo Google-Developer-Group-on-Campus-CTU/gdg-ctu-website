@@ -5,6 +5,7 @@ import {
       listTeamMembers,
       getTeamMember,
       getTeamMemberBySlug,
+      listTeamMembersByTerm,
       updateTeamMember,
       removeTeamMember,
 } from "./team-member.controllers";
@@ -15,6 +16,7 @@ router.post("/", upload.single("file"), createTeamMemberWithImage);
 router.get("/", listTeamMembers);
 router.get("/slug/:slug", getTeamMemberBySlug);
 router.get("/:id", getTeamMember);
+router.get("/termId/:termId", listTeamMembersByTerm);
 router.patch("/:id", upload.single("file"), updateTeamMember);
 
 router.delete("/:id", removeTeamMember);

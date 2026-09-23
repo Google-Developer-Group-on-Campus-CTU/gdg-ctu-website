@@ -7,6 +7,7 @@ import {
       uuid,
       varchar,
 } from "drizzle-orm/pg-core";
+import { media } from "../../media/models/media";
 import { teamMembers } from "../../team-members/models/team-member";
 import { terms } from "../../terms/models/terms";
 
@@ -28,6 +29,9 @@ export const memberTerms = pgTable(
                   }),
 
             role: varchar("role", { length: 255 }).notNull(),
+            // Term photos are historical snapshots. Continuing officers can update
+            // their current/default avatar without changing past term rosters.
+            profileMediaId: uuid("profile_media_id").references(() => media.id),
             displayOrder: integer("display_order").default(0).notNull(),
             isActive: boolean("is_active").default(true).notNull(),
             createdAt: timestamp("created_at").defaultNow().notNull(),
