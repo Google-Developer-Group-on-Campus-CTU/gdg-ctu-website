@@ -1,6 +1,7 @@
 import { integer, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core";
 import { admins } from "../../admins/models/admin";
+import { mediaCollections } from "../../media-collections/models/media-collection";
 
 export const media = pgTable("media", {
       id: uuid("id").defaultRandom().primaryKey(),
@@ -38,6 +39,14 @@ export const media = pgTable("media", {
       altText: varchar("alt_text", {
             length: 255,
       }),
+
+      // New field to in replacement of junction table media-collection-items
+      collectionId: uuid("collection_id").references(
+            () => mediaCollections.id,
+            {
+                  onDelete: "set null",
+            },
+      ),
 
       uploadedBy: varchar("uploaded_by")
             .notNull()
