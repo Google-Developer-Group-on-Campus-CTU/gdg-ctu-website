@@ -122,7 +122,7 @@ export function configureCors(
                         return callback(null, false);
                   },
                   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-                  allowedHeaders: ["Content-Type", "Authorization"],
+                  allowedHeaders: ["Content-Type", "Authorization", "x-dev-admin-bypass"],
                   credentials: true,
                   optionsSuccessStatus: 204,
             }),
