@@ -14,11 +14,11 @@ import {
       getTeamMemberByIdService,
       getTeamMemberBySlugService,
       getTeamMembersService,
+      getActiveTeamMembersByTermService,
       updateTeamMemberService,
 } from "./team-member.services";
-import { UpdateTeamMemberSchema } from "./team-member.validations";
+import { UpdateTeamMemberDTO } from "./team-member.validations";
 import { NewTeamMemberRecord } from "./models/team-member.queries";
-import { extractMultipartPayload } from "../../utils/multiPartPayloadHelper";
 import logger from "../../utils/logger";
 
 export const createTeamMemberWithImage = async (
@@ -28,10 +28,7 @@ export const createTeamMemberWithImage = async (
       try {
             const file = (req as any).file?.buffer;
             if (!file) {
-                  return res.status(400).json({
-                        success: false,
-                        message: "Profile image is required",
-                  });
+                  throw new AppError(400, "Profile image is required");
             }
 
             const memberJson = req.body.member;
@@ -40,25 +37,22 @@ export const createTeamMemberWithImage = async (
             }
             const memberData: NewTeamMemberRecord = JSON.parse(memberJson);
 
+            const termId = String(req.body.termId);
             if (!req.body.termId) {
                   throw new AppError(400, "termId missing");
             }
-            const termId = String(req.body.termId);
 
+            const role = String(req.body.role);
             if (!req.body.role) {
                   throw new AppError(
                         400,
                         "Cannot Proceed: Member Role is missing",
                   );
             }
-            const role = String(req.body.role);
 
             const clerkId = getClerkIdFromRequest(req);
             if (!clerkId) {
-                  return res.status(401).json({
-                        success: false,
-                        message: "Unable to determine uploader (Clerk ID)",
-                  });
+                  throw new AppError(401, "Unauthorized: missing clerkId");
             }
 
             const teamMember = await createTeamMemberService(
@@ -136,11 +130,46 @@ export const getTeamMemberBySlug = async (req: Request, res: Response) => {
       }
 };
 
+export const listTeamMembersByTerm = async (req: Request, res: Response) => {
+      try {
+            const termId = validateUuid(req.params.termId, "termId");
+            // Filters
+            const termName = getStringParam(req.params.termName, "termName");
+            const currentOnly = req.body.currentOnly;
+            const featuredOnly = req.body.featuredOnly;
+
+            const teamMembers = await getActiveTeamMembersByTermService({
+                  termId,
+                  termName,
+                  currentOnly,
+                  featuredOnly,
+            });
+            return res.status(200).json({
+                  success: true,
+                  count: teamMembers.length,
+                  message: `Successfully listed team members for term ${termId}`,
+                  teamMembers,
+            });
+      } catch (error: any) {
+            return handleControllerError(
+                  res,
+                  error,
+                  "Failed to list team members by term",
+            );
+      }
+};
+
 export const updateTeamMember = async (req: Request, res: Response) => {
       try {
-            const id = validateUuid(req.params.id);
+            const memberId = validateUuid(req.params.id);
+            if (!memberId) {
+                  throw new AppError(401, "Member ID missing");
+            }
+
+            // Optional new profile image
             const file = (req as any).file?.buffer;
 
+            // Optional term association
             const termId =
                   typeof req.body.termId === "string" &&
                   req.body.termId.trim() !== ""
@@ -153,35 +182,26 @@ export const updateTeamMember = async (req: Request, res: Response) => {
                         ? req.body.role.trim()
                         : undefined;
 
-            const memberPayload = extractMultipartPayload(req.body, "member", [
-                  "uploadedBy",
-            ]);
-            const memberData = validateBody(
-                  UpdateTeamMemberSchema,
-                  memberPayload,
-            );
+            // Optional member JSON payload (non‑media fields)
+            const memberJson = req.body.member;
+            let memberData: UpdateTeamMemberDTO | undefined;
+            if (memberJson) {
+                  memberData = JSON.parse(memberJson) as UpdateTeamMemberDTO;
+            }
 
             const clerkId = getClerkIdFromRequest(req);
             if (!clerkId) {
-                  return res.status(401).json({
-                        success: false,
-                        message: "Unable to determine uploader (Clerk ID)",
-                  });
+                  throw new AppError(401, "Unauthorized: missing clerkID");
             }
 
             const updated = await updateTeamMemberService(
                   {
-                        id,
+                        id: memberId,
                         memberData,
                         file,
                         uploadedBy: clerkId,
                   },
-                  termId && role
-                        ? {
-                                termId,
-                                role,
-                          }
-                        : undefined,
+                  termId && role ? { termId, role } : undefined,
             );
 
             return res.status(200).json({
@@ -200,8 +220,12 @@ export const updateTeamMember = async (req: Request, res: Response) => {
 
 export const removeTeamMember = async (req: Request, res: Response) => {
       try {
-            const id = validateUuid(req.params.id);
-            await deleteTeamMemberService(id);
+            const memberId = validateUuid(req.params.id);
+            if (!memberId) {
+                  throw new AppError(404, "Missing member ID");
+            }
+
+            await deleteTeamMemberService(memberId);
             return res.status(200).json({
                   success: true,
                   message: "Team member deleted successfully",

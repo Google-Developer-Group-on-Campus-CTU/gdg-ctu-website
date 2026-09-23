@@ -1,4 +1,5 @@
 import { Router } from "express";
+import upload from "../../middleware/upload";
 import {
       createPartner,
       getPartner,
@@ -10,11 +11,11 @@ import {
 
 const router = Router();
 
-router.post("/", createPartner);
+router.post("/", upload.single("file"), createPartner);
 router.get("/", listPartners);
 router.get("/slug/:slug", getPartnerBySlug);
 router.get("/:id", getPartner);
-router.patch("/:id", updatePartner);
+router.patch("/:id", upload.single("file"), updatePartner);
 router.delete("/:id", removePartner);
 
 export default router;

@@ -104,10 +104,10 @@ p:nth-of-type(2) {
     height: 60px;
 }
 
-.doodle-1 { top: 45px;  left: 20%;  padding: 20px; height: 70px;  width: 70px; }
-.doodle-2 { top: 30px;  right: 16%; padding: 20px; width: 120px; height: 120px; }
-.doodle-3 { top: 250px; left: 13%;  padding: 20px; width: 100px; height: 100px; transform: rotate(15deg); }
-.doodle-4 { top: 250px; right: 13%; padding: 20px; width: 100px; height: 100px; }
+.doodle-1 { top: 45px;  left: 20%;  padding: 20px; height: 120px;  width: 120px; }
+.doodle-2 { top: 30px;  right: 16%; padding: 20px; width: 140px; height: 140px; }
+.doodle-3 { top: 250px; left: 13%;  padding: 20px; width: 140px; height: 140px; transform: rotate(15deg); }
+.doodle-4 { top: 250px; right: 13%; padding: 20px; width: 140px; height: 140px; }
 
 .doodle path,
 .doodle circle {
@@ -125,6 +125,13 @@ p:nth-of-type(2) {
     font-size: 28px;
     font-weight: 500;
     transition: transform 0.3s ease;
+}
+
+.learn-img {
+    width: 230px;
+    height: 120px;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 hr {

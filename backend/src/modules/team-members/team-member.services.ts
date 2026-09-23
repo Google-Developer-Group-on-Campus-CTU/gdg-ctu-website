@@ -9,6 +9,8 @@ import {
       getTeamMemberById,
       getTeamMemberBySlug,
       getTeamMembers,
+      getActiveTeamMembersByTerm,
+      getActiveTeamMemberBySlug,
       teamMemberHasEventSpeakerReferences,
       updateTeamMember,
 } from "./models/team-member.queries";
@@ -45,17 +47,26 @@ interface CreateTeamMemberWithImageDTO {
 interface FetchMemberTermDetailsDTO {
       termId: string;
       role: string;
+      profileMediaId?: string | null;
 }
 // DTO for multipart updating member data with image
 interface UpdateTeamMemberDataWithImageDTO {
       id: string;
-      memberData: UpdateTeamMemberDTO;
-      file: Buffer;
+      memberData?: UpdateTeamMemberDTO;
+      file?: Buffer;
       uploadedBy: string;
+}
+// DTO for fetching active team members by term
+interface PublicTermFilter {
+      termId?: string;
+      termName?: string;
+      currentOnly?: boolean;
+      featuredOnly?: boolean;
 }
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
+const DEFAULT_MEMBER_MEDIA_FOLDER = "team-members-media";
 
 // Validate Response
 export const toTeamMemberResponse = (teamMember: TeamMember | null) =>
@@ -78,7 +89,7 @@ export const createTeamMemberService = async (
       try {
             // Upload the profile image to cloudinary
             uploadResult = await uploadMedia(data.file, {
-                  folder: "media",
+                  folder: DEFAULT_MEMBER_MEDIA_FOLDER,
                   resourceType: "image",
             });
             // Normalize the data for Database meta data storing
@@ -93,6 +104,7 @@ export const createTeamMemberService = async (
             await createMemberTermService({
                   ...termData,
                   memberId: teamMember.id,
+                  profileMediaId: userProfileImage.id,
             });
 
             await clearCacheByPrefix("team-members:");
@@ -175,6 +187,27 @@ export const getTeamMemberBySlugService = async (slug: string) => {
       return res;
 };
 
+export const getActiveTeamMemberBySlugService = async (slug: string) => {
+      const teamMember = await getActiveTeamMemberBySlug(slug);
+      if (!teamMember) {
+            throw new AppError(404, "Team member not found");
+      }
+
+      const res = toTeamMemberResponse(teamMember);
+      return res;
+};
+
+export const getActiveTeamMembersByTermService = async (
+      data: PublicTermFilter,
+) => {
+      const res = await getActiveTeamMembersByTerm(data);
+      if (!res) {
+            throw new AppError(404, "Team members not found");
+      }
+
+      return res;
+};
+
 export const updateTeamMemberService = async (
       data: UpdateTeamMemberDataWithImageDTO,
       termData?: FetchMemberTermDetailsDTO,
@@ -189,7 +222,7 @@ export const updateTeamMemberService = async (
       }
       await assertAdminExists(data.uploadedBy);
 
-      if (data.memberData.slug && data.memberData.slug !== teamMember.slug) {
+      if (data.memberData?.slug && data.memberData.slug !== teamMember.slug) {
             const existingTeamMember = await getTeamMemberBySlug(
                   data.memberData.slug,
             );
@@ -210,7 +243,7 @@ export const updateTeamMemberService = async (
             // If a new file is supplied, upload it and create a new media record.
             if (data.file && data.uploadedBy) {
                   uploadResult = await uploadMedia(data.file, {
-                        folder: "media",
+                        folder: DEFAULT_MEMBER_MEDIA_FOLDER,
                         resourceType: "image",
                   });
                   const mediaData = createMediaRecord(
@@ -221,14 +254,19 @@ export const updateTeamMemberService = async (
                   newMediaId = newMedia.id;
             }
 
+            // Prepare member updates – may be undefined (image‑only or term‑only updates)
+            const memberUpdates: UpdateTeamMemberDTO =
+                  data.memberData ?? ({} as UpdateTeamMemberDTO);
             // Update the team‑member, ensuring we include the (possibly new) profileMediaId.
             const updatedTeamMember = await updateTeamMember(data.id, {
-                  ...data.memberData,
+                  ...memberUpdates,
                   profileMediaId: newMediaId,
                   updatedAt: new Date(),
             });
 
             if (termData?.termId && termData?.role) {
+                  const termProfileMediaId = data.file ? newMediaId : undefined;
+
                   // Check if the member already has an assignment for this term
                   const existingMemberTerm =
                         await getMemberTermByMemberAndTermService(
@@ -237,15 +275,21 @@ export const updateTeamMemberService = async (
                         );
 
                   if (existingMemberTerm) {
-                        // Update only the role – preserves the original record (history)
+                        // Preserve the assignment row; update its term-specific
+                        // avatar only when this request uploaded a new photo.
                         await updateMemberTermService(existingMemberTerm.id, {
                               role: termData.role,
+                              ...(termProfileMediaId
+                                    ? { profileMediaId: termProfileMediaId }
+                                    : {}),
                         });
                   } else {
-                        // No existing assignment – create a new one
+                        // New continuing-officer assignment gets an avatar snapshot
+                        // so future uploads do not rewrite this term's roster.
                         await createMemberTermService({
                               ...termData,
                               memberId: teamMember.id,
+                              profileMediaId: termProfileMediaId ?? newMediaId,
                         });
                   }
             }
@@ -278,7 +322,6 @@ export const updateTeamMemberService = async (
 
 export const deleteTeamMemberService = async (id: string) => {
       const teamMember = await getTeamMemberById(id);
-
       if (!teamMember) {
             throw new AppError(404, "Team member not found");
       }

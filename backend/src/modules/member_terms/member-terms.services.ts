@@ -22,6 +22,7 @@ import {
 } from "../../config/redis/redis.services";
 import { getTeamMemberById } from "../team-members/models/team-member.queries";
 import { getTermById } from "../terms/models/terms.queries";
+import { getMediaById } from "../media/models/media.queries";
 
 // Cache TTL in milliseconds (e.g., 60 seconds)
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
@@ -56,11 +57,19 @@ export const createMemberTermService = async (data: CreateMemberTermsDTO) => {
             );
       }
 
+      if (data.profileMediaId && !(await getMediaById(data.profileMediaId))) {
+            throw new AppError(400, "profileMediaId must reference existing media");
+      }
+
       // Invalidate related caches before persisting
       await clearCacheByPrefix("member-terms:");
 
+      // If callers do not provide a term snapshot yet, seed it from the
+      // member's current/default avatar so existing reads remain stable.
+      const profileMediaId = data.profileMediaId ?? member.profileMediaId;
+
       // Insert the record
-      return createMemberTerm(data);
+      return createMemberTerm({ ...data, profileMediaId });
 };
 
 /**
@@ -116,6 +125,11 @@ export const updateMemberTermService = async (
       if (!existing) {
             throw new AppError(404, "Member term not found");
       }
+
+      if (data.profileMediaId && !(await getMediaById(data.profileMediaId))) {
+            throw new AppError(400, "profileMediaId must reference existing media");
+      }
+
       const updated = await updateMemberTerm(id, {
             ...data,
             updatedAt: new Date(),

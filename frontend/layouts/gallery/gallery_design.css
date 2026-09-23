@@ -118,6 +118,15 @@ p:nth-of-type(2) {
     stroke-width: 4;
 }
 
+.captured-title {
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 65px;
+    font-weight: 300;
+    margin-top: 40px;
+    line-height: 1.15;
+    color: #1a1a1a;
+}
+
 .arrow-down {
     display: inline-block;
     margin-top: -5px;
@@ -127,6 +136,126 @@ p:nth-of-type(2) {
     transition: transform 0.3s ease;
 }
 
+.captured-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn-all {
+    margin-top: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    height: 45px;
+    width: 180px;
+    background: #EA4335;
+    border-radius: 999px;
+    color: #1a1a1a;
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 22px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    border: 1px solid black;
+}
+
+.btn-events {
+    margin-top: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    height: 45px;
+    width: 180px;
+    background: #4285F4;
+    border-radius: 999px;
+    color: #1a1a1a;
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 22px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    border: 1px solid black;
+}
+
+.btn-workshops {
+    margin-top: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    height: 45px;
+    width: 180px;
+    background: #34A853;
+    border-radius: 999px;
+    color: #1a1a1a;
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 22px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    border: 1px solid black;
+}
+
+.btn-community {
+    margin-top: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    height: 45px;
+    width: 180px;
+    background: #F9AB00;
+    border-radius: 999px;
+    color: #1a1a1a;
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 22px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    border: 1px solid black;
+}
+
+.btn-all,
+.btn-events,
+.btn-workshops,
+.btn-community {
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.btn-all:hover,
+.btn-events:hover,
+.btn-workshops:hover,
+.btn-community:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+.box-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 50px;
+    margin-left: -15px;
+}
+
+.box {
+    width: 280px;
+    height: 280px;
+    background: #fff;
+    border: 2px solid #1a1a1a;
+    border-radius: 20px;
+}
+
+.action-img {
+    width: 250px;
+    height: 120px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
 hr {
   margin-top: 80px;
   border: none;
@@ -134,7 +263,7 @@ hr {
   width: 100%;
 }
 
-.captured-moments-btn {
+.featured-moment-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -149,15 +278,14 @@ hr {
     color: #000;
     cursor: default;
     margin-bottom: 32px;
-    margin-top: 50px;
+    margin-top: 60px;
 }
 
-.captured-moments-btn .cap-dot {
-    flex-shrink: 0;
+.featured-moment-btn .feat-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #F9AB00;
+    background: #34A853;
 }
 
 .carousel-wrapper {
@@ -180,19 +308,9 @@ hr {
     display: none;
 }
 
-.card {
-    margin-top: 40px;
-    height: 300px;
-    width: 450px;
-    flex-shrink: 0;
-    background-color: #d9d9d9;
-    border-radius: 12px;
-    scroll-snap-align: start;
-}
-
 .card-featured {
     margin-top: 40px;
-    height: 400px;
+    height: 500px;
     width: 1100px;
     flex-shrink: 0;
     background-color: #d9d9d9;
@@ -200,136 +318,9 @@ hr {
     scroll-snap-align: start;
 }
 
-.carousel-wrapper::before,
-.carousel-wrapper::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    width: 70px;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.carousel-wrapper::before {
-    left: 0;
-    background: linear-gradient(to left, rgba(250,250,250,0), #fafafa);
-}
-
-.carousel-wrapper::after {
-    right: 0;
-    background: linear-gradient(to right, rgba(250,250,250,0), #fafafa);
-}
-
-.carousel-wrapper.show-left::before {
-    opacity: 1;
-}
-
-.carousel-wrapper.show-right::after {
-    opacity: 1;
-}
-
-.carousel-arrow-right {
-    position: absolute;
-    top: 50%;
-    right: 0;
-    transform: translateY(-50%);
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: none;
-    background: #fff;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    font-size: 18px;
-    cursor: pointer;
-    z-index: 2;
-}
-
-.carousel-arrow-left {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: none;
-    background: #fff;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    font-size: 18px;
-    cursor: pointer;
-    z-index: 2;
-}
-
-.featured-events-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    border: 1px solid #444;
-    border-radius: 999px;
-    background: #fff;
-    font-family: 'Google Sans Flex', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    color: #000;
-    cursor: default;
-    margin-bottom: 32px;
-    margin-top: 60px;
-}
-
-.featured-events-btn .feat-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #34A853;
-}
-
-.past-events-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    border: 1px solid #444;
-    border-radius: 999px;
-    background: #fff;
-    font-family: 'Google Sans Flex', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    color: #000;
-    cursor: default;
-    margin-bottom: 32px;
-    margin-top: 60px;
-}
-
-.past-events-btn .past-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #4285F4;
-}
-
-.card-rows {
-    margin-top: 50px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    width: 100%;
-    max-width: 1100px;
-}
-
-.card-past {
-    aspect-ratio: 3 / 4;
-    background-color: #d9d9d9;
-    border-radius: 12px;
-}
-
 .box-event {
-    width: 60%;
+    width: 70%;
+    height: 400px;
     margin: 60px auto;
     padding: 40px;
     background: #fff;
@@ -363,7 +354,7 @@ hr {
     font-size: 51px;
     font-weight: 400;
     color: #1a1a1a;
-    margin: 30px 0 12px;
+    margin: 50px 0 12px;
     line-height: 1.5;
 }
 
@@ -385,8 +376,8 @@ h2:nth-of-type(2) {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 45px;
-  width: 200px;
+  height: 40px;
+  width: 280px;
   background: #5ADB6C;
   border-radius: 999px;
   color: #1a1a1a;
@@ -416,25 +407,20 @@ h2:nth-of-type(2) {
 
     .carousel-wrapper { max-width: 90%; }
 
-    .card { width: 320px; height: 220px; }
+    .box { width: 220px; height: 220px; }
 
     .card-featured { width: 700px; height: 350px; }
 
-    .card-rows {
-        grid-template-columns: repeat(3, 1fr);
+    .box-row {
+        flex-wrap: wrap;
+        justify-content: center;
         max-width: 90%;
-    }
-
-    .carousel-wrapper::before,
-    .carousel-wrapper::after {
-        width: 40px;
+        margin-left: 0;
     }
 
     .box-event { width: 80%; padding: 30px; }
 
     .box-event h2 { font-size: 36px; }
-
-    .card-past { height: 200px; width: 280px; }
 
     .cta-btn {
         width: 200px;
@@ -465,15 +451,10 @@ h2:nth-of-type(2) {
 
     p { font-size: 16px; }
 
-    .events-btn,
-    .past-events-btn {
+    .gallery-btn,
+    .featured-moment-btn {
         font-size: 12px;
         padding: 8px 16px;
-    }
-
-    .featured-events-btn {
-        margin-top: 40px;
-        font-size: 12px;
     }
 
     .cta-btn {
@@ -486,24 +467,13 @@ h2:nth-of-type(2) {
 
     .carousel-wrapper { max-width: 100%; padding: 0 30px; }
 
-    .card { width: 240px; height: 180px; }
+    .box { width: 160px; height: 160px; }
 
     .card-featured { margin-left: 5px; margin-top: 28px; width: 510px; height: 300px; }
 
-    .carousel-arrow-left,
-    .carousel-arrow-right {
-        width: 28px;
-        height: 28px;
-        font-size: 14px;
-    }
-
-    .carousel-wrapper::before,
-    .carousel-wrapper::after {
-        width: 40px;
-    }
-
-    .card-rows {
-        grid-template-columns: repeat(2, 1fr);
+    .box-row {
+        flex-wrap: wrap;
+        justify-content: center;
         gap: 12px;
     }
 
@@ -529,14 +499,14 @@ h2:nth-of-type(2) {
 }
 
 @media (max-width: 480px) {
-    .events-btn {
+    .gallery-btn {
         width: 88px;
         height: 20px;
         font-size: 9px;
         margin-bottom: 15px;
     }
 
-    .events-btn .dot {
+    .gallery-btn .dot {
         width: 8px;
         height: 8px;
     }
@@ -554,43 +524,33 @@ h2:nth-of-type(2) {
 
     .arrow-down { font-size: 20px; }
 
-    .upcoming-events-btn {
-        margin-top: 20px;
-        width: 151px;
-        height: 20px;
-        font-size: 9px;
-        margin-bottom: 2cap;
-    }
-
-    .upcoming-events-btn .up-dot {
-        width: 8px;
-        height: 8px;
-    }
-
-    .featured-events-btn {
+    .featured-moment-btn {
         margin-top: 20px;
         width: 160px;
         height: 20px;
         font-size: 9px;
-        margin-bottom: 2cap;
+        margin-bottom: 20px;
+    }
+
+    .featured-moment-btn .feat-dot {
+        width: 8px;
+        height: 8px;
     }
 
     .card-featured {
         width: 200px; height: 200px;
     }
 
-    .past-events-btn {
-        margin-top: 10px;
-        width: 120px;
-        height: 20px;
-        font-size: 9px;
-        margin-bottom: 2cap;
+    .box-row {
+        margin-top: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
     }
 
-    .card-rows {
-        margin-top: 20px;
-        width: 60px;
-        height: 60px;
+    .box {
+        width: 90px;
+        height: 90px;
     }
 
     .carousel-wrapper {
@@ -602,26 +562,10 @@ h2:nth-of-type(2) {
 
     .carousel {margin-top: -5px;}
 
-    .carousel-wrapper::before,
-    .carousel-wrapper::after {
-        width: 40px;
-    }
-
-    .carousel-arrow-left,
-    .carousel-arrow-right {
-        width: 15px;
-        height: 24px;
-        font-size: 12px;
-    }
-
     .doodle-1 { top: 10px; left: 5%; width: 25px; height: 25px; }
     .doodle-2 { top: 8px; right: 5%; width: 25px; height: 25px; }
     .doodle-3 { margin-top: -90px; left: 5%; width: 25px; height: 25px; }
     .doodle-4 { margin-top: -90px; right: 5%; width: 25px; height: 25px; }
-
-    .card { width: 200px; height: 150px; }
-
-    .card-rows { grid-template-columns: repeat(2, 1fr); }
 
     .box-event h2 { font-size: 22px; }
 
