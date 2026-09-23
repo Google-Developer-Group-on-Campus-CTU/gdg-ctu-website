@@ -1,37 +1,23 @@
 import { Link } from 'react-router-dom';
 import { mapContent, publicApi, sortPartners, usePublicFeed } from '../api/public.js';
-import { FeedError, FeedSkeleton, friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
+import { FeedSkeleton, friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
+import '../styles/about.css';
 
 const purposeCards = [
   {
     title: 'Our Mission',
     text: 'To empower students and the community with cutting-edge technology knowledge through collaborative learning, skill development, and meaningful connections that drive innovation and career growth.',
-    points: [
-      'Computer Science Advocacy',
-      'Practical Skills Development',
-      'Community Upskilling',
-      'Networking Opportunities',
-    ],
+    points: ['Computer Science Advocacy', 'Practical Skills Development', 'Community Upskilling', 'Networking Opportunities'],
   },
   {
     title: 'Our Vision',
     text: 'We envision a future where every student at Cebu Technological University has access to world-class technology education, practical skills, and a supportive network that transforms them into confident, competent, and connected tech professionals.',
-    points: [
-      'Accessibility for All',
-      'Excellence in Learning',
-      'Transformation & Growth',
-      'Connection & Network',
-    ],
+    points: ['Accessibility for All', 'Excellence in Learning', 'Transformation & Growth', 'Connection & Network'],
   },
   {
     title: 'Our Values',
     text: 'We believe in creating an inclusive environment where innovation thrives, collaboration flourishes, and every member grows into a confident tech professional.',
-    points: [
-      'Innovation & Learning',
-      'Collaboration & Community',
-      'Excellence & Competency',
-      'Advocacy & Impact',
-    ],
+    points: ['Innovation & Learning', 'Collaboration & Community', 'Excellence & Competency', 'Advocacy & Impact'],
   },
 ];
 
@@ -91,72 +77,135 @@ const legacyPartners = [
 ];
 
 export default function About() {
-  const about = usePublicFeed(
-    () => publicApi.getContentByKey('about').then((c) => (c ? mapContent(c) : null)),
-    'about-key',
-  );
+  const about = usePublicFeed(() => publicApi.getContentByKey('about').then((c) => (c ? mapContent(c) : null)), 'about-key');
   const community = usePublicFeed(
     () => publicApi.getContentByKey('community').then((c) => (c ? mapContent(c) : null)),
     'community-key',
   );
-  const partners = usePublicFeed(
-    () => publicApi.getPartners().then(sortPartners),
-    'about-partners',
-  );
+  const partners = usePublicFeed(() => publicApi.getPartners().then(sortPartners), 'about-partners');
 
   const aboutContent = !about.loading && !about.error ? about.data : null;
   const communityContent = !community.loading && !community.error ? community.data : null;
   const cmsPartners = !partners.loading && !partners.error ? partners.data : null;
 
   return (
-    <div className="gdg-container">
-      <section className="gdg-section">
-        <span className="gdg-badge">About Us</span>
-        <h2>
-          {aboutContent?.title || (<>Building Developers. Creating Impact. <span className="gdg-gradient-text">Together.</span></>)}
-        </h2>
-        <p className="gdg-subtitle">
-          {aboutContent?.subtitle || aboutContent?.body || (
-            <>
-              Google Developer Groups - Cebu Technological University - Main
-              Campus is a student-led technology community that empowers aspiring
-              developers through workshops, hackathons, collaborative projects,
-              networking events, and hands-on learning experiences powered by
-              Google technologies.
-            </>
-          )}
-        </p>
-        {aboutContent?.buttonText && aboutContent?.buttonUrl ? (
-          <div className="gdg-btn-row">
-            <a href={aboutContent.buttonUrl} className="gdg-btn gdg-btn-primary">{aboutContent.buttonText}</a>
+    <div className="page-about">
+      <section className="ab-hero">
+        <img
+          className="hero-picture"
+          src="/layout-assets/home/star-no-bg.png"
+          alt=""
+          aria-hidden="true"
+          style={{ top: '80px', left: '180px', width: '70px', height: '70px' }}
+        />
+        <img
+          className="hero-picture"
+          src="/layout-assets/home/arrow-no-bg.png"
+          alt=""
+          aria-hidden="true"
+          style={{ top: '70px', right: '180px', left: 'auto', width: '70px', height: '70px', transform: 'rotate(20deg)' }}
+        />
+        <img
+          className="hero-picture"
+          src="/layout-assets/home/globe-no-bg.png"
+          alt=""
+          aria-hidden="true"
+          style={{ bottom: '40px', left: '200px', top: 'auto', width: '70px', height: '70px', transform: 'rotate(15deg)' }}
+        />
+        <img
+          className="hero-picture"
+          src="/layout-assets/home/heart-no-bg.png"
+          alt=""
+          aria-hidden="true"
+          style={{ bottom: '40px', right: '180px', left: 'auto', top: 'auto', width: '70px', height: '70px', transform: 'rotate(-20deg)' }}
+        />
+
+        <div className="ab-hero-content">
+          <div className="eyebrow">
+            <span /> ABOUT US
+          </div>
+          <h1>
+            {aboutContent?.title ? (
+              aboutContent.title
+            ) : (
+              <>
+                Building Developers. Creating Impact. <span className="grad">Together.</span>
+              </>
+            )}
+          </h1>
+          <p className="lead">
+            {aboutContent?.subtitle || aboutContent?.body ? (
+              aboutContent.subtitle || aboutContent.body
+            ) : (
+              <>
+                Google Developer Groups - Cebu Technological University - Main Campus is a student-led technology community that
+                empowers aspiring developers through workshops, hackathons, collaborative projects, networking events, and hands-on
+                learning experiences powered by Google technologies.
+              </>
+            )}
+          </p>
+          {aboutContent?.buttonText && aboutContent?.buttonUrl ? (
+            <div className="btn-row">
+              <a href={aboutContent.buttonUrl} className="small-green-btn">
+                {aboutContent.buttonText} <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+          ) : null}
+          {!about.loading && about.error ? (
+            <div className="feed-error" role="alert" style={{ marginTop: '14px' }}>
+              <p>{friendlyFeedError(about.error)}</p>
+              <button type="button" className="btn-secondary" onClick={about.retry}>
+                Retry
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="ab-community section-frame" aria-label="Community">
+        <div className="section-rule" />
+        <div className="eyebrow">
+          <span /> COMMUNITY
+        </div>
+        <h2>{communityContent?.title || 'Our Community'}</h2>
+        {community.loading ? (
+          <div className="feed-skeleton">
+            <FeedSkeleton count={1} label="Loading community…" />
           </div>
         ) : null}
-        {/* Loading/empty fall back to the hardcoded shell above; real failures get retry. */}
-        {!about.loading && about.error ? (
-          <FeedError message={friendlyFeedError(about.error)} onRetry={about.retry} />
-        ) : null}
-      </section>
-
-      <section className="gdg-section" aria-label="Community">
-        <span className="gdg-badge">Community</span>
-        <h2>{communityContent?.title || 'Our Community'}</h2>
-        {community.loading ? <FeedSkeleton count={1} label="Loading community…" /> : null}
         {!community.loading && community.error ? (
-          <FeedError message={friendlyFeedError(community.error)} onRetry={community.retry} />
+          <div className="feed-error" role="alert">
+            <p>{friendlyFeedError(community.error)}</p>
+            <button type="button" className="btn-secondary" onClick={community.retry}>
+              Retry
+            </button>
+          </div>
         ) : null}
         {!community.loading && !community.error && !communityContent ? (
-          <p className="gdg-subtitle">No community updates published yet — check back soon.</p>
+          <div className="feed-empty">
+            <p>No community updates published yet — check back soon.</p>
+          </div>
         ) : null}
-        {communityContent?.subtitle ? <p className="gdg-subtitle">{communityContent.subtitle}</p> : null}
-        {communityContent?.body ? <p>{communityContent.body}</p> : null}
+        {communityContent?.subtitle ? <p className="sub">{communityContent.subtitle}</p> : null}
+        {communityContent?.body ? <p className="sub">{communityContent.body}</p> : null}
+        {!communityContent?.subtitle && !communityContent?.body && !community.loading && !community.error ? (
+          <p className="sub">
+            A diverse, inclusive community where students from all courses learn together, build together, and grow together —
+            supported by mentors, alumni, and industry friends.
+          </p>
+        ) : null}
       </section>
 
-      <section className="gdg-section">
-        <span className="gdg-badge">Our Purpose</span>
+      <section className="ab-purpose section-frame">
+        <div className="section-rule" />
+        <div className="eyebrow">
+          <span /> OUR PURPOSE
+        </div>
         <h2>Our Mission, Vision, and Values</h2>
-        <div className="gdg-grid">
+        <p className="sub">What drives us every day as a campus technology community.</p>
+        <div className="purpose-grid">
           {purposeCards.map((card) => (
-            <div key={card.title} className="gdg-card">
+            <div key={card.title} className="purpose-card">
               <h3>{card.title}</h3>
               <p>{card.text}</p>
               <ul>
@@ -169,14 +218,18 @@ export default function About() {
         </div>
       </section>
 
-      <section className="gdg-section">
-        <span className="gdg-badge">Strategic Goals</span>
+      <section className="ab-strategic section-frame">
+        <div className="section-rule" />
+        <div className="eyebrow">
+          <span /> STRATEGIC GOALS
+        </div>
         <h2>
-          How We Make <span className="gdg-gradient-text">Impact</span>
+          How We Make <span className="grad">Impact</span>
         </h2>
-        <div className="gdg-grid">
+        <p className="sub">Four pillars that shape our programs and guide every event we run.</p>
+        <div className="strategic-grid">
           {strategicGoals.map((goal) => (
-            <div key={goal.title} className="gdg-card">
+            <div key={goal.title} className="strategic-card">
               <h3>{goal.title}</h3>
               <p>{goal.text}</p>
             </div>
@@ -184,19 +237,19 @@ export default function About() {
         </div>
       </section>
 
-      <section className="gdg-section">
-        <span className="gdg-badge">Our Story</span>
+      <section className="ab-story section-frame">
+        <div className="section-rule" />
+        <div className="eyebrow">
+          <span /> OUR STORY
+        </div>
         <h2>
-          Team Story: <span className="gdg-gradient-text">GDG On Campus CTU</span>
+          Team Story: <span className="grad">GDG On Campus CTU</span>
         </h2>
-        <p className="gdg-subtitle">
-          From a small group of passionate students to one of the most active
-          tech communities in the region.
-        </p>
-        <ul className="gdg-timeline">
+        <p className="sub">From a small group of passionate students to one of the most active tech communities in the region.</p>
+        <ul className="timeline">
           {timeline.map((item) => (
             <li key={item.title}>
-              <span className="gdg-timeline-year">{item.year}</span>
+              <span className="tl-year">{item.year}</span>
               <h3>{item.title}</h3>
               <p>{item.text}</p>
             </li>
@@ -204,60 +257,93 @@ export default function About() {
         </ul>
       </section>
 
-      <section className="gdg-section">
-        <span className="gdg-badge">Our Partners</span>
+      <section className="ab-partners section-frame">
+        <div className="section-rule" />
+        <div className="eyebrow">
+          <span /> OUR PARTNERS
+        </div>
         <h2>
-          Trusted <span className="gdg-gradient-text">Partners</span>
+          Trusted <span className="grad">Partners</span>
         </h2>
-        <p className="gdg-subtitle">
-          We proudly collaborate with leading technology companies, academic
-          institutions, and developer communities.
-        </p>
-        {partners.loading ? <FeedSkeleton count={4} label="Loading partners…" /> : null}
+        <p className="sub">We proudly collaborate with leading technology companies, academic institutions, and developer communities.</p>
+
+        {partners.loading ? (
+          <div className="feed-skeleton">
+            <FeedSkeleton count={3} label="Loading partners…" />
+          </div>
+        ) : null}
         {!partners.loading && partners.error ? (
-          <FeedError message={`${friendlyFeedError(partners.error)} Showing legacy partners.`} onRetry={partners.retry} />
+          <div className="feed-error" role="alert">
+            <p>{friendlyFeedError(partners.error)} Showing legacy partners.</p>
+            <button type="button" className="btn-secondary" onClick={partners.retry}>
+              Retry
+            </button>
+          </div>
         ) : null}
         {!partners.loading && !partners.error && !cmsPartners?.length ? (
-          <p className="gdg-subtitle">No partners published yet — check back soon.</p>
+          <div className="feed-empty">
+            <p>No partners published yet — check back soon.</p>
+          </div>
         ) : null}
+
         {!partners.loading && (partners.error || cmsPartners?.length) ? (
-          <div className="gdg-grid">
+          <div className="partners-grid">
             {partners.error
               ? legacyPartners.map((partner) => (
-                <div key={partner.name} className="gdg-card">
-                  {partner.image ? (
-                    <img
-                      className="gdg-photo"
-                      src={partner.image}
-                      alt={partner.name}
-                      onError={hideImage}
-                    />
-                  ) : (
-                    <div className="gdg-photo-fallback">{partner.name.charAt(0)}</div>
-                  )}
-                  <h3>{partner.name}</h3>
-                  <p>{partner.role}</p>
-                </div>
-              ))
+                  <div key={partner.name} className="partner-card">
+                    {partner.image ? (
+                      <img src={partner.image} alt={partner.name} loading="lazy" onError={hideImage} />
+                    ) : (
+                      <div className="fallback">{partner.name.charAt(0)}</div>
+                    )}
+                    <h3>{partner.name}</h3>
+                    <p>{partner.role}</p>
+                  </div>
+                ))
               : (cmsPartners ?? []).map((partner) => (
-                <div key={partner.id} className="gdg-card">
-                  {partner.logoUrl ? (
-                    <img className="gdg-photo" src={partner.logoUrl} alt={partner.logoAlt} loading="lazy" onError={hideImage} />
-                  ) : (
-                    <div className="gdg-photo-fallback">{partner.name.charAt(0)}</div>
-                  )}
-                  <h3>{partner.name}</h3>
-                  <p><span className="gdg-tag">{partner.tier}</span></p>
-                  {partner.description ? <p>{partner.description}</p> : null}
-                </div>
-              ))}
+                  <div key={partner.id} className="partner-card">
+                    {partner.logoUrl ? (
+                      <img src={partner.logoUrl} alt={partner.logoAlt} loading="lazy" onError={hideImage} />
+                    ) : (
+                      <div className="fallback">{partner.name.charAt(0)}</div>
+                    )}
+                    <h3>{partner.name}</h3>
+                    <p>
+                      <span className="g-tag">{partner.tier}</span>
+                    </p>
+                    {partner.description ? <p>{partner.description}</p> : null}
+                  </div>
+                ))}
           </div>
         ) : null}
         {cmsPartners?.length ? (
-          <div className="gdg-btn-row">
-            <Link to="/partners" className="gdg-btn gdg-btn-secondary">All Partners</Link>
+          <div className="btn-row">
+            <Link to="/partners" className="btn-secondary">
+              All Partners
+            </Link>
           </div>
         ) : null}
+      </section>
+
+      <section className="ab-join section-frame">
+        <div className="section-rule" />
+        <div className="cta-card">
+          <h2>Ready to build with us?</h2>
+          <p>Join GDG On Campus CTU and start learning, building, and growing with the community.</p>
+          <div className="btn-row">
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLSe8XGfS83u5u3bbwqaUlHYmYlTNqPuYPl1aULCb8xMrN91jaQ/viewform?pli=1"
+              target="_blank"
+              rel="noreferrer"
+              className="small-green-btn"
+            >
+              Join Us <span aria-hidden="true">↗</span>
+            </a>
+            <Link to="/team" className="btn-secondary">
+              Meet the Team
+            </Link>
+          </div>
+        </div>
       </section>
     </div>
   );

@@ -1,56 +1,157 @@
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, NavLink } from 'react-router-dom';
+import '../styles/shell.css';
 
 const JOIN_FORM_URL =
   'https://docs.google.com/forms/d/e/1FAIpQLSe8XGfS83u5u3bbwqaUlHYmYlTNqPuYPl1aULCb8xMrN91jaQ/viewform?pli=1';
 
 export default function Navbar() {
+  const [open, setOpen] = useState(false);
+  const [glitch, setGlitch] = useState(false);
+  const hamburgerRef = useRef(null);
+  const mobileNavRef = useRef(null);
+  const topbarRef = useRef(null);
+
+  const triggerGlitch = () => {
+    setGlitch(false);
+    // force reflow by reading offset, then re-add
+    if (topbarRef.current) {
+      void topbarRef.current.offsetWidth;
+    }
+    setGlitch(true);
+    window.setTimeout(() => setGlitch(false), 450);
+  };
+
+  const toggle = (e) => {
+    e.stopPropagation();
+    triggerGlitch();
+    setOpen((v) => !v);
+  };
+
+  const close = () => {
+    if (!open) return;
+    triggerGlitch();
+    setOpen(false);
+  };
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (!open) return;
+      const target = e.target;
+      if (
+        mobileNavRef.current &&
+        !mobileNavRef.current.contains(target) &&
+        hamburgerRef.current &&
+        !hamburgerRef.current.contains(target)
+      ) {
+        triggerGlitch();
+        setOpen(false);
+      }
+    };
+    const onResize = () => {
+      if (window.innerWidth > 700 && open) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('click', onDocClick);
+    window.addEventListener('resize', onResize);
+    return () => {
+      document.removeEventListener('click', onDocClick);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [open]);
+
+  const navLinkClass = ({ isActive }) => (isActive ? 'active' : undefined);
+
   return (
-    <nav className="gdg-nav">
-      <Link to="/" className="gdg-nav-logo">
-        <img
-          src="/legacy-images/Copy of GDG On Campus.png"
-          alt="GDG On Campus Logo"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
-        />
-      </Link>
-      <ul className="gdg-nav-links">
-        <li>
-          <Link to="/">Home</Link>
-        </li>
-        <li>
-          <Link to="/about">About</Link>
-        </li>
-        <li>
-          <Link to="/team">Our Team</Link>
-        </li>
-        <li>
-          <Link to="/partners">Partners</Link>
-        </li>
-        <li>
-          <Link to="/gallery">Gallery</Link>
-        </li>
-        <li>
-          <Link to="/events">Events</Link>
-        </li>
-        <li>
-          <Link to="/contact">Contact</Link>
-        </li>
-        <li>
-          <Link to="/admin">Admin</Link>
-        </li>
-        <li>
-          <a
-            href={JOIN_FORM_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="gdg-nav-join"
-          >
-            Join Us
-          </a>
-        </li>
-      </ul>
-    </nav>
+    <>
+      <header
+        ref={topbarRef}
+        className={`gdg-shell-topbar${glitch ? ' gdg-shell-glitch' : ''}`}
+      >
+        <Link to="/" className="gdg-shell-site-logo" aria-label="GDGoC-CTU Home">
+          <img
+            src="/layout-assets/shell/icon.png"
+            alt="GDGoC-CTU Logo"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        </Link>
+
+        <button
+          ref={hamburgerRef}
+          type="button"
+          className={`gdg-shell-hamburger${open ? ' active' : ''}`}
+          aria-label="Toggle navigation"
+          aria-expanded={open}
+          aria-controls="gdg-shell-mobile-nav"
+          onClick={toggle}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+
+        <nav className="gdg-shell-nav-links" aria-label="Main navigation">
+          <NavLink to="/" className={navLinkClass} end>
+            Home
+          </NavLink>
+          <NavLink to="/about" className={navLinkClass}>
+            About
+          </NavLink>
+          <NavLink to="/team" className={navLinkClass}>
+            Our Team
+          </NavLink>
+          <NavLink to="/events" className={navLinkClass}>
+            Events
+          </NavLink>
+          <NavLink to="/partners" className={navLinkClass}>
+            Partners
+          </NavLink>
+          <NavLink to="/gallery" className={navLinkClass}>
+            Gallery
+          </NavLink>
+        </nav>
+
+        <a
+          className="gdg-shell-join-top"
+          href={JOIN_FORM_URL}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Join Us
+        </a>
+      </header>
+
+      <nav
+        id="gdg-shell-mobile-nav"
+        ref={mobileNavRef}
+        className={`gdg-shell-mobile-nav${open ? ' open' : ''}`}
+        aria-label="Mobile navigation"
+      >
+        <NavLink to="/" className={navLinkClass} end onClick={close}>
+          Home
+        </NavLink>
+        <NavLink to="/about" className={navLinkClass} onClick={close}>
+          About
+        </NavLink>
+        <NavLink to="/team" className={navLinkClass} onClick={close}>
+          Our Team
+        </NavLink>
+        <NavLink to="/events" className={navLinkClass} onClick={close}>
+          Events
+        </NavLink>
+        <NavLink to="/partners" className={navLinkClass} onClick={close}>
+          Partners
+        </NavLink>
+        <NavLink to="/gallery" className={navLinkClass} onClick={close}>
+          Gallery
+        </NavLink>
+        <a href={JOIN_FORM_URL} target="_blank" rel="noreferrer" onClick={close}>
+          Join Us
+        </a>
+      </nav>
+    </>
   );
 }
