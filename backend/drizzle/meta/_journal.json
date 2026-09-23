@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1788258218725,
-      "tag": "0000_melted_menace",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1789022492233,
-      "tag": "0001_hard_mongoose",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1790052084138,
-      "tag": "0002_jittery_warpath",
+      "when": 1790163510505,
+      "tag": "0000_stormy_pixie",
       "breakpoints": true
     }
   ]
