@@ -11,19 +11,6 @@ if (!API_BASE_URL) {
   );
 }
 
-/** localStorage key toggling the dev-only bypass (set by DevInstantAdmin). */
-export const DEV_BYPASS_STORAGE_KEY = 'gdg-dev-admin-bypass';
-
-/** True only in dev builds when the bypass flag is set. Never true in production. */
-export function isDevAdminBypass() {
-  if (!import.meta.env.DEV) return false;
-  try {
-    return localStorage.getItem(DEV_BYPASS_STORAGE_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
 /** Abort any apiFetch that has not completed within this window. */
 const REQUEST_TIMEOUT_MS = 15000;
 
@@ -43,10 +30,6 @@ export async function apiFetch(path, options = {}) {
     'Content-Type': 'application/json',
     ...headers,
   };
-
-  if (isDevAdminBypass()) {
-    mergedHeaders['x-dev-admin-bypass'] = 'dev-instant-admin';
-  }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);

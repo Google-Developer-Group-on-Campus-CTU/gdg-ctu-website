@@ -4,6 +4,7 @@ import { albumsApi, contentApi, eventsApi, getId, getStatus, getUpdatedAt, media
 import { toArray } from '../../api/resources.js';
 import { adminDetailPathFor, adminItemLabel, timeAgo } from '../../admin/editorial.js';
 import { ErrorState, LoadingSkeleton, StatusPill } from '../../components/admin/shared.jsx';
+import { authClient } from '../../lib/auth-client';
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
@@ -12,8 +13,14 @@ export default function AdminDashboard() {
   const [retryCount, setRetryCount] = useState(0);
   const [drafts, setDrafts] = useState([]);
   const [recent, setRecent] = useState([]);
+  const { data: session } = authClient.useSession();
+  const authed = !!session?.user;
 
   useEffect(() => {
+    // Never fire the six protected endpoints without a live session — an
+    // unauthenticated mount used to spray a batch of 401s (× StrictMode
+    // remounts) that nothing redirected away.
+    if (!authed) return undefined;
     let alive = true;
     const rid = `dash-${Date.now().toString(36)}`;
     setLoading(true);
@@ -67,7 +74,10 @@ export default function AdminDashboard() {
     return () => {
       alive = false;
     };
-  }, [retryCount]);
+  }, [authed, retryCount]);
+
+  // Unauthenticated: render nothing (a guard above redirects to login).
+  if (!authed) return null;
 
   if (loading) {
     return (

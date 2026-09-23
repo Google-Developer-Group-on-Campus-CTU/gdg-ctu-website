@@ -41,20 +41,66 @@ async function getOne(path) {
   }
 }
 
+/**
+ * A list endpoint returning 404 means "this module has nothing yet" — render
+ * an empty state instead of a red error. Anything else still propagates to
+ * the feeds' ErrorState + Retry.
+ */
+async function getMany(path) {
+  try {
+    return toArray(await apiFetch(path));
+  } catch (err) {
+    if (err?.status === 404) return [];
+    throw err;
+  }
+}
+
+/**
+ * Content sections are loaded from GET /public/content (always 200; empty
+ * list while the CMS has no rows) and matched by key client-side. The
+ * per-key GET /public/content/:key route404s until an admin creates the
+ * hero/cta/etc. rows, which used to spray red "Failed to load resource"
+ * console lines on every public page load (×2 keys × StrictMode × pages).
+ *
+ * The promise is cached for the SPA session so StrictMode's double mount
+ * and every content-backed page share one request. A 404 is cached as an
+ * empty list; any other failure clears the cache so feeds' Retry works.
+ * NOTE: content edits therefore show up after a page reload — public
+ * visitors always load fresh anyway.
+ */
+let contentListPromise = null;
+function loadActiveContent() {
+  if (!contentListPromise) {
+    contentListPromise = apiFetch('/public/content')
+      .then(toArray)
+      .catch((err) => {
+        if (err?.status === 404) return [];
+        contentListPromise = null;
+        throw err;
+      });
+  }
+  return contentListPromise;
+}
+
+/** Keyed row lookup — drizzle may return section_key or sectionKey. */
+function findContentByKey(rows, key) {
+  return rows.find((row) => (row.section_key ?? row.sectionKey ?? row.key) === key) ?? null;
+}
+
 export const publicApi = {
-  getTeam: (params) => apiFetch(`/public/team${qs(params)}`).then(toArray),
+  getTeam: (params) => getMany(`/public/team${qs(params)}`),
   getTeamBySlug: (slug) => getOne(`/public/team/slug/${encodeURIComponent(slug)}`),
   getEvents: (scope = 'upcoming') => {
     const safeScope = PUBLIC_EVENT_SCOPES.has(scope) ? scope : 'upcoming';
-    return apiFetch(`/public/events${qs({ scope: safeScope })}`).then(toArray);
+    return getMany(`/public/events${qs({ scope: safeScope })}`);
   },
   getEventBySlug: (slug) => getOne(`/public/events/slug/${encodeURIComponent(slug)}`),
-  getContent: () => apiFetch('/public/content').then(toArray),
-  getContentByKey: (key) => getOne(`/public/content/${encodeURIComponent(key)}`),
-  getPartners: () => apiFetch('/public/partners').then(toArray),
-  getAlbums: () => apiFetch('/public/gallery/albums').then(toArray),
+  getContent: () => loadActiveContent(),
+  getContentByKey: (key) => loadActiveContent().then((rows) => findContentByKey(rows, key)),
+  getPartners: () => getMany('/public/partners'),
+  getAlbums: () => getMany('/public/gallery/albums'),
   getAlbumBySlug: (slug) => getOne(`/public/gallery/albums/slug/${encodeURIComponent(slug)}`),
-  getFeaturedPhotos: () => apiFetch('/public/gallery/featured').then(toArray),
+  getFeaturedPhotos: () => getMany('/public/gallery/featured'),
   getHealth: () => apiFetch('/health'),
 };
 

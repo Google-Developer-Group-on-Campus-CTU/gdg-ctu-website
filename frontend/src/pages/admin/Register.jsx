@@ -127,7 +127,8 @@ export default function AdminRegister() {
 
   // Hooks above run unconditionally; only then branch on configuration/state.
   if (!API_BASE_URL) return <AdminDisabled />;
-  if (!isPending && session) return <Navigate to="/admin" replace />;
+  // Same predicate as ProtectedRoute — a real session always carries `user`.
+  if (!isPending && session?.user) return <Navigate to="/admin" replace />;
 
   const clearFieldError = (field) => {
     setFieldErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));

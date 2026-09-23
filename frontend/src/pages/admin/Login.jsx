@@ -3,7 +3,6 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { authClient } from '../../lib/auth-client';
 import { AdminDisabled } from '../../components/ProtectedRoute.jsx';
 import AuthBrandPanel from '../../components/admin/AuthBrandPanel.jsx';
-import DevInstantAdmin from '../../components/admin/DevInstantAdmin.jsx';
 import '../../styles/login.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
@@ -51,16 +50,10 @@ export default function AdminLogin() {
   const isSignUp = mode === 'sign-up';
 
   // Hooks above run unconditionally; only then branch on configuration/state.
-  if (!API_BASE_URL) {
-    return (
-      <>
-        <AdminDisabled />
-        <DevInstantAdmin />
-      </>
-    );
-  }
+  if (!API_BASE_URL) return <AdminDisabled />;
 
-  if (!isPending && session) return <Navigate to="/admin" replace />;
+  // A real session always carries `user` — same predicate as ProtectedRoute.
+  if (!isPending && session?.user) return <Navigate to="/admin" replace />;
 
   const switchMode = (next) => {
     setMode(next);
@@ -309,8 +302,6 @@ export default function AdminLogin() {
               )}
             </p>
           </div>
-
-          <DevInstantAdmin />
 
           <Link className="login-back" to="/">
             ← Back to the public site

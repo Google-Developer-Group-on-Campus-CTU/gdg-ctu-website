@@ -26,22 +26,29 @@ import publicGalleryRoutes from "./public/public-gallery.routes.js";
 const router = Router();
 const protectedRouter = Router();
 
-protectedRouter.use(requireAuth);
-protectedRouter.use("/admins", adminRoutes);
-protectedRouter.use("/admin-invites", adminInviteRoutes);
-protectedRouter.use("/auth", authRoutes);
-protectedRouter.use("/team-members", teamMemberRoutes);
-protectedRouter.use("/events", eventRoutes);
-protectedRouter.use("/media", mediaRoutes);
-protectedRouter.use("/site-content", siteContentRoutes);
-protectedRouter.use("/event-speakers", eventSpeakerRoutes);
-protectedRouter.use("/event-hosts", eventHostRoutes);
-protectedRouter.use("/event-attendees", eventAttendeeRoutes);
-protectedRouter.use("/media-collections", mediaCollectionRoutes);
-protectedRouter.use("/media-collection-items", mediaCollectionItemRoutes);
-protectedRouter.use("/terms", termsRoutes);
-protectedRouter.use("/member-terms", memberTermsRoutes);
-protectedRouter.use("/partners", partnerRoutes);
+// requireAuth is applied per protected mount — never blanket on this router:
+// `router.use(protectedRouter)` below mounts it prefix-less, so a global
+// `protectedRouter.use(requireAuth)` would also run for the public mounts
+// registered on the same router and 401 the public website.
+protectedRouter.use("/admins", requireAuth, adminRoutes);
+protectedRouter.use("/admin-invites", requireAuth, adminInviteRoutes);
+protectedRouter.use("/auth", requireAuth, authRoutes);
+protectedRouter.use("/team-members", requireAuth, teamMemberRoutes);
+protectedRouter.use("/events", requireAuth, eventRoutes);
+protectedRouter.use("/media", requireAuth, mediaRoutes);
+protectedRouter.use("/site-content", requireAuth, siteContentRoutes);
+protectedRouter.use("/event-speakers", requireAuth, eventSpeakerRoutes);
+protectedRouter.use("/event-hosts", requireAuth, eventHostRoutes);
+protectedRouter.use("/event-attendees", requireAuth, eventAttendeeRoutes);
+protectedRouter.use("/media-collections", requireAuth, mediaCollectionRoutes);
+protectedRouter.use(
+      "/media-collection-items",
+      requireAuth,
+      mediaCollectionItemRoutes,
+);
+protectedRouter.use("/terms", requireAuth, termsRoutes);
+protectedRouter.use("/member-terms", requireAuth, memberTermsRoutes);
+protectedRouter.use("/partners", requireAuth, partnerRoutes);
 router.use(protectedRouter);
 
 // Public (no auth) — CMS reads for the website. A new public entity is one

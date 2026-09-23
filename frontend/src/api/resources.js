@@ -1,4 +1,4 @@
-import { apiFetch, API_BASE_URL, isDevAdminBypass } from './client.js';
+import { apiFetch, API_BASE_URL } from './client.js';
 import { qs } from './feed.js';
 
 export { qs };
@@ -84,10 +84,9 @@ export const mediaApi = {
     const form = new FormData();
     form.append('file', file);
     if (altText) form.append('alt_text', altText);
+    // Empty headers object: multipart must not set Content-Type (the browser
+    // needs to append the boundary itself).
     const headers = {};
-    if (isDevAdminBypass()) {
-      headers['x-dev-admin-bypass'] = 'dev-instant-admin';
-    }
     const response = await fetch(`${API_BASE_URL}/media`, {
       method: 'POST',
       credentials: 'include',
