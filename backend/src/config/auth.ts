@@ -3,6 +3,7 @@ import { admin } from "better-auth/plugins";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { redisStorage } from "@better-auth/redis-storage";
 import { Redis } from "ioredis";
+import { count } from "drizzle-orm";
 import ENV, { AUTH_BASE_PATH } from "./env.js";
 import { db } from "./connectDB.js";
 import logger from "../utils/logger.js";
@@ -77,6 +78,61 @@ export const auth = betterAuth({
       // so its default "/api/auth" resolves to this same path).
       basePath: AUTH_BASE_PATH,
       trustedOrigins,
+      // First-admin bootstrap: when the `user` table is completely empty,
+      // the very first signup (email/password, invite redeem via
+      // signUpEmail, Google social — all funnel through user creation)
+      // becomes admin. Also forces emailVerified=true for that row, because
+      // requireEmailVerification is on and no mail sender is configured —
+      // without it the first admin would get no session.
+      //
+      // Verified against better-auth 1.7.5 / @better-auth/core
+      // (init-options.d.mts): databaseHooks.user.create.before receives the
+      // pending user and may return { data } to shallow-merge overrides, or
+      // void to leave it untouched (with-hooks.mjs). The admin plugin
+      // registers its own create.before (role defaulting) — both hooks run
+      // in sequence over the same merged row, so our role/emailVerified
+      // override is preserved regardless of plugin/option hook order.
+      databaseHooks: {
+            user: {
+                  create: {
+                        before: async () => {
+                              try {
+                                    const rows = await db
+                                          .select({ total: count() })
+                                          .from(user);
+                                    const total = rows[0]?.total ?? 0;
+                                    if (total > 0) {
+                                          // Not the first user — leave data untouched.
+                                          return;
+                                    }
+                                    logger.info(
+                                          "Empty user table — promoting first signup to admin",
+                                    );
+                                    return {
+                                          data: {
+                                                role: "admin",
+                                                emailVerified: true,
+                                          },
+                                    };
+                              } catch (error) {
+                                    logger.error(
+                                          "First-admin bootstrap hook failed",
+                                          {
+                                                message:
+                                                      error instanceof Error
+                                                            ? error.message
+                                                            : String(error),
+                                          },
+                                    );
+                                    // Fail closed: without a reliable count the
+                                    // first admin could silently stay a normal
+                                    // emailVerified=false user with no way in.
+                                    throw error;
+                              }
+                        },
+                  },
+            },
+      },
       emailAndPassword: {
             enabled: true,
             requireEmailVerification: true,
