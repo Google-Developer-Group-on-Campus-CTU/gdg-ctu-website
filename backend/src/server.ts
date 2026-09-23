@@ -3,7 +3,6 @@ import express from "express";
 import logger from "./utils/logger.js";
 import { connectDB } from "./config/connectDB.js";
 import { testCloudinaryConnection } from "./config/cloudinary/cloudinary.connection.js";
-import { testRedisConnection } from "./config/redis/redis.config.js";
 import apiRoutes from "./modules/index.js";
 import {
       validateServerPort,
@@ -14,7 +13,7 @@ import {
       configureEnvironmentRoutes,
 } from "./utils/serverValidation.js";
 import { toNodeHandler } from "better-auth/node";
-import { auth, connectAuthRedis, googleProviderEnabled } from "./config/auth.js";
+import { auth, googleProviderEnabled } from "./config/auth.js";
 
 const app = express();
 const PORT = validateServerPort(ENV.PORT);
@@ -43,12 +42,9 @@ app.use(express.json());
 app.use("/GDGoC-CTU-Main/v0.0.1", apiRoutes);
 configureEnvironmentRoutes(app);
 
-// All-or-nothing boot: DB (+migrations) → Cloudinary → Redis →
-// Better Auth Redis (secondaryStorage) → listen.
+// All-or-nothing boot: DB (+migrations) → Cloudinary → listen.
 connectDB()
       .then(() => testCloudinaryConnection())
-      .then(() => testRedisConnection())
-      .then(() => connectAuthRedis())
       .then(() => {
             app.listen(PORT, "0.0.0.0", () => {
                   logger.info(`Server is running on port ${PORT}`);

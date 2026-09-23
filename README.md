@@ -22,8 +22,8 @@ A public club website (home, about, team, events, gallery, partners, contact) wh
 | Area | Tools |
 |---|---|
 | Frontend (what visitors see) | React 19, React Router 7, Vite 8, Better Auth React (sign-in form) |
-| Backend (the server that stores data) | Node + Express 5, TypeScript, Drizzle ORM (tool that talks to the database) + Postgres (Neon), Clerk Express (checks logins), Redis (fast temporary memory/cache), Cloudinary (image storage), Zod (checks that incoming data has the right shape), Winston (writes server logs) |
-| Hosting (where it runs online) | Backend on Render, frontend on Vercel; database on Neon, cache on Upstash/Redis, images on Cloudinary |
+| Backend (the server that stores data) | Node + Express 5, TypeScript, Drizzle ORM (tool that talks to the database) + Postgres (Neon), Clerk Express (checks logins), Cloudinary (image storage), Zod (checks that incoming data has the right shape), Winston (writes server logs) |
+| Hosting (where it runs online) | Backend on Render, frontend on Vercel; database on Neon, images on Cloudinary |
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ You need these installed before starting (all free):
 - **npm** (comes with Node.js — it installs project libraries)
 - **Git** — [download](https://git-scm.com/downloads)
 
-You will also need free accounts later (explained in Getting Started): Clerk, Neon (database), Cloudinary (images), Upstash (Redis), Render (backend hosting), Vercel (frontend hosting).
+You will also need free accounts later (explained in Getting Started): Clerk, Neon (database), Cloudinary (images), Render (backend hosting), Vercel (frontend hosting).
 
 Check your setup:
 
@@ -84,7 +84,7 @@ gdg-ctu-main/
 │   ├── package.json           ← backend libraries + scripts
 │   └── src/
 │       ├── server.ts          ← starts the server, connects everything at /GDGoC-CTU-Main/v0.0.1
-│       ├── config/            ← database, Cloudinary, Redis, settings setup
+│       ├── config/            ← database, Cloudinary, settings setup
 │       ├── modules/           ← one folder per feature (events, team, gallery, ...)
 │       ├── middleware/        ← checks that run before requests (login checks, etc.)
 │       └── utils/             ← helpers (logs, validation)
@@ -115,7 +115,6 @@ Never commit real `.env` files — they hold secrets like passwords and keys.
 | `PASSWORD_LENGTH` | Minimum password length the server enforces |
 | `CLOUDINARY_URL` | Login address for image uploads (from Cloudinary) |
 | `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | Login-service keys (both from the same Clerk app as the frontend) |
-| `REDIS_URL` | Connection address for Redis fast memory (from Upstash) |
 
 **Frontend** (`frontend/.env.example` → copy to `frontend/.env`):
 
@@ -150,7 +149,7 @@ Never commit real `.env` files — they hold secrets like passwords and keys.
 2. Not logged in = error `401`; logged in but not an active admin = error `403`.
 3. Every backend URL starts with `/GDGoC-CTU-Main/v0.0.1` (the versioned base path).
 4. The backend only answers the one frontend address in `FR_ORIGIN` (this is CORS — a browser safety rule), and the frontend must point `VITE_API_URL` at the backend.
-5. Data lives in Postgres via Drizzle, images in Cloudinary (5 MB max), repeated reads sped up by Redis; pages find things by `slug` (URL-friendly name) and `site_content` keys, and items have a `status` (e.g. draft/published).
+5. Data lives in Postgres via Drizzle (reads go straight to the database), images in Cloudinary (5 MB max); pages find things by `slug` (URL-friendly name) and `site_content` keys, and items have a `status` (e.g. draft/published).
 
 ## Docs links
 
@@ -177,7 +176,7 @@ We'd love your help! Please read [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) 
 2. **`403 Forbidden` after logging in** — your account isn't an active admin. Ask an officer to activate your account.
 3. **CORS error in the browser console** (`blocked by CORS policy`) — backend `FR_ORIGIN` doesn't exactly match the frontend URL (no trailing `/`). Fix `.env` and restart the backend.
 4. **Blank page / API calls fail after editing `.env`** — frontend env vars starting with `VITE_` are baked in at startup: restart `npm run dev` and check `VITE_API_URL` includes `/GDGoC-CTU-Main/v0.0.1`.
-5. **Backend won't start / DB errors** — `DB_URL` (or `REDIS_URL`/`CLOUDINARY_URL`) is missing or wrong. Compare with `backend/example.env`, check for typos/extra spaces, then run `npm run db:migrate` once the database address is correct.
+5. **Backend won't start / DB errors** — `DB_URL` (or `CLOUDINARY_URL`) is missing or wrong. Compare with `backend/example.env`, check for typos/extra spaces, then run `npm run db:migrate` once the database address is correct.
 
 ## License
 

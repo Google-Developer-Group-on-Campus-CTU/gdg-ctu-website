@@ -16,11 +16,6 @@ import {
 } from "./models/team-member.queries.js";
 import { UpdateTeamMemberDTO, TeamMember } from "./team-member.validations.js";
 import {
-      getCache,
-      setCache,
-      clearCacheByPrefix,
-} from "../../config/redis/redis.services.js";
-import {
       uploadMedia,
       deleteMediaCloudinaryService,
 } from "../../config/cloudinary/cloudinary.services.js";
@@ -64,8 +59,6 @@ interface PublicTermFilter {
       featuredOnly?: boolean;
 }
 
-// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
-const DEFAULT_CACHE_TTL_SECONDS = 60;
 const DEFAULT_MEMBER_MEDIA_FOLDER = "team-members-media";
 
 // Validate Response
@@ -107,7 +100,6 @@ export const createTeamMemberService = async (
                   profileMediaId: userProfileImage.id,
             });
 
-            await clearCacheByPrefix("team-members:");
             return teamMember;
       } catch (error: any) {
             // Moved the cloduinary rollback to a reusable function
@@ -130,61 +122,33 @@ export const createTeamMemberService = async (
 };
 
 export const getTeamMembersService = async (pagination: Pagination) => {
-      const cacheKey = `team-members:${pagination.page}:${pagination.limit}`;
-
-      // Check Cache
-      const cachedMember = await getCache<{
-            teamMembers: TeamMember[];
-            pagination: ReturnType<typeof getPaginationMeta>;
-      }>(cacheKey);
-
-      if (cachedMember) return cachedMember;
-
-      // Cache Miss
       const [teamMembers, total] = await Promise.all([
             getTeamMembers(pagination),
             countTeamMembers(),
       ]);
 
-      const res = {
+      return {
             teamMembers,
             pagination: getPaginationMeta(pagination, total),
       };
-
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
 };
 
 export const getTeamMemberByIdService = async (id: string) => {
-      const cacheKey = `team-members:${id}`;
-      const cached = await getCache<TeamMember>(cacheKey);
-      if (cached) return cached;
-
       const teamMember = await getTeamMemberById(id);
       if (!teamMember) {
             throw new AppError(404, "Team member not found");
       }
 
-      const res = toTeamMemberResponse(teamMember);
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-
-      return res;
+      return toTeamMemberResponse(teamMember);
 };
 
 export const getTeamMemberBySlugService = async (slug: string) => {
-      const cacheKey = `team-members:${slug}`;
-      const cached = await getCache<TeamMember>(cacheKey);
-      if (cached) return cached;
-
       const teamMember = await getTeamMemberBySlug(slug);
       if (!teamMember) {
             throw new AppError(404, "Team member not found");
       }
 
-      const res = toTeamMemberResponse(teamMember);
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-
-      return res;
+      return toTeamMemberResponse(teamMember);
 };
 
 export const getActiveTeamMemberBySlugService = async (slug: string) => {
@@ -294,10 +258,7 @@ export const updateTeamMemberService = async (
                   }
             }
 
-            await Promise.all([
-                  cleanupReplacedMedia(oldMediaId, newMediaId),
-                  clearCacheByPrefix("team-members:"),
-            ]);
+            await cleanupReplacedMedia(oldMediaId, newMediaId);
 
             return toTeamMemberResponse(updatedTeamMember);
       } catch (error: any) {
@@ -334,8 +295,5 @@ export const deleteTeamMemberService = async (id: string) => {
       }
 
       deleteTeamMember(id);
-      await Promise.all([
-            cleanupReplacedMedia(teamMember.profileMediaId, null),
-            clearCacheByPrefix("team-members:"),
-      ]);
+      await cleanupReplacedMedia(teamMember.profileMediaId, null);
 };

@@ -2,7 +2,7 @@ import { AppError } from "../../utils/http.js";
 
 /**
  * Fixed CMS section keys (spec §4.7) — single source of truth for the
- * site-content module. Validations, services, controllers and cache keys all
+ * site-content module. Validations, services and controllers all
  * import from here; do not copy this list anywhere else in the backend.
  */
 export const SECTION_KEYS = [
@@ -36,26 +36,3 @@ export const assertSectionKeyImmutable = (
             );
       }
 };
-
-/**
- * Redis cache contract (team-members cache rule): namespace `site-content:`,
- * TTL 60 seconds (setCache's ttl is seconds, not ms). Admin list / byId /
- * by-key reads and the public active-only list
- * all live under this prefix, so `clearCacheByPrefix("site-content:")` on
- * create/update/delete invalidates every entry in one call.
- */
-export const SITE_CONTENT_CACHE_PREFIX = "site-content:";
-export const SITE_CONTENT_CACHE_TTL = 60;
-
-export const siteContentCacheKeys = {
-      prefix: SITE_CONTENT_CACHE_PREFIX,
-      /** Admin row by UUID → `site-content:{id}` */
-      byId: (id: string) => `${SITE_CONTENT_CACHE_PREFIX}${id}`,
-      /** Admin paginated list → `site-content:{page}:{limit}` */
-      list: (page: number, limit: number) =>
-            `${SITE_CONTENT_CACHE_PREFIX}${page}:${limit}`,
-      /** Admin by sectionKey → `site-content:key:{key}` */
-      byKey: (key: string) => `${SITE_CONTENT_CACHE_PREFIX}key:${key}`,
-      /** Public active-only list → `site-content:public:list` */
-      publicList: `${SITE_CONTENT_CACHE_PREFIX}public:list`,
-} as const;

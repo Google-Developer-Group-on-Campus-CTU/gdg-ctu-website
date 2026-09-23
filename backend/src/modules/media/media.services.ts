@@ -12,18 +12,9 @@ import {
       mediaHasReferences,
       updateMedia,
 } from "./models/media.queries.js";
-import { UpdateMediaDTO, Media } from "./media.validations.js";
-import {
-      getCache,
-      setCache,
-      deleteCache,
-      clearCacheByPrefix,
-} from "../../config/redis/redis.services.js";
+import { UpdateMediaDTO } from "./media.validations.js";
 import logger from "../../utils/logger.js";
 import { NewMediaRecord } from "./models/media.queries.js";
-
-// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
-const DEFAULT_CACHE_TTL_SECONDS = 60;
 
 export const createMediaService = async (data: any) => {
       if (!(await getAdminById(data.uploadedBy))) {
@@ -33,7 +24,6 @@ export const createMediaService = async (data: any) => {
             );
       }
 
-      await clearCacheByPrefix("media:");
       return insertMedia(data);
 };
 
@@ -50,42 +40,23 @@ export const insertBulkMediaService = async (records: NewMediaRecord[]) => {
 };
 
 export const getMediaService = async (pagination: Pagination) => {
-      const cacheKey = `media:${pagination.page}:${pagination.limit}`;
-
-      // Check Cache
-      const cached = await getCache<{
-            media: Media[];
-            pagination: ReturnType<typeof getPaginationMeta>;
-      }>(cacheKey);
-
-      if (cached) return cached;
-
-      // Cache Miss
       const [media, total] = await Promise.all([
             getMedia(pagination),
             countMedia(),
       ]);
 
-      const res = {
+      return {
             media,
             pagination: getPaginationMeta(pagination, total),
       };
-
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
 };
 
 export const getMediaByIdService = async (id: string) => {
-      const cacheKey = `media:${id}`;
-      const cachedMedia = await getCache<Media>(cacheKey);
-      if (cachedMedia) return cachedMedia;
-
       const media = await getMediaById(id);
       if (!media) {
             throw new AppError(404, "Media not found");
       }
 
-      await setCache(cacheKey, media, DEFAULT_CACHE_TTL_SECONDS);
       return media;
 };
 
@@ -103,11 +74,8 @@ export const updateMediaService = async (id: string, data: UpdateMediaDTO) => {
             );
       }
 
-      await deleteCache(`media:${id}`);
-      await clearCacheByPrefix("media:");
       return updateMedia(id, data);
 };
-
 export const deleteMediaService = async (id: string) => {
       const media = await getMediaById(id);
 
@@ -143,7 +111,5 @@ export const deleteMediaService = async (id: string) => {
             }
       }
 
-      await deleteCache(`media:${id}`);
-      await clearCacheByPrefix("media:");
       await deleteMedia(id);
 };

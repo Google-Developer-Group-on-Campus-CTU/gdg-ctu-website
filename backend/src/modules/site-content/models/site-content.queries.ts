@@ -2,11 +2,6 @@ import { asc, count, eq } from "drizzle-orm";
 import { db } from "../../../config/connectDB.js";
 import { Pagination } from "../../../utils/pagination.js";
 import { activeOnly } from "../../../utils/activeScope.js";
-import { getCache, setCache } from "../../../config/redis/redis.services.js";
-import {
-      siteContentCacheKeys,
-      SITE_CONTENT_CACHE_TTL,
-} from "../section-keys.js";
 import { siteContent } from "./site-content.js";
 
 export type SiteContentRecord = typeof siteContent.$inferSelect;
@@ -52,25 +47,16 @@ export const getSiteContentBySectionKey = async (sectionKey: string) => {
 /**
  * Public feed: active sections only.
  *
- * Cached under `site-content:public:list` (team-members cache rule, TTL
- * 60 seconds); the admin services' `clearCacheByPrefix("site-content:")` on
- * create/update/delete invalidates it. The seam lives at this query boundary
- * because `public/public-content.routes.ts` is retirement-only in this slice.
- * Rows are JSON round-tripped, so `Date` fields come back as the exact ISO
- * strings `res.json(Date)` would have produced — wire shape unchanged.
+ * Direct DB read (no cache). Rows serialize through `res.json(Date)` on the
+ * wire as ISO strings — wire shape unchanged.
  */
 export const getActiveSiteContentList = async () => {
-      const cacheKey = siteContentCacheKeys.publicList;
-      const cached = await getCache<SiteContentRecord[]>(cacheKey);
-      if (cached) return cached;
-
       const content = await db
             .select()
             .from(siteContent)
             .where(activeOnly(siteContent.isActive))
             .orderBy(asc(siteContent.sectionKey));
 
-      await setCache(cacheKey, content, SITE_CONTENT_CACHE_TTL);
       return content;
 };
 

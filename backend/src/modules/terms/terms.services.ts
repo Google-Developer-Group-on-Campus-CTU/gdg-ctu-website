@@ -10,15 +10,6 @@ import {
       deleteTerm,
 } from "./models/terms.queries.js";
 import { CreateTermDTO, UpdateTermDTO, Term } from "./terms.validations.js";
-import {
-      getCache,
-      setCache,
-      clearCacheByPrefix,
-      deleteCache,
-} from "../../config/redis/redis.services.js";
-
-// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
-const DEFAULT_CACHE_TTL_SECONDS = 60;
 
 // Validate Response
 const toTermResponse = (term: Term) => term;
@@ -35,50 +26,28 @@ export const createTermService = async (data: CreateTermDTO) => {
             throw new AppError(409, "Term with this name already exists");
       }
 
-      await clearCacheByPrefix("terms");
       return insertTerm(data);
 };
 
 export const getTermsService = async (pagination: Pagination) => {
-      const cacheKey = `terms:${pagination.page}:${pagination.limit}`;
-
-      // Check Cache
-      const cachedTerms = await getCache<{
-            terms: Term[];
-            pagination: ReturnType<typeof getPaginationMeta>;
-      }>(cacheKey);
-
-      if (cachedTerms) return cachedTerms;
-
-      // Cache Miss
       const [terms, total] = await Promise.all([
             getTerms(pagination),
             countTerms(),
       ]);
 
-      const res = {
+      return {
             terms,
             pagination: getPaginationMeta(pagination, total),
       };
-
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
 };
 
 export const getTermByIdService = async (id: string) => {
-      const cacheKey = `terms:${id}`;
-      const cached = await getCache<Term>(cacheKey);
-      if (cached) return cached;
-
       const term = await getTermById(id);
       if (!term) {
             throw new AppError(404, "Term not found");
       }
 
-      const res = toTermResponse(term);
-
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
+      return toTermResponse(term);
 };
 
 export const updateTermService = async (id: string, data: UpdateTermDTO) => {
@@ -99,8 +68,6 @@ export const updateTermService = async (id: string, data: UpdateTermDTO) => {
             throw new AppError(400, "endDate cannot be before startDate");
       }
 
-      await deleteCache(`terms:${id}`);
-      await clearCacheByPrefix("terms:");
       return updateTerm(id, { ...data, updatedAt: new Date() });
 };
 
@@ -110,7 +77,5 @@ export const deleteTermService = async (id: string) => {
             throw new AppError(404, "Term not found");
       }
 
-      await deleteCache(`terms:${id}`);
-      await clearCacheByPrefix("terms:");
       await deleteTerm(id);
 };

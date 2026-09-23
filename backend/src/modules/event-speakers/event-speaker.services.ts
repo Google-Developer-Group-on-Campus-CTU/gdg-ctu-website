@@ -34,17 +34,8 @@ import { getTeamMemberById } from "../team-members/models/team-member.queries.js
 import {
       CreateEventSpeakerDTO,
       UpdateEventSpeakerDTO,
-      EventSpeaker,
 } from "./event-speaker.validations.js";
-import {
-      getCache,
-      setCache,
-      deleteCache,
-      clearCacheByPrefix,
-} from "../../config/redis/redis.services.js";
 
-// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
-const DEFAULT_CACHE_TTL_SECONDS = 60;
 const DEFAULT_SPEAKER_MEDIA_FOLDER = "event-speakers-media";
 
 /** Optional multipart context: profile image upload parity with events/team/partners. */
@@ -119,7 +110,6 @@ export const createEventSpeakerService = async (
                   profileMediaId,
             });
 
-            await clearCacheByPrefix("speakers:");
             return await insertEventSpeaker({ ...data, profileMediaId });
       } catch (error: any) {
             if (uploadResult) {
@@ -151,21 +141,6 @@ export const getEventSpeakersService = async (
             await checkEventExists(eventId);
       }
 
-      // Per-event keys share the `speakers:` prefix so existing
-      // clearCacheByPrefix("speakers:") invalidation covers them.
-      const cacheKey = eventId
-            ? `speakers:event:${eventId}:${pagination.page}:${pagination.limit}`
-            : `speakers:${pagination.page}:${pagination.limit}`;
-
-      // Check Cache
-      const cached = await getCache<{
-            eventSpeakers: EventSpeaker[];
-            pagination: ReturnType<typeof getPaginationMeta>;
-      }>(cacheKey);
-
-      if (cached) return cached;
-
-      // Cache Miss
       const [eventSpeakers, total] = await Promise.all([
             eventId
                   ? getEventSpeakersByEventId(eventId, pagination)
@@ -175,40 +150,27 @@ export const getEventSpeakersService = async (
                   : countEventSpeakers(),
       ]);
 
-      const res = {
+      return {
             eventSpeakers,
             pagination: getPaginationMeta(pagination, total),
       };
-
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
 };
 
 export const getEventSpeakerByIdService = async (id: string) => {
-      const cacheKey = `speakers:${id}`;
-      const cachedSpeaker = await getCache<EventSpeaker>(cacheKey);
-      if (cachedSpeaker) return cachedSpeaker;
-
       const eventSpeaker = await getEventSpeakerById(id);
       if (!eventSpeaker) {
             throw new AppError(404, "Event speaker not found");
       }
 
-      await setCache(cacheKey, eventSpeaker, DEFAULT_CACHE_TTL_SECONDS);
       return eventSpeaker;
 };
 
 export const getEventSpeakerBySlugService = async (slug: string) => {
-      const cacheKey = `speakers:${slug}`;
-      const cachedSpeakerSlug = await getCache<EventSpeaker>(cacheKey);
-      if (cachedSpeakerSlug) return cachedSpeakerSlug;
-
       const eventSpeaker = await getEventSpeakerBySlug(slug);
       if (!eventSpeaker) {
             throw new AppError(404, "Event speaker not found");
       }
 
-      await setCache(cacheKey, eventSpeaker, DEFAULT_CACHE_TTL_SECONDS);
       return eventSpeaker;
 };
 
@@ -220,30 +182,15 @@ export const getEventSpeakersByTeamMemberIdService = async (
             throw new AppError(404, "Team member not found");
       }
 
-      // Was `speaker:` (singular) — that key escaped clearCacheByPrefix("speakers:").
-      const cacheKey = `speakers:${teamMemberId}:${pagination.page}:${pagination.limit}`;
-
-      // Check Cache
-      const cached = await getCache<{
-            eventSpeakers: EventSpeaker[];
-            pagination: ReturnType<typeof getPaginationMeta>;
-      }>(cacheKey);
-
-      if (cached) return cached;
-
-      // Cache Miss
       const [eventSpeakers, total] = await Promise.all([
             getEventSpeakersByTeamMemberId(teamMemberId, pagination),
             countEventSpeakersByTeamMemberId(teamMemberId),
       ]);
 
-      const res = {
+      return {
             eventSpeakers,
             pagination: getPaginationMeta(pagination, total),
       };
-
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
 };
 
 export const updateEventSpeakerService = async (
@@ -299,9 +246,6 @@ export const updateEventSpeakerService = async (
                         : data,
             );
 
-            await deleteCache(`speakers:${id}`);
-            await clearCacheByPrefix(`speakers:`);
-
             const updated = await updateEventSpeaker(id, {
                   ...data,
                   ...(upload?.file ? { profileMediaId: newProfileMediaId } : {}),
@@ -336,7 +280,5 @@ export const deleteEventSpeakerService = async (id: string) => {
             throw new AppError(404, "Event speaker not found");
       }
 
-      await deleteCache(`speakers:${id}`);
-      await clearCacheByPrefix("speakers:");
       await deleteEventSpeaker(id);
 };

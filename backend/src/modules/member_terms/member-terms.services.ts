@@ -12,20 +12,10 @@ import {
 import {
       CreateMemberTermsDTO,
       UpdateMemberTermDTO,
-      MemberTerms,
 } from "./member-terms.validations.js";
-import {
-      getCache,
-      setCache,
-      deleteCache,
-      clearCacheByPrefix,
-} from "../../config/redis/redis.services.js";
 import { getTeamMemberById } from "../team-members/models/team-member.queries.js";
 import { getTermById } from "../terms/models/terms.queries.js";
 import { getMediaById } from "../media/models/media.queries.js";
-
-// Cache TTL in seconds (setCache's ttl is seconds, not milliseconds)
-const DEFAULT_CACHE_TTL_SECONDS = 60;
 
 /**
  * Create a MemberTerm linking a team member to a term.
@@ -61,12 +51,6 @@ export const createMemberTermService = async (data: CreateMemberTermsDTO) => {
             throw new AppError(400, "profileMediaId must reference existing media");
       }
 
-      // Invalidate related caches before persisting. member_terms writes
-      // seed avatars from the member row, so also drop team-members: caches
-      // to avoid an avatar-snapshot staleness window.
-      await clearCacheByPrefix("member-terms:");
-      await clearCacheByPrefix("team-members:");
-
       // If callers do not provide a term snapshot yet, seed it from the
       // member's current/default avatar so existing reads remain stable.
       const profileMediaId = data.profileMediaId ?? member.profileMediaId;
@@ -88,35 +72,21 @@ export const getMemberTermByMemberAndTermService = async (
 };
 
 export const getMemberTermsService = async (pagination: Pagination) => {
-      const cacheKey = `member-terms:${pagination.page}:${pagination.limit}`;
-      const cached = await getCache<{
-            memberTerms: MemberTerms[];
-            pagination: ReturnType<typeof getPaginationMeta>;
-      }>(cacheKey);
-      if (cached) return cached;
-
       const [memberTerms, total] = await Promise.all([
             getMemberTerms(pagination),
             countMemberTerms(),
       ]);
-      const res = {
+      return {
             memberTerms,
             pagination: getPaginationMeta(pagination, total),
       };
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
 };
 
 export const getMemberTermByIdService = async (id: string) => {
-      const cacheKey = `member-terms:${id}`;
-      const cached = await getCache<MemberTerms>(cacheKey);
-      if (cached) return cached;
-
       const memberTerm = await getMemberTermById(id);
       if (!memberTerm) {
             throw new AppError(404, "Member term not found");
       }
-      await setCache(cacheKey, memberTerm, DEFAULT_CACHE_TTL_SECONDS);
       return memberTerm;
 };
 
@@ -137,10 +107,6 @@ export const updateMemberTermService = async (
             ...data,
             updatedAt: new Date(),
       });
-      await deleteCache(`member-terms:${id}`);
-      await clearCacheByPrefix("member-terms:");
-      // Term avatar snapshots reference the member row; drop member caches too.
-      await clearCacheByPrefix("team-members:");
       return updated;
 };
 
@@ -149,9 +115,5 @@ export const deleteMemberTermService = async (id: string) => {
       if (!existing) {
             throw new AppError(404, "Member term not found");
       }
-      await deleteCache(`member-terms:${id}`);
-      await clearCacheByPrefix("member-terms:");
-      // Term avatar snapshots reference the member row; drop member caches too.
-      await clearCacheByPrefix("team-members:");
       await deleteMemberTerm(id);
 };

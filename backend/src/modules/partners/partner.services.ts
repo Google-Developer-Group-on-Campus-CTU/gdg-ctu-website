@@ -19,16 +19,12 @@ import {
       insertPartner,
       updatePartner,
 } from "./models/partner.queries.js";
-import { CreatePartnerDTO, UpdatePartnerDTO, Partner } from "./partner.validations.js";
+import { CreatePartnerDTO, UpdatePartnerDTO } from "./partner.validations.js";
 import logger from "../../utils/logger.js";
 import { assertAdminExists } from "../auth/assertAdminExistsHelper.js";
-import { clearCacheByPrefix, getCache, setCache } from "../../config/redis/redis.services.js";
 
 // Folder directory for partners media
 const DEFAULT_PARTNERS_MEDIA_FOLDER = "partners-media";
-
-// Cache TTL in seconds for partner reads (setCache's ttl is seconds, not ms)
-const DEFAULT_CACHE_TTL_SECONDS = 60;
 
 export const createPartnerService = async (
       data: CreatePartnerDTO,
@@ -70,8 +66,6 @@ export const createPartnerService = async (
                   updatedBy: userId,
                   updatedAt: new Date(),
             });
-            // Invalidate partner caches after a successful insert
-            await clearCacheByPrefix("partners:");
             return partner;
       } catch (error: any) {
             if (uploadResult) {
@@ -92,61 +86,36 @@ export const createPartnerService = async (
 };
 
 export const getPartnersService = async (pagination: Pagination) => {
-      const cacheKey = `partners:${pagination.page}:${pagination.limit}`;
-      const cached = await getCache<{
-            partners: Partner[];
-            pagination: ReturnType<typeof getPaginationMeta>;
-      }>(cacheKey);
-      if (cached) return cached;
-
       const [partnerList, total] = await Promise.all([
             getPartners(pagination),
             countPartners(),
       ]);
 
-      const res = {
+      return {
             partners: partnerList,
             pagination: getPaginationMeta(pagination, total),
       };
-      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
-      return res;
 };
 
 export const getPartnerByIdService = async (id: string) => {
-      const cacheKey = `partners:${id}`;
-      const cached = await getCache<Partner>(cacheKey);
-      if (cached) return cached;
-
       const partner = await getPartnerById(id);
       if (!partner) {
             throw new AppError(404, "Partner not found");
       }
-      await setCache(cacheKey, partner, DEFAULT_CACHE_TTL_SECONDS);
       return partner;
 };
 
 export const getPartnerBySlugService = async (slug: string) => {
-      const cacheKey = `partners:slug:${slug}`;
-      const cached = await getCache<Partner>(cacheKey);
-      if (cached) return cached;
-
       const partner = await getPartnerBySlug(slug);
       if (!partner) {
             throw new AppError(404, "Partner not found");
       }
-      await setCache(cacheKey, partner, DEFAULT_CACHE_TTL_SECONDS);
       return partner;
 };
 
 /** Public feed: active only, tier-ordered. Safe fields (no internal IDs beyond slug). */
 export const getPublicPartnersService = async () => {
-      const cacheKey = "partners:active";
-      const cached = await getCache<Partner[]>(cacheKey);
-      if (cached) return cached;
-
-      const partners = await getActivePartners();
-      await setCache(cacheKey, partners, DEFAULT_CACHE_TTL_SECONDS);
-      return partners;
+      return getActivePartners();
 };
 
 export const updatePartnerService = async (
@@ -198,8 +167,6 @@ export const updatePartnerService = async (
             });
             // Delete the previous logo media (if it existed)
             await cleanupReplacedMedia(partner.logoMediaId, newLogoMediaId);
-            // Invalidate partner caches after a successful update
-            await clearCacheByPrefix("partners:");
             return updated;
       } catch (error: any) {
             if (uploadResult) {
@@ -224,8 +191,5 @@ export const deletePartnerService = async (id: string) => {
       }
 
       await deletePartner(id);
-      await Promise.all([
-            cleanupReplacedMedia(partner.logoMediaId, null),
-            clearCacheByPrefix("partners:"),
-      ]);
+      await cleanupReplacedMedia(partner.logoMediaId, null);
 };
