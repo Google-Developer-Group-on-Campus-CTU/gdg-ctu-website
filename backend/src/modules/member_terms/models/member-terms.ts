@@ -7,9 +7,9 @@ import {
       uuid,
       varchar,
 } from "drizzle-orm/pg-core";
-import { media } from "../../media/models/media";
-import { teamMembers } from "../../team-members/models/team-member";
-import { terms } from "../../terms/models/terms";
+import { media } from "../../media/models/media.js";
+import { teamMembers } from "../../team-members/models/team-member.js";
+import { terms } from "../../terms/models/terms.js";
 
 export const memberTerms = pgTable(
       "member_terms",

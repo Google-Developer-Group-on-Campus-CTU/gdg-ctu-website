@@ -5,9 +5,9 @@ import {
       getEventAttendee,
       updateEventAttendee,
       deleteEventAttendee,
-} from "./event-attendees.controllers";
-import { validateParams } from "../../middleware/validateParams";
-import { validateQuery } from "../../middleware/validateQuery";
+} from "./event-attendees.controllers.js";
+import { validateParams } from "../../middleware/validateParams.js";
+import { validateQuery } from "../../middleware/validateQuery.js";
 
 const router = Router();
 

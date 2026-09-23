@@ -53,7 +53,7 @@ const router = createBrowserRouter([
       { path: '/contact', element: <Contact /> },
     ],
   },
-  { path: '/admin/login/*', element: <AdminLogin /> },
+  { path: '/admin/login', element: <AdminLogin /> },
   {
     element: <ProtectedRoute />,
     children: [

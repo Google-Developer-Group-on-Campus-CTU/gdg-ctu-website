@@ -1,6 +1,6 @@
 import { createClient } from "redis";
-import logger from "../../utils/logger";
-import { AppError } from "../../utils/http";
+import logger from "../../utils/logger.js";
+import { AppError } from "../../utils/http.js";
 
 /**
  * Returns true iff REDIS_URL is configured (non-empty string).

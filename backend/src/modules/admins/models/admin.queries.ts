@@ -1,89 +1,88 @@
 import { count, eq } from "drizzle-orm";
-import { db } from "../../../config/connectDB";
-import { Pagination } from "../../../utils/pagination";
-import { events } from "../../events/models/event";
-import { media } from "../../media/models/media";
-import { siteContent } from "../../site-content/models/site-content";
-import { admins } from "./admin";
+import { db } from "../../../config/connectDB.js";
+import { Pagination } from "../../../utils/pagination.js";
+import { events } from "../../events/models/event.js";
+import { media } from "../../media/models/media.js";
+import { siteContent } from "../../site-content/models/site-content.js";
+import { account, user } from "../../auth/models/auth.js";
 
-export type AdminRecord = typeof admins.$inferSelect;
-export type NewAdminRecord = typeof admins.$inferInsert;
+// Fold: the old `admins` table is gone — these queries run against Better
+// Auth's `user` table, where an admin is simply a row with role = "admin".
+export type AdminRecord = typeof user.$inferSelect;
+export type NewAdminRecord = typeof user.$inferInsert;
 
 export const insertAdmin = async (data: NewAdminRecord) => {
-      const [admin] = await db.insert(admins).values(data).returning();
-      return admin;
+      const [record] = await db.insert(user).values(data).returning();
+      return record;
 };
 
+/**
+ * Attach a credential (email + password) login to a user row.
+ * Passwords are scrypt-hashed by Better Auth's `hashPassword` (default).
+ */
+export const insertCredentialAccount = async (data: {
+      id: string;
+      userId: string;
+      passwordHash: string;
+}) => {
+      const [record] = await db
+            .insert(account)
+            .values({
+                  id: data.id,
+                  accountId: data.userId,
+                  providerId: "credential",
+                  userId: data.userId,
+                  password: data.passwordHash,
+            })
+            .returning();
+      return record;
+};
+
+// Lists every user (paginated). Callers expose `role`, so the UI can tell
+// admins apart and promote regular sign-ups.
 export const getAdmins = async (pagination: Pagination) =>
       db
             .select()
-            .from(admins)
+            .from(user)
             .limit(pagination.limit)
             .offset(pagination.offset);
 
 export const countAdmins = async () => {
-      const [result] = await db.select({ total: count() }).from(admins);
+      const [result] = await db.select({ total: count() }).from(user);
       return result.total;
 };
 
 export const getAdminById = async (id: string) => {
-      const [admin] = await db.select().from(admins).where(eq(admins.id, id));
-      return admin;
+      const [record] = await db.select().from(user).where(eq(user.id, id));
+      return record;
 };
 
 export const getAdminByEmail = async (email: string) => {
-      const [admin] = await db
+      const [record] = await db
             .select()
-            .from(admins)
-            .where(eq(admins.email, email.toLowerCase()));
-      return admin;
-};
-
-/**
- * Insert a new admin or update an existing one based on Clerk ID.
- * Returns the inserted or updated admin record.
- */
-export const upsertAdminByClerkId = async (data: {
-      id: string; // Clerk ID as PK
-      email: string;
-}) => {
-      // Check if admin already exists by PK (Clerk ID)
-      const existing = await getAdminById(data.id);
-      if (existing) {
-            // Update email if changed
-            const [admin] = await db
-                  .update(admins)
-                  .set({ email: data.email, updatedAt: new Date() })
-                  .where(eq(admins.id, data.id))
-                  .returning();
-            return admin;
-      }
-      // Insert new admin with Clerk ID as PK
-      const [admin] = await db
-            .insert(admins)
-            .values({ id: data.id, email: data.email })
-            .returning();
-      return admin;
+            .from(user)
+            .where(eq(user.email, email.toLowerCase()));
+      return record;
 };
 
 export const updateAdmin = async (
       id: string,
       data: Partial<NewAdminRecord>,
 ) => {
-      const [admin] = await db
-            .update(admins)
+      const [record] = await db
+            .update(user)
             .set(data)
-            .where(eq(admins.id, id))
+            .where(eq(user.id, id))
             .returning();
-      return admin;
+      return record;
 };
 
 export const deleteAdmin = async (id: string) => {
-      const [admin] = await db
-            .delete(admins)
-            .where(eq(admins.id, id))
+      const [record] = await db
+            .delete(user)
+            .where(eq(user.id, id))
             .returning();
-      return admin;
+      return record;
 };
 
 export const adminHasReferences = async (id: string) => {

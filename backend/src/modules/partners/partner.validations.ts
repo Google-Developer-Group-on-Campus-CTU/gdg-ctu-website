@@ -1,6 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { PARTNER_TIERS, partners } from "./models/partner";
+import { PARTNER_TIERS, partners } from "./models/partner.js";
 
 export const PartnerSchema = createSelectSchema(partners);
 

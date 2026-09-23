@@ -1,4 +1,4 @@
-import { AppError } from "./http";
+import { AppError } from "./http.js";
 
 /**
  * Extracts and parses a JSON payload from a multipart form-data request body.

@@ -1,29 +1,30 @@
 import express from "express";
-import { getCurrentAdminUser } from "./getCurrentAdminUser.controllers";
-import { syncCurrentAdminUser } from "./syncCurrentAdminUser";
+import { getCurrentAdminUser } from "./getCurrentAdminUser.controllers.js";
 
 /**
- * Auth routes expose the currently signed-in Clerk user to the frontend.
+ * App-level auth convenience routes, mounted on the protected router in
+ * `modules/index.ts`, so `requireAuth` runs first (401/403/503).
  *
- * These routes are mounted under the protected API router in `routes/index.ts`,
- * so `requireAuth` runs before any handler here. `clerkMiddleware()` in
- * `server.ts` must also be registered globally so session data is available
- * on each request.
+ * Better Auth's own sign-in / sign-up / session endpoints are NOT here —
+ * they are served by the node handler mounted in `server.ts` at
+ * AUTH_BASE_PATH (`/GDGoC-CTU-Main/v0.0.1/api/auth/*`).
  */
 const router = express.Router();
 
 /**
- * Returns the full Clerk user profile for the authenticated session.
+ * Returns the current Better Auth session user.
  *
  * Flow:
- * 1. `requireAuth` (applied upstream) rejects unauthenticated requests with 401.
- * 2. `getAuth(req)` reads the Clerk session attached by `clerkMiddleware()`.
- * 3. `clerkClient.users.getUser()` fetches the latest user record from Clerk.
+ * 1. `requireAuth` (applied upstream) rejects with 401/403 and caches the
+ *    resolved session on `req.authSession`.
+ * 2. This handler serializes that cached session — no extra DB lookup.
+ *
+ * (The old POST /auth/sync + Clerk `clerkClient.users.getUser` sync are gone:
+ * Better Auth writes the user row at sign-up.)
  *
  * @route GET /me
- * @access Protected — requires a valid Clerk session
+ * @access Protected — requires a valid Better Auth admin session
  */
 router.get("/me", getCurrentAdminUser);
-router.post("/sync", syncCurrentAdminUser);
 
 export default router;

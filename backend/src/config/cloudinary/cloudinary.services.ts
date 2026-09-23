@@ -1,9 +1,9 @@
 // backend/src/config/cloudinary/cloudinary.services.ts
 import { UploadApiOptions, UploadApiResponse } from "cloudinary";
-import cloudinary, { isCloudinaryEnabled } from "./cloudinary.config";
-import { AppError } from "../../utils/http";
-import { createMediaRecord } from "./utils/cloudinary-media-data-helper";
-import { insertBulkMediaService } from "../../modules/media/media.services";
+import cloudinary, { isCloudinaryEnabled } from "./cloudinary.config.js";
+import { AppError } from "../../utils/http.js";
+import { createMediaRecord } from "./utils/cloudinary-media-data-helper.js";
+import { insertBulkMediaService } from "../../modules/media/media.services.js";
 
 /**
  * Cloudinary upload service.

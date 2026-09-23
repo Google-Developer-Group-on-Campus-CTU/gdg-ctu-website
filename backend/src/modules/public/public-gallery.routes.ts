@@ -2,13 +2,13 @@ import { Router } from "express";
 import {
       getActiveMediaCollectionBySlug,
       getActiveMediaCollections,
-} from "../media-collections/models/media-collection.queries";
+} from "../media-collections/models/media-collection.queries.js";
 import {
       getFeaturedCollectionItems,
       getItemsByCollectionId,
-} from "../media-collection-items/models/media-collection-item.queries";
-import { AppError, getStringParam, handleControllerError } from "../../utils/http";
-import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url";
+} from "../media-collection-items/models/media-collection-item.queries.js";
+import { AppError, getStringParam, handleControllerError } from "../../utils/http.js";
+import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url.js";
 
 /**
  * Public gallery feed — no auth, active albums only, items ordered.

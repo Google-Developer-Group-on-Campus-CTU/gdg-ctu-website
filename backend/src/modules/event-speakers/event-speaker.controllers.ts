@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getClerkIdFromRequest } from "../auth/auth.utils";
+import { getUserIdFromRequest } from "../auth/auth.utils.js";
 import {
       AppError,
       getPagination,
@@ -7,8 +7,8 @@ import {
       handleControllerError,
       validateBody,
       validateUuid,
-} from "../../utils/http";
-import { extractMultipartPayload } from "../../utils/multiPartPayloadHelper";
+} from "../../utils/http.js";
+import { extractMultipartPayload } from "../../utils/multiPartPayloadHelper.js";
 import {
       createEventSpeakerService,
       deleteEventSpeakerService,
@@ -17,13 +17,13 @@ import {
       getEventSpeakersByTeamMemberIdService,
       getEventSpeakersService,
       updateEventSpeakerService,
-} from "./event-speaker.services";
+} from "./event-speaker.services.js";
 import {
       CreateEventSpeakerDTO,
       CreateEventSpeakerSchema,
       UpdateEventSpeakerDTO,
       UpdateEventSpeakerSchema,
-} from "./event-speaker.validations";
+} from "./event-speaker.validations.js";
 
 export const createEventSpeaker = async (req: Request, res: Response) => {
       try {
@@ -46,7 +46,7 @@ export const createEventSpeaker = async (req: Request, res: Response) => {
             const file = (req as any).file?.buffer as Buffer | undefined;
             const eventSpeaker = await createEventSpeakerService(data, {
                   file,
-                  uploadedBy: getClerkIdFromRequest(req),
+                  uploadedBy: getUserIdFromRequest(req),
             });
 
             return res.status(201).json({
@@ -181,7 +181,7 @@ export const updateEventSpeaker = async (req: Request, res: Response) => {
 
             const eventSpeaker = await updateEventSpeakerService(id, data, {
                   file,
-                  uploadedBy: getClerkIdFromRequest(req),
+                  uploadedBy: getUserIdFromRequest(req),
             });
 
             return res.status(200).json({

@@ -1,6 +1,7 @@
 import { Express, Request, Response } from "express";
 import cors from "cors";
-import logger from "./logger";
+import { AUTH_BASE_PATH } from "../config/env.js";
+import logger from "./logger.js";
 
 // Check port validity
 export function validateServerPort(port: string | undefined): number {
@@ -36,22 +37,42 @@ export function validateFrontendOrigin(frOrigin: string | undefined): string {
       return frOrigin;
 }
 
-// Check if clerk keys exist
-export function validateClerkKeys(
-      clerkPubKey: string | undefined,
-      clerkSecKey: string | undefined,
-): { publishableKey: string; secretKey: string } {
-      if (!clerkPubKey || !clerkSecKey) {
-            logger.info(
-                  "Error: CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY must be set in environment variables.",
+// Check Better Auth keys — fatal at boot (mirrors the old validateClerkKeys).
+export function validateBetterAuthKeys(
+      secret: string | undefined,
+      url: string | undefined,
+): { secret: string; baseURL: string } {
+      if (!secret || !url) {
+            logger.error(
+                  "Error: BETTER_AUTH_SECRET and BETTER_AUTH_URL must be set in environment variables.",
             );
             process.exit(1);
       }
 
-      return {
-            publishableKey: clerkPubKey,
-            secretKey: clerkSecKey,
-      };
+      // Better Auth resolves its effective baseURL as `origin + basePath` when
+      // BETTER_AUTH_URL has no path; when it DOES have a path, that path is
+      // used verbatim as the route prefix (overriding basePath). Anything
+      // other than "/" or the exact mount path would therefore silently break
+      // every auth route — fail fast with a clear message instead.
+      let pathname: string;
+      try {
+            pathname = new URL(url).pathname.replace(/\/+$/, "") || "/";
+      } catch {
+            logger.error(
+                  "Error: BETTER_AUTH_URL must be an absolute URL (e.g. http://localhost:3000).",
+            );
+            process.exit(1);
+      }
+
+      const allowedPaths = ["/", AUTH_BASE_PATH];
+      if (!allowedPaths.includes(pathname)) {
+            logger.error(
+                  `Error: BETTER_AUTH_URL path must be "/" (backend origin) or "${AUTH_BASE_PATH}" — got "${pathname}".`,
+            );
+            process.exit(1);
+      }
+
+      return { secret, baseURL: url.replace(/\/+$/, "") };
 }
 
 // Check if server is in production mode
@@ -101,14 +122,7 @@ export function configureCors(
                         return callback(null, false);
                   },
                   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-                  allowedHeaders: [
-                        "Content-Type",
-                        "Authorization",
-                        // DEV-ONLY: instant-admin bypass (requireAuth.ts).
-                        // Harmless in production — bypass itself is gated on
-                        // NODE_ENV !== "production" && DEV_ADMIN_BYPASS === "true".
-                        "x-dev-admin-bypass",
-                  ],
+                  allowedHeaders: ["Content-Type", "Authorization"],
                   credentials: true,
                   optionsSuccessStatus: 204,
             }),

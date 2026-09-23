@@ -1,7 +1,7 @@
 import { asc, count, eq } from "drizzle-orm";
-import { db } from "../../../config/connectDB";
-import { Pagination } from "../../../utils/pagination";
-import { eventHosts } from "./event-host";
+import { db } from "../../../config/connectDB.js";
+import { Pagination } from "../../../utils/pagination.js";
+import { eventHosts } from "./event-host.js";
 
 export type EventHostRecord = typeof eventHosts.$inferSelect;
 export type NewEventHostRecord = typeof eventHosts.$inferInsert;

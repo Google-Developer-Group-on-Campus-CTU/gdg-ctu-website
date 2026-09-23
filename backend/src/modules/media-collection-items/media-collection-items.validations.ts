@@ -1,6 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { mediaCollectionItems } from "./models/media-collection-item";
+import { mediaCollectionItems } from "./models/media-collection-item.js";
 
 export const MediaCollectionItemRecordSchema =
       createSelectSchema(mediaCollectionItems);

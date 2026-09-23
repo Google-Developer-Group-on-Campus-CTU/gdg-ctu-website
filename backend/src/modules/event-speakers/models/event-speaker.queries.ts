@@ -1,8 +1,8 @@
 import { asc, count, eq } from "drizzle-orm";
-import { db } from "../../../config/connectDB";
-import { Pagination } from "../../../utils/pagination";
-import { teamMembers } from "../../team-members/models/team-member";
-import { eventSpeakers } from "./event-speaker";
+import { db } from "../../../config/connectDB.js";
+import { Pagination } from "../../../utils/pagination.js";
+import { teamMembers } from "../../team-members/models/team-member.js";
+import { eventSpeakers } from "./event-speaker.js";
 
 export type EventSpeakerRecord = typeof eventSpeakers.$inferSelect;
 export type NewEventSpeakerRecord = typeof eventSpeakers.$inferInsert;

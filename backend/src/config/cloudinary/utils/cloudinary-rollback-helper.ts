@@ -1,6 +1,6 @@
-import { AppError } from "../../../utils/http";
-import logger from "../../../utils/logger";
-import { deleteMediaCloudinaryService } from "../cloudinary.services";
+import { AppError } from "../../../utils/http.js";
+import logger from "../../../utils/logger.js";
+import { deleteMediaCloudinaryService } from "../cloudinary.services.js";
 
 export interface CloudinaryUploadResult {
       public_id: string;

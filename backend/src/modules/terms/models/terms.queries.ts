@@ -1,7 +1,7 @@
 import { asc, count, desc, eq } from "drizzle-orm";
-import { db } from "../../../config/connectDB";
-import { Pagination } from "../../../utils/pagination";
-import { terms } from "./terms";
+import { db } from "../../../config/connectDB.js";
+import { Pagination } from "../../../utils/pagination.js";
+import { terms } from "./terms.js";
 
 export type TermRecord = typeof terms.$inferSelect;
 export type NewTermRecord = typeof terms.$inferInsert;

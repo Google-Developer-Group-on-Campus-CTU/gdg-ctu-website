@@ -4,15 +4,15 @@ import {
       handleControllerError,
       validateBody,
       validateUuid,
-} from "../../utils/http";
+} from "../../utils/http.js";
 import {
       createEventHostService,
       listEventHostsService,
       getEventHostService,
       updateEventHostService,
       deleteEventHostService,
-} from "./event-hosts.services";
-import { CreateEventHostSchema, UpdateEventHostSchema } from "./event-hosts.validations";
+} from "./event-hosts.services.js";
+import { CreateEventHostSchema, UpdateEventHostSchema } from "./event-hosts.validations.js";
 
 export const createEventHost = async (req: Request, res: Response) => {
       try {

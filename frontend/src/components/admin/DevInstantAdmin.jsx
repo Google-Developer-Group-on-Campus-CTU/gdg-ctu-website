@@ -2,8 +2,9 @@ import { useNavigate } from 'react-router-dom';
 import { DEV_BYPASS_STORAGE_KEY } from '../../api/client.js';
 
 /**
- * Dev-only shortcut that skips Clerk sign-in by setting the
+ * Dev-only shortcut that skips the Better Auth sign-in form by setting the
  * `gdg-dev-admin-bypass` flag and routing into the admin shell.
+ * Requires the backend to run with `DEV_ADMIN_BYPASS=true`.
  * Renders nothing in production builds (`import.meta.env.DEV` is false).
  */
 export default function DevInstantAdmin() {
@@ -30,10 +31,12 @@ export default function DevInstantAdmin() {
         marginTop: '1.25rem',
       }}
     >
-      <button type="button" className="gdg-btn gdg-btn-primary" onClick={activate}>
-        Instant Admin Access (Dev Only)
+      <button type="button" className="gdg-btn gdg-btn-secondary" onClick={activate}>
+        Enter the admin without signing in (dev)
       </button>
-      <small style={{ opacity: 0.75 }}>Dev only, skipped in production build.</small>
+      <small style={{ opacity: 0.75 }}>
+        Dev only — sets a local bypass flag; production builds ignore it.
+      </small>
     </div>
   );
 }

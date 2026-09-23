@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
-import { media } from "../../media/models/media";
-import { teamMembers } from "../../team-members/models/team-member";
-import { eventSpeakers } from "./event-speaker";
+import { media } from "../../media/models/media.js";
+import { teamMembers } from "../../team-members/models/team-member.js";
+import { eventSpeakers } from "./event-speaker.js";
 
 export const eventSpeakersRelations = relations(eventSpeakers, ({ one }) => ({
       teamMember: one(teamMembers, {

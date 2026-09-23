@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { z, ZodError, ZodType } from "zod";
-import logger from "./logger";
-import { Pagination } from "./pagination";
+import logger from "./logger.js";
+import { Pagination } from "./pagination.js";
 
 export class AppError extends Error {
       statusCode: number;

@@ -4,15 +4,15 @@ import {
       handleControllerError,
       validateBody,
       getStringParam,
-} from "../../utils/http";
+} from "../../utils/http.js";
 import {
       createAdminService,
       deleteAdminService,
       getAdminByIdService,
       getAdminsService,
       updateAdminService,
-} from "./admin.services";
-import { CreateAdminSchema, UpdateAdminSchema } from "./admin.validations";
+} from "./admin.services.js";
+import { CreateAdminSchema, UpdateAdminSchema } from "./admin.validations.js";
 
 export const createAdmin = async (req: Request, res: Response) => {
       try {

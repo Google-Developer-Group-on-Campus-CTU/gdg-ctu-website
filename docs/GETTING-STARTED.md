@@ -87,7 +87,7 @@ The **backend** is the part that stores data (events, team members, photos info)
 All of these have free plans that are enough for learning:
 
 - **Neon (database — where all text/data is stored):** sign up at [neon.tech](https://neon.tech), create a project, copy the connection string into `DB_URL`. (Drizzle ORM — the tool our code uses to talk to the database — works with this automatically.)
-- **Clerk (login service — handles sign-in so we never store passwords):** sign up at [clerk.com](https://clerk.com), create an application, copy the **Publishable key** and **Secret key** into the backend `.env`, and the Publishable key into the frontend `.env`. Important: frontend and backend must use keys from the **same** Clerk app.
+- **Clerk (login service — handles sign-in so we never store passwords):** sign up at [clerk.com](https://clerk.com), create an application, copy the **Publishable key** and **Secret key** into the backend `.env`. (The frontend no longer needs a Clerk key — sign-in goes through the backend.)
 - **Cloudinary (image hosting):** sign up at [cloudinary.com](https://cloudinary.com/), copy your `CLOUDINARY_URL` (found in your Cloudinary dashboard) into the backend `.env`.
 - **Upstash (Redis — fast temporary memory that speeds up repeated reads):** sign up at [upstash.com](https://upstash.com), create a Redis database, copy its URL into `REDIS_URL`.
 - Later, for publishing: **Render** (runs the backend online) at [render.com](https://render.com) and **Vercel** (runs the website online) at [vercel.com](https://vercel.com). You don't need these to code locally. Full publish steps: `docs/deployment-plan.md`.
@@ -104,12 +104,11 @@ copy .env.example .env
 
 (On Mac/Linux: `cp .env.example .env`.)
 
-Open `frontend/.env` and fill in just two lines:
+Open `frontend/.env` and fill in one line:
 
 | Setting | What to put while coding locally |
 |---|---|
 | `VITE_API_URL` | `http://localhost:3000/GDGoC-CTU-Main/v0.0.1` — your backend address **including** `/GDGoC-CTU-Main/v0.0.1` (change `3000` if your backend `PORT` is different) |
-| `VITE_CLERK_PUBLISHABLE_KEY` | The same `pk_test_...` key from the SAME Clerk app as the backend |
 
 Then start the website:
 
@@ -125,7 +124,7 @@ Success looks like a line saying `Local: http://localhost:5173/` — open that a
 
 1. **Frontend loads:** open `http://localhost:5173` — you should see the GDG-CTU site (Home page).
 2. **Backend answers:** open `http://localhost:3000/GDGoC-CTU-Main/v0.0.1/admins` in your browser (change `3000` to your `PORT`). Seeing data or `[]` means the server + database work. Seeing "connection refused" means the backend isn't running or the port is wrong.
-3. **Login page shows:** open `http://localhost:5173/admin/login` — you should see the Clerk sign-in screen.
+3. **Login page shows:** open `http://localhost:5173/admin/login` — you should see the GDG-CTU sign-in form (email + password, or continue with Google).
 4. **No red CORS errors:** press F12 in the browser → Console tab → click around the site. A "blocked by CORS policy" message means backend `FR_ORIGIN` doesn't exactly match your frontend address — fix it, restart the backend (`Ctrl+C`, then `npm run dev` again).
 
 ## If something goes wrong

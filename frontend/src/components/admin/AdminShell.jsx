@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { useClerk, useUser } from '@clerk/clerk-react';
+import { authClient } from '../../lib/auth-client';
 import { adminNewTargetFor } from '../../admin/editorial.js';
-import { DEV_BYPASS_STORAGE_KEY } from '../../api/client.js';
+import { DEV_BYPASS_STORAGE_KEY, isDevAdminBypass } from '../../api/client.js';
 import '../../styles/admin.css';
 
 export const ADMIN_NAV = [
@@ -44,11 +44,20 @@ function Breadcrumbs() {
 }
 
 function Identity() {
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const { data: session } = authClient.useSession();
   const navigate = useNavigate();
-  const name = user?.fullName ?? user?.primaryEmailAddress?.emailAddress ?? 'Admin';
+  const user = session?.user;
+  const name = user?.name || user?.email || 'Admin';
   const initial = String(name).trim().charAt(0).toUpperCase() || 'A';
+
+  const handleSignOut = async () => {
+    try {
+      await authClient.signOut();
+    } finally {
+      navigate('/admin/login', { replace: true });
+    }
+  };
+
   return (
     <div className="admin-identity">
       <span className="admin-avatar" aria-hidden="true">{initial}</span>
@@ -56,7 +65,7 @@ function Identity() {
       <button
         type="button"
         className="admin-link-btn"
-        onClick={() => signOut(() => navigate('/admin/login'))}
+        onClick={handleSignOut}
       >
         Sign out
       </button>
@@ -144,7 +153,7 @@ export default function AdminShell() {
             />
           </form>
           <Identity />
-          {import.meta.env.DEV ? (
+          {import.meta.env.DEV && isDevAdminBypass() ? (
             <button type="button" className="admin-link-btn" onClick={exitDevAdmin}>
               Exit Dev Admin
             </button>

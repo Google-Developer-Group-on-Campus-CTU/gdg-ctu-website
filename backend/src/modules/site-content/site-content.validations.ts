@@ -1,6 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { siteContent } from "./models/site-content";
+import { siteContent } from "./models/site-content.js";
 
 /** Fixed CMS section keys (spec §4.7) — no custom keys in V1. */
 export const SECTION_KEYS = [
@@ -42,20 +42,20 @@ export const CreateSiteContentSchema = createInsertSchema(siteContent)
                         message: "Button URL must be a valid URL if provided.",
                   }),
             isActive: z.boolean().optional(),
-            // Clerk IDs are opaque strings (e.g. "user_..."), not UUIDs.
+            // User IDs are opaque strings (e.g. "user_..."), not UUIDs.
             updatedBy: z
                   .string()
                   .trim()
-                  .min(1, { message: "UpdatedBy must be a valid Clerk ID." }),
+                  .min(1, { message: "UpdatedBy must be a valid user ID." }),
       });
 
 export const UpdateSiteContentSchema = CreateSiteContentSchema.partial()
       .extend({
-            // Clerk IDs are opaque strings (e.g. "user_..."), not UUIDs.
+            // User IDs are opaque strings (e.g. "user_..."), not UUIDs.
             updatedBy: z
                   .string()
                   .trim()
-                  .min(1, { message: "UpdatedBy must be a valid Clerk ID." })
+                  .min(1, { message: "UpdatedBy must be a valid user ID." })
                   .optional(),
       })
       .refine(

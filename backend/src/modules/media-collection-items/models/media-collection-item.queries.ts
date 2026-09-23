@@ -1,10 +1,10 @@
 import { asc, count, eq, and } from "drizzle-orm";
-import { db } from "../../../config/connectDB";
-import { Pagination } from "../../../utils/pagination";
-import { activeOnly } from "../../../utils/activeScope";
-import { mediaCollections } from "../../media-collections/models/media-collection";
-import { media } from "../../media/models/media";
-import { mediaCollectionItems } from "./media-collection-item";
+import { db } from "../../../config/connectDB.js";
+import { Pagination } from "../../../utils/pagination.js";
+import { activeOnly } from "../../../utils/activeScope.js";
+import { mediaCollections } from "../../media-collections/models/media-collection.js";
+import { media } from "../../media/models/media.js";
+import { mediaCollectionItems } from "./media-collection-item.js";
 
 export type MediaCollectionItemRecord =
       typeof mediaCollectionItems.$inferSelect;

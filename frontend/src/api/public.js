@@ -7,7 +7,7 @@ export { qs };
 /**
  * Public (unauthenticated) CMS contract — spec v0.4 §5.
  * Base is VITE_API_URL which already includes /GDGoC-CTU-Main/v0.0.1.
- * All payloads are safe fields only (no Clerk IDs, no emails rendered).
+ * All payloads are safe fields only (no account IDs, no emails rendered).
  */
 
 /** Scopes accepted by GET /public/events — anything else is rejected upstream with 400. */

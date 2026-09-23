@@ -1,7 +1,7 @@
-import { deleteMediaCloudinaryService } from "../../config/cloudinary/cloudinary.services";
-import { AppError } from "../../utils/http";
-import { getAdminById } from "../admins/models/admin.queries";
-import { getPaginationMeta, Pagination } from "../../utils/pagination";
+import { deleteMediaCloudinaryService } from "../../config/cloudinary/cloudinary.services.js";
+import { AppError } from "../../utils/http.js";
+import { getAdminById } from "../admins/models/admin.queries.js";
+import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
 import {
       countMedia,
       deleteMedia,
@@ -11,16 +11,16 @@ import {
       insertBulkMedia,
       mediaHasReferences,
       updateMedia,
-} from "./models/media.queries";
-import { UpdateMediaDTO, Media } from "./media.validations";
+} from "./models/media.queries.js";
+import { UpdateMediaDTO, Media } from "./media.validations.js";
 import {
       getCache,
       setCache,
       deleteCache,
       clearCacheByPrefix,
-} from "../../config/redis/redis.services";
-import logger from "../../utils/logger";
-import { NewMediaRecord } from "./models/media.queries";
+} from "../../config/redis/redis.services.js";
+import logger from "../../utils/logger.js";
+import { NewMediaRecord } from "./models/media.queries.js";
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;

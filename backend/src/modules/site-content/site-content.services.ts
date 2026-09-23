@@ -1,6 +1,6 @@
-import { AppError } from "../../utils/http";
-import { getPaginationMeta, Pagination } from "../../utils/pagination";
-import { getMediaById } from "../media/models/media.queries";
+import { AppError } from "../../utils/http.js";
+import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
+import { getMediaById } from "../media/models/media.queries.js";
 import {
       countSiteContent,
       deleteSiteContent,
@@ -9,16 +9,16 @@ import {
       getSiteContentList,
       insertSiteContent,
       updateSiteContent,
-} from "./models/site-content.queries";
+} from "./models/site-content.queries.js";
 import {
       CreateSiteContentDTO,
       UpdateSiteContentDTO,
-} from "./site-content.validations";
+} from "./site-content.validations.js";
 
 const validateSiteContentReferences = async (
       data: Partial<Pick<CreateSiteContentDTO, "updatedBy" | "mediaId">>,
 ) => {
-      // Tolerant updatedBy: a valid Clerk string never 400s here. The normal
+      // Tolerant updatedBy: a valid user ID string never 400s here. The normal
       // flow (POST /auth/sync first) guarantees the admin row exists and the
       // DB foreign key remains the final guard for truly invalid references.
       if (data.mediaId && !(await getMediaById(data.mediaId))) {

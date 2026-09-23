@@ -1,6 +1,6 @@
-import { AppError } from "../../utils/http";
-import { getPaginationMeta, Pagination } from "../../utils/pagination";
-import { createMediaService } from "../media/media.services";
+import { AppError } from "../../utils/http.js";
+import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
+import { createMediaService } from "../media/media.services.js";
 import {
       NewTeamMemberRecord,
       insertTeamMember,
@@ -13,30 +13,30 @@ import {
       getActiveTeamMemberBySlug,
       teamMemberHasEventSpeakerReferences,
       updateTeamMember,
-} from "./models/team-member.queries";
-import { UpdateTeamMemberDTO, TeamMember } from "./team-member.validations";
+} from "./models/team-member.queries.js";
+import { UpdateTeamMemberDTO, TeamMember } from "./team-member.validations.js";
 import {
       getCache,
       setCache,
       clearCacheByPrefix,
-} from "../../config/redis/redis.services";
+} from "../../config/redis/redis.services.js";
 import {
       uploadMedia,
       deleteMediaCloudinaryService,
-} from "../../config/cloudinary/cloudinary.services";
-import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper";
+} from "../../config/cloudinary/cloudinary.services.js";
+import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper.js";
 import {
       createMemberTermService,
       getMemberTermByMemberAndTermService,
       updateMemberTermService,
-} from "../member_terms/member-terms.services";
-import { cleanupReplacedMedia } from "../../utils/mediaHelper";
-import logger from "../../utils/logger";
+} from "../member_terms/member-terms.services.js";
+import { cleanupReplacedMedia } from "../../utils/mediaHelper.js";
+import logger from "../../utils/logger.js";
 import {
       rollbackCloudinaryUpload,
       CloudinaryUploadResult,
-} from "../../config/cloudinary/utils/cloudinary-rollback-helper";
-import { assertAdminExists } from "../auth/assertAdminExistsHelper";
+} from "../../config/cloudinary/utils/cloudinary-rollback-helper.js";
+import { assertAdminExists } from "../auth/assertAdminExistsHelper.js";
 // DTO for the multipart "create with image" endpoint.
 interface CreateTeamMemberWithImageDTO {
       memberData: NewTeamMemberRecord;

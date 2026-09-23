@@ -1,5 +1,7 @@
-import { AppError } from "../../utils/http";
-import { getPaginationMeta, Pagination } from "../../utils/pagination";
+import { randomUUID } from "node:crypto";
+import { hashPassword } from "better-auth/crypto";
+import { AppError } from "../../utils/http.js";
+import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
 import {
       adminHasReferences,
       countAdmins,
@@ -8,32 +10,37 @@ import {
       getAdminById,
       getAdmins,
       insertAdmin,
+      insertCredentialAccount,
       updateAdmin,
-} from "./models/admin.queries";
+      type NewAdminRecord,
+} from "./models/admin.queries.js";
 import {
       AdminRecord,
       CreateAdminDTO,
       UpdateAdminDTO,
-} from "./admin.validations";
+} from "./admin.validations.js";
 import {
       getCache,
       setCache,
       deleteCache,
       clearCacheByPrefix,
-} from "../../config/redis/redis.services";
+} from "../../config/redis/redis.services.js";
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
 
 export const toAdminResponse = (admin: AdminRecord) => {
-      // Return only safe fields that are part of the public API.
-      // The AdminRecord already does not contain a password, but we
-      // explicitly pick the columns we want to expose. This keeps the
-      // shape stable for consumers and makes it easy to extend later.
+      // Public API shape. Passwords never reach this point — they live in
+      // `account.password`; `isActive` keeps its historical meaning as the
+      // inverse of the admin plugin's `banned` flag.
       return {
             id: admin.id,
             email: admin.email,
-            isActive: admin.isActive,
+            name: admin.name,
+            // role is nullable in the Better Auth schema — surface the same
+            // default the admin plugin applies in code.
+            role: admin.role ?? "user",
+            isActive: !admin.banned,
             createdAt: admin.createdAt,
             updatedAt: admin.updatedAt,
       } as const;
@@ -46,10 +53,28 @@ export const createAdminService = async (data: CreateAdminDTO) => {
             throw new AppError(409, "Admin email already exists");
       }
 
-      const admin = await insertAdmin(data);
+      const record = await insertAdmin({
+            // Better Auth generates IDs for its own sign-up flows; rows created
+            // through this admin API need one up front (user.id has no default).
+            id: randomUUID(),
+            email: data.email,
+            name: data.name ?? data.email.split("@")[0],
+            role: data.role,
+            // Admins created with a password can sign in immediately; without
+            // one, the account verifies on first Google sign-in with this email.
+            emailVerified: Boolean(data.password),
+      });
+
+      if (data.password) {
+            await insertCredentialAccount({
+                  id: randomUUID(),
+                  userId: record.id,
+                  passwordHash: await hashPassword(data.password),
+            });
+      }
 
       await clearCacheByPrefix("admins:");
-      return toAdminResponse(admin);
+      return toAdminResponse(record);
 };
 
 export const getAdminsService = async (pagination: Pagination) => {
@@ -102,18 +127,33 @@ export const updateAdminService = async (id: string, data: UpdateAdminDTO) => {
             throw new AppError(404, "Admin not found");
       }
 
-      if (data.email && data.email !== admin.email) {
-            const existingAdmin = await getAdminByEmail(data.email);
+      const { isActive, email, ...rest } = data;
+
+      if (email && email !== admin.email) {
+            const existingAdmin = await getAdminByEmail(email);
 
             if (existingAdmin) {
                   throw new AppError(409, "Admin email already exists");
             }
       }
 
-      const updatedAdmin = await updateAdmin(id, {
-            ...data,
+      const patch: Partial<NewAdminRecord> = {
+            ...rest,
             updatedAt: new Date(),
-      });
+      };
+      if (email) patch.email = email;
+
+      // isActive folds onto the admin plugin's `banned` flag.
+      if (isActive === false) {
+            patch.banned = true;
+            patch.banReason = admin.banReason ?? "Deactivated by admin";
+      } else if (isActive === true) {
+            patch.banned = false;
+            patch.banReason = null;
+            patch.banExpires = null;
+      }
+
+      const updatedAdmin = await updateAdmin(id, patch);
 
       await deleteCache(`admins:${id}`);
       await clearCacheByPrefix("admins:");

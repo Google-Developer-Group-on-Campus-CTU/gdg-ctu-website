@@ -1,32 +1,24 @@
 import { Request, Response } from "express";
-import { getAuth } from "@clerk/express";
-import { getAdminById } from "../admins/models/admin.queries";
-import { serializeAdmin } from "./serializeAdmin";
-import logger from "../../utils/logger";
-import { handleControllerError } from "../../utils/http";
+import type { AuthedRequest } from "../../middleware/requireAuth.js";
+import { serializeAdmin } from "./serializeAdmin.js";
+import logger from "../../utils/logger.js";
+import { handleControllerError } from "../../utils/http.js";
 
 export async function getCurrentAdminUser(req: Request, res: Response) {
       try {
-            const { userId } = getAuth(req);
+            // requireAuth (mounted upstream on the protected router) has
+            // already resolved the Better Auth session for this request.
+            const session = (req as Partial<AuthedRequest>).authSession;
 
-            if (!userId) {
+            if (!session?.user) {
                   res.status(401).json({ error: "Unauthorized" });
-                  return;
-            }
-
-            const user = await getAdminById(userId);
-            if (!user) {
-                  res.status(404).json({
-                        success: false,
-                        message: "Authenticated user has not been synced",
-                  });
                   return;
             }
 
             res.json({
                   success: true,
                   message: "User fetched successfully",
-                  user: serializeAdmin(user),
+                  user: serializeAdmin(session.user),
             });
       } catch (error: any) {
             logger.error(error, { message: error.message, stack: error.stack });

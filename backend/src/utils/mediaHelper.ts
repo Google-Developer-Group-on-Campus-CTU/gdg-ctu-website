@@ -1,6 +1,6 @@
-import { deleteMediaService } from "../modules/media/media.services";
-import { mediaHasReferences } from "../modules/media/models/media.queries";
-import { AppError } from "./http";
+import { deleteMediaService } from "../modules/media/media.services.js";
+import { mediaHasReferences } from "../modules/media/models/media.queries.js";
+import { AppError } from "./http.js";
 
 /**
  * Safely removes an old media asset from both cloud storage (Cloudinary) and the database

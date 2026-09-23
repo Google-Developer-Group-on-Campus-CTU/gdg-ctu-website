@@ -3,22 +3,28 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import path from "path";
 import fs from "fs";
-import ENV from "./env";
-import logger from "../utils/logger";
-import * as schema from "../modules";
+import { fileURLToPath } from "node:url";
+import ENV from "./env.js";
+import logger from "../utils/logger.js";
 
 export const pool = new Pool({
       connectionString: ENV.DB_URL,
 });
 
+// No `schema` option here: it used to `import * from "../modules/index.js"`, which
+// pulled the route router into this module (an import cycle once config/auth
+// was added) and never contained real tables anyway — relational `db.query.*`
+// is unused, and Better Auth gets its schema explicitly in config/auth.ts.
 export const db = drizzle({
       client: pool,
-      schema,
 });
+
+// ESM replacement for __dirname (package.json is type:module).
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 
 export const connectDB = async () => {
       const cwdMigrationsFolder = path.resolve(process.cwd(), "drizzle");
-      const distRelativeMigrationsFolder = path.resolve(__dirname, "../../drizzle");
+      const distRelativeMigrationsFolder = path.resolve(moduleDir, "../../drizzle");
       const migrationsFolder = fs.existsSync(cwdMigrationsFolder)
             ? cwdMigrationsFolder
             : distRelativeMigrationsFolder;

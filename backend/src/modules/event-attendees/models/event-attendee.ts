@@ -1,6 +1,6 @@
 import { integer, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core";
-import { events } from "../../events/models/event";
+import { events } from "../../events/models/event.js";
 
 export const eventAttendees = pgTable("event_attendees", {
       id: uuid("id").defaultRandom().primaryKey(),

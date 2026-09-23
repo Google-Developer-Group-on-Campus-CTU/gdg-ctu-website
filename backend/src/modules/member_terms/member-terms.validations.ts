@@ -1,6 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { memberTerms } from "./models/member-terms";
+import { memberTerms } from "./models/member-terms.js";
 
 export const MemberTermsSchema = createSelectSchema(memberTerms);
 export const CreateMemberTermsSchema = createInsertSchema(memberTerms)

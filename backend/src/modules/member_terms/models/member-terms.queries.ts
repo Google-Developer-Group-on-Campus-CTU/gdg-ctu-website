@@ -1,7 +1,7 @@
 import { asc, count, eq, and } from "drizzle-orm";
-import { db } from "../../../config/connectDB";
-import { Pagination } from "../../../utils/pagination";
-import { memberTerms } from "./member-terms";
+import { db } from "../../../config/connectDB.js";
+import { Pagination } from "../../../utils/pagination.js";
+import { memberTerms } from "./member-terms.js";
 
 export type MemberTermsRecord = typeof memberTerms.$inferSelect;
 export type NewMemberTermsRecord = typeof memberTerms.$inferInsert;

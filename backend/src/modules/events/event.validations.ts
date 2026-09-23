@@ -1,6 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { EVENT_STATUSES, events } from "./models/event";
+import { EVENT_STATUSES, events } from "./models/event.js";
 
 const eventDateRule = <
       T extends {
@@ -72,7 +72,7 @@ const BaseCreateEventSchema = createInsertSchema(events)
                   .string({ error: "CreatedBy is required" })
                   .trim()
                   .min(1, {
-                        message: "CreatedBy must be a non‑empty string (Clerk ID).",
+                        message: "CreatedBy must be a non‑empty string (user ID).",
                   }),
       });
 

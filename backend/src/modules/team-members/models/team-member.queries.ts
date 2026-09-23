@@ -1,12 +1,12 @@
 import { and, asc, count, desc, eq } from "drizzle-orm";
-import { db } from "../../../config/connectDB";
-import { Pagination } from "../../../utils/pagination";
-import { activeByKey, activeOnly } from "../../../utils/activeScope";
-import { eventSpeakers } from "../../event-speakers/models/event-speaker";
-import { media } from "../../media/models/media";
-import { memberTerms } from "../../member_terms/models/member-terms";
-import { terms } from "../../terms/models/terms";
-import { teamMembers } from "./team-member";
+import { db } from "../../../config/connectDB.js";
+import { Pagination } from "../../../utils/pagination.js";
+import { activeByKey, activeOnly } from "../../../utils/activeScope.js";
+import { eventSpeakers } from "../../event-speakers/models/event-speaker.js";
+import { media } from "../../media/models/media.js";
+import { memberTerms } from "../../member_terms/models/member-terms.js";
+import { terms } from "../../terms/models/terms.js";
+import { teamMembers } from "./team-member.js";
 
 export type TeamMemberRecord = typeof teamMembers.$inferSelect;
 export type NewTeamMemberRecord = typeof teamMembers.$inferInsert;

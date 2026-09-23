@@ -1,4 +1,4 @@
-import { apiFetch, API_BASE_URL, getAuthToken, isDevAdminBypass } from './client.js';
+import { apiFetch, API_BASE_URL, isDevAdminBypass } from './client.js';
 import { qs } from './feed.js';
 
 export { qs };
@@ -85,10 +85,6 @@ export const mediaApi = {
     form.append('file', file);
     if (altText) form.append('alt_text', altText);
     const headers = {};
-    const token = await getAuthToken();
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
     if (isDevAdminBypass()) {
       headers['x-dev-admin-bypass'] = 'dev-instant-admin';
     }

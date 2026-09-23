@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { getPublicPartnersService } from "../partners/partner.services";
-import { handleControllerError } from "../../utils/http";
-import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url";
+import { getPublicPartnersService } from "../partners/partner.services.js";
+import { handleControllerError } from "../../utils/http.js";
+import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url.js";
 
 /** Public partners feed — no auth, active only, tier-ordered. */
 const router = Router();

@@ -14,8 +14,7 @@ copy .env.example .env
 
 Fill in `frontend/.env` (see `docs/GETTING-STARTED.md` for the walkthrough):
 
-- `VITE_API_URL` — backend address **including** `/GDGoC-CTU-Main/v0.0.1` (local example: `http://localhost:3000/GDGoC-CTU-Main/v0.0.1`)
-- `VITE_CLERK_PUBLISHABLE_KEY` — from the SAME Clerk app the backend uses
+- `VITE_API_URL` — backend address **including** `/GDGoC-CTU-Main/v0.0.1` (local example: `http://localhost:3000/GDGoC-CTU-Main/v0.0.1`). Sign-in (Better Auth) runs behind this same base — no other frontend keys are needed.
 
 > After changing `.env`, restart the dev server — settings starting with `VITE_` load only at startup.
 
@@ -31,6 +30,7 @@ Fill in `frontend/.env` (see `docs/GETTING-STARTED.md` for the walkthrough):
 ## Notes
 
 - Page addresses live in `src/App.jsx` (public pages vs `/admin` pages guarded by `ProtectedRoute`).
-- All backend calls go through `apiFetch` in `src/api/client.js` (it adds your login token automatically).
+- All backend calls go through `apiFetch` in `src/api/client.js` (it always sends cookies, so your sign-in session travels with every call).
+- Sign-in is handled by Better Auth (`src/lib/auth-client.ts`) — email/password and Google, with the session stored in an HTTP-only cookie on the backend.
 - Page refresh on `/about`, `/events`, etc. works online thanks to `vercel.json` (sends all addresses to `index.html`).
 - Deploy goes to Vercel (root folder `frontend`, build `npm run build`, output `dist`) — full steps in `docs/deployment-plan.md`.

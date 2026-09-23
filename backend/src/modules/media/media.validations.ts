@@ -1,6 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { media } from "./models/media";
+import { media } from "./models/media.js";
 
 export const MediaSchema = createSelectSchema(media);
 

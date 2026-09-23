@@ -1,5 +1,5 @@
-import { AppError } from "../../utils/http";
-import { getAdminByIdService } from "../admins/admin.services";
+import { AppError } from "../../utils/http.js";
+import { getAdminByIdService } from "../admins/admin.services.js";
 
 export const assertAdminExists = async (adminId: string) => {
       if (!(await getAdminByIdService(adminId))) {

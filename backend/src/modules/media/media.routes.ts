@@ -5,10 +5,10 @@ import {
       getMedia,
       updateMedia,
       removeMedia,
-} from "./media.controllers";
-import { validateParams } from "../../middleware/validateParams";
-import { validateQuery } from "../../middleware/validateQuery";
-import upload from "../../middleware/upload";
+} from "./media.controllers.js";
+import { validateParams } from "../../middleware/validateParams.js";
+import { validateQuery } from "../../middleware/validateQuery.js";
+import upload from "../../middleware/upload.js";
 
 const router = Router();
 

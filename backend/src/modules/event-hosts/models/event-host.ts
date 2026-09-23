@@ -1,7 +1,7 @@
 import { integer, uuid, varchar } from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core";
-import { events } from "../../events/models/event";
-import { teamMembers } from "../../team-members/models/team-member";
+import { events } from "../../events/models/event.js";
+import { teamMembers } from "../../team-members/models/team-member.js";
 
 export const eventHosts = pgTable("event_hosts", {
       id: uuid("id").defaultRandom().primaryKey(),

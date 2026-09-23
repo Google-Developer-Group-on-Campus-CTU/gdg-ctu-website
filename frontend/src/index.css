@@ -524,6 +524,32 @@ a {
   clip: rect(0 0 0 0);
 }
 
+/* ---------- loading ---------- */
+
+.gdg-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 3rem 0;
+  color: var(--muted);
+}
+
+.gdg-spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid #dbe5f8;
+  border-top-color: var(--gdg-blue);
+  animation: gdg-spin 0.7s linear infinite;
+}
+
+@keyframes gdg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes gdg-shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }

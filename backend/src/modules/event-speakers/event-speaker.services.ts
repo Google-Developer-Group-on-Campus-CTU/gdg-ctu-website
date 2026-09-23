@@ -1,19 +1,19 @@
-import { AppError } from "../../utils/http";
-import { getPaginationMeta, Pagination } from "../../utils/pagination";
-import { getMediaById } from "../media/models/media.queries";
-import { getTeamMemberById } from "../team-members/models/team-member.queries";
-import { createMediaService } from "../media/media.services";
+import { AppError } from "../../utils/http.js";
+import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
+import { getMediaById } from "../media/models/media.queries.js";
+import { getTeamMemberById } from "../team-members/models/team-member.queries.js";
+import { createMediaService } from "../media/media.services.js";
 import {
       uploadMedia,
-} from "../../config/cloudinary/cloudinary.services";
-import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper";
+} from "../../config/cloudinary/cloudinary.services.js";
+import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper.js";
 import {
       rollbackCloudinaryUpload,
       CloudinaryUploadResult,
-} from "../../config/cloudinary/utils/cloudinary-rollback-helper";
-import { cleanupReplacedMedia } from "../../utils/mediaHelper";
-import { assertAdminExists } from "../auth/assertAdminExistsHelper";
-import logger from "../../utils/logger";
+} from "../../config/cloudinary/utils/cloudinary-rollback-helper.js";
+import { cleanupReplacedMedia } from "../../utils/mediaHelper.js";
+import { assertAdminExists } from "../auth/assertAdminExistsHelper.js";
+import logger from "../../utils/logger.js";
 import {
       countEventSpeakers,
       countEventSpeakersByTeamMemberId,
@@ -24,18 +24,18 @@ import {
       getEventSpeakersByTeamMemberId,
       insertEventSpeaker,
       updateEventSpeaker,
-} from "./models/event-speaker.queries";
+} from "./models/event-speaker.queries.js";
 import {
       CreateEventSpeakerDTO,
       UpdateEventSpeakerDTO,
       EventSpeaker,
-} from "./event-speaker.validations";
+} from "./event-speaker.validations.js";
 import {
       getCache,
       setCache,
       deleteCache,
       clearCacheByPrefix,
-} from "../../config/redis/redis.services";
+} from "../../config/redis/redis.services.js";
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;

@@ -5,9 +5,9 @@ import {
       getMediaCollection,
       updateMediaCollection,
       deleteMediaCollection,
-} from "./media-collections.controllers";
-import { validateParams } from "../../middleware/validateParams";
-import { validateQuery } from "../../middleware/validateQuery";
+} from "./media-collections.controllers.js";
+import { validateParams } from "../../middleware/validateParams.js";
+import { validateQuery } from "../../middleware/validateQuery.js";
 
 const router = Router();
 

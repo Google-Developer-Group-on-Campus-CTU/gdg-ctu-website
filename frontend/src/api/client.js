@@ -11,7 +11,7 @@ if (!API_BASE_URL) {
   );
 }
 
-/** localStorage key toggling the dev-only Clerk bypass (set by DevInstantAdmin). */
+/** localStorage key toggling the dev-only bypass (set by DevInstantAdmin). */
 export const DEV_BYPASS_STORAGE_KEY = 'gdg-dev-admin-bypass';
 
 /** True only in dev builds when the bypass flag is set. Never true in production. */
@@ -27,36 +27,14 @@ export function isDevAdminBypass() {
 /** Abort any apiFetch that has not completed within this window. */
 const REQUEST_TIMEOUT_MS = 15000;
 
-let authTokenProvider = null;
-
-/**
- * Register a global async token getter (wired to Clerk `useAuth().getToken()`
- * via `<AuthTokenProvider>`). Keeps all call sites unchanged.
- */
-export function setAuthTokenProvider(fn) {
-  authTokenProvider = typeof fn === 'function' ? fn : null;
-}
-
-export function getAuthTokenProvider() {
-  return authTokenProvider;
-}
-
-export async function getAuthToken() {
-  try {
-    if (typeof authTokenProvider !== 'function') return null;
-    return await authTokenProvider();
-  } catch {
-    return null;
-  }
-}
 /**
  * Minimal fetch wrapper for the GDGoC-CTU backend.
  *
- * Sends cookies (`credentials: 'include'`), JSON headers, and the Clerk
- * session JWT (`Authorization: Bearer <token>`) when a token provider is
- * registered. Throws an Error on non-OK responses (with `error.status` and
- * `error.body` attached when available) and aborts with `error.status = 504`
- * if the request exceeds the 15s timeout.
+ * Sends cookies (`credentials: 'include'`) so the Better Auth session cookie
+ * travels with every call — no Authorization header is attached. Throws an
+ * Error on non-OK responses (with `error.status` and `error.body` attached
+ * when available) and aborts with `error.status = 504` if the request exceeds
+ * the 15s timeout.
  */
 export async function apiFetch(path, options = {}) {
   const { headers, ...rest } = options;
@@ -65,13 +43,6 @@ export async function apiFetch(path, options = {}) {
     'Content-Type': 'application/json',
     ...headers,
   };
-
-  if (!mergedHeaders.Authorization) {
-    const token = await getAuthToken();
-    if (token) {
-      mergedHeaders.Authorization = `Bearer ${token}`;
-    }
-  }
 
   if (isDevAdminBypass()) {
     mergedHeaders['x-dev-admin-bypass'] = 'dev-instant-admin';

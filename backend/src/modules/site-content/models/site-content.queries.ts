@@ -1,8 +1,8 @@
 import { asc, count, eq } from "drizzle-orm";
-import { db } from "../../../config/connectDB";
-import { Pagination } from "../../../utils/pagination";
-import { activeByKey, activeOnly } from "../../../utils/activeScope";
-import { siteContent } from "./site-content";
+import { db } from "../../../config/connectDB.js";
+import { Pagination } from "../../../utils/pagination.js";
+import { activeByKey, activeOnly } from "../../../utils/activeScope.js";
+import { siteContent } from "./site-content.js";
 
 export type SiteContentRecord = typeof siteContent.$inferSelect;
 export type NewSiteContentRecord = typeof siteContent.$inferInsert;

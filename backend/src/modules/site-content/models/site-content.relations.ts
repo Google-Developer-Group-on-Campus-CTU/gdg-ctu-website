@@ -1,15 +1,15 @@
 import { relations } from "drizzle-orm";
-import { admins } from "../../admins/models/admin";
-import { media } from "../../media/models/media";
-import { siteContent } from "./site-content";
+import { user } from "../../auth/models/auth.js";
+import { media } from "../../media/models/media.js";
+import { siteContent } from "./site-content.js";
 
 export const siteContentRelations = relations(siteContent, ({ one }) => ({
       media: one(media, {
             fields: [siteContent.mediaId],
             references: [media.id],
       }),
-      updater: one(admins, {
+      updater: one(user, {
             fields: [siteContent.updatedBy],
-            references: [admins.id],
+            references: [user.id],
       }),
 }));

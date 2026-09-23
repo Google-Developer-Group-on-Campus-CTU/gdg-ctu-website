@@ -1,6 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { terms } from "./models/terms";
+import { terms } from "./models/terms.js";
 
 export const TermSchema = createSelectSchema(terms);
 

@@ -1,6 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { teamMembers } from "./models/team-member";
+import { teamMembers } from "./models/team-member.js";
 
 export const TeamMemberSchema = createSelectSchema(teamMembers);
 export const CreateTeamMemberSchema = createInsertSchema(teamMembers)

@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, gte, lt } from "drizzle-orm";
-import { db } from "../../../config/connectDB";
-import { Pagination } from "../../../utils/pagination";
-import { events } from "./event";
+import { db } from "../../../config/connectDB.js";
+import { Pagination } from "../../../utils/pagination.js";
+import { events } from "./event.js";
 
 export type EventRecord = typeof events.$inferSelect;
 export type NewEventRecord = typeof events.$inferInsert;

@@ -2,13 +2,13 @@ import { Router } from "express";
 import {
       getActiveTeamMembersByTermService,
       getActiveTeamMemberBySlugService,
-} from "../team-members/team-member.services";
+} from "../team-members/team-member.services.js";
 import {
       AppError,
       getStringParam,
       handleControllerError,
-} from "../../utils/http";
-import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url";
+} from "../../utils/http.js";
+import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url.js";
 
 /**
  * Public team feed — no auth. Active members only, safe fields

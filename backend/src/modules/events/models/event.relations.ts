@@ -1,12 +1,12 @@
 import { relations } from "drizzle-orm";
-import { admins } from "../../admins/models/admin";
-import { media } from "../../media/models/media";
-import { events } from "./event";
+import { user } from "../../auth/models/auth.js";
+import { media } from "../../media/models/media.js";
+import { events } from "./event.js";
 
 export const eventsRelations = relations(events, ({ one }) => ({
-      creator: one(admins, {
+      creator: one(user, {
             fields: [events.createdBy],
-            references: [admins.id],
+            references: [user.id],
       }),
       coverMedia: one(media, {
             fields: [events.coverMediaId],

@@ -1,6 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { eventAttendees } from "./models/event-attendee";
+import { eventAttendees } from "./models/event-attendee.js";
 
 export const EventAttendeeRecordSchema = createSelectSchema(eventAttendees);
 

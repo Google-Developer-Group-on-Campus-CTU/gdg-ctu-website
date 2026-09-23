@@ -1,5 +1,5 @@
 import { Router } from "express";
-import upload from "../../middleware/upload";
+import upload from "../../middleware/upload.js";
 import {
       createTeamMemberWithImage,
       listTeamMembers,
@@ -8,7 +8,7 @@ import {
       listTeamMembersByTerm,
       updateTeamMember,
       removeTeamMember,
-} from "./team-member.controllers";
+} from "./team-member.controllers.js";
 
 const router = Router();
 

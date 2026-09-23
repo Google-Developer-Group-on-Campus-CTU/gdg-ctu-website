@@ -1,7 +1,7 @@
 import { boolean, integer, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core";
-import { admins } from "../../admins/models/admin";
-import { media } from "../../media/models/media";
+import { user } from "../../auth/models/auth.js";
+import { media } from "../../media/models/media.js";
 
 /**
  * Partner tier — public list is ordered by tier rank, then display_order.
@@ -25,13 +25,14 @@ export const partners = pgTable("partners", {
       description: text("description"),
       displayOrder: integer("display_order").default(0).notNull(),
       isActive: boolean("is_active").default(true).notNull(),
-      // Audit trail (spec §7) — Clerk IDs as admin PKs, same as other tables.
-      createdBy: varchar("created_by")
+      // Audit trail (spec §7) — fold: references Better Auth's `user`
+      // table (text PK), same as the other audit columns.
+      createdBy: text("created_by")
             .notNull()
-            .references(() => admins.id),
-      updatedBy: varchar("updated_by")
+            .references(() => user.id),
+      updatedBy: text("updated_by")
             .notNull()
-            .references(() => admins.id),
+            .references(() => user.id),
       createdAt: timestamp("created_at").defaultNow().notNull(),
       updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

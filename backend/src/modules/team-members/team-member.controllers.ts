@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getClerkIdFromRequest } from "../auth/auth.utils";
+import { getUserIdFromRequest } from "../auth/auth.utils.js";
 import {
       AppError,
       getPagination,
@@ -7,7 +7,7 @@ import {
       handleControllerError,
       validateBody,
       validateUuid,
-} from "../../utils/http";
+} from "../../utils/http.js";
 import {
       createTeamMemberService,
       deleteTeamMemberService,
@@ -16,10 +16,10 @@ import {
       getTeamMembersService,
       getActiveTeamMembersByTermService,
       updateTeamMemberService,
-} from "./team-member.services";
-import { UpdateTeamMemberDTO } from "./team-member.validations";
-import { NewTeamMemberRecord } from "./models/team-member.queries";
-import logger from "../../utils/logger";
+} from "./team-member.services.js";
+import { UpdateTeamMemberDTO } from "./team-member.validations.js";
+import { NewTeamMemberRecord } from "./models/team-member.queries.js";
+import logger from "../../utils/logger.js";
 
 export const createTeamMemberWithImage = async (
       req: Request,
@@ -50,16 +50,16 @@ export const createTeamMemberWithImage = async (
                   );
             }
 
-            const clerkId = getClerkIdFromRequest(req);
-            if (!clerkId) {
-                  throw new AppError(401, "Unauthorized: missing clerkId");
+            const userId = getUserIdFromRequest(req);
+            if (!userId) {
+                  throw new AppError(401, "Unauthorized: missing user ID");
             }
 
             const teamMember = await createTeamMemberService(
                   {
                         memberData,
                         file: file,
-                        uploadedBy: clerkId,
+                        uploadedBy: userId,
                   },
                   {
                         termId,
@@ -189,9 +189,9 @@ export const updateTeamMember = async (req: Request, res: Response) => {
                   memberData = JSON.parse(memberJson) as UpdateTeamMemberDTO;
             }
 
-            const clerkId = getClerkIdFromRequest(req);
-            if (!clerkId) {
-                  throw new AppError(401, "Unauthorized: missing clerkID");
+            const userId = getUserIdFromRequest(req);
+            if (!userId) {
+                  throw new AppError(401, "Unauthorized: missing user ID");
             }
 
             const updated = await updateTeamMemberService(
@@ -199,7 +199,7 @@ export const updateTeamMember = async (req: Request, res: Response) => {
                         id: memberId,
                         memberData,
                         file,
-                        uploadedBy: clerkId,
+                        uploadedBy: userId,
                   },
                   termId && role ? { termId, role } : undefined,
             );

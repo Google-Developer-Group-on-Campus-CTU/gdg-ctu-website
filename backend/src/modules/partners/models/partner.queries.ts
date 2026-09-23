@@ -1,8 +1,8 @@
 import { asc, count, eq } from "drizzle-orm";
-import { db } from "../../../config/connectDB";
-import { Pagination } from "../../../utils/pagination";
-import { activeOnly } from "../../../utils/activeScope";
-import { partners } from "./partner";
+import { db } from "../../../config/connectDB.js";
+import { Pagination } from "../../../utils/pagination.js";
+import { activeOnly } from "../../../utils/activeScope.js";
+import { partners } from "./partner.js";
 
 export type PartnerRecord = typeof partners.$inferSelect;
 export type NewPartnerRecord = typeof partners.$inferInsert;

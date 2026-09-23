@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getClerkIdFromRequest } from "../auth/auth.utils";
+import { getUserIdFromRequest } from "../auth/auth.utils.js";
 import {
       AppError,
       getPagination,
@@ -7,7 +7,7 @@ import {
       handleControllerError,
       validateBody,
       validateUuid,
-} from "../../utils/http";
+} from "../../utils/http.js";
 import {
       createEventService,
       deleteEventService,
@@ -15,9 +15,9 @@ import {
       getEventBySlugService,
       getEventsService,
       updateEventService,
-} from "./event.services";
-import { CreateEventSchema, UpdateEventSchema } from "./event.validations";
-import { extractMultipartPayload } from "../../utils/multiPartPayloadHelper";
+} from "./event.services.js";
+import { CreateEventSchema, UpdateEventSchema } from "./event.validations.js";
+import { extractMultipartPayload } from "../../utils/multiPartPayloadHelper.js";
 
 export const createEvent = async (req: Request, res: Response) => {
       try {
@@ -26,11 +26,11 @@ export const createEvent = async (req: Request, res: Response) => {
                   throw new AppError(400, "Event cover image is required");
             }
 
-            const clerkId = getClerkIdFromRequest(req);
-            if (file && !clerkId) {
+            const userId = getUserIdFromRequest(req);
+            if (file && !userId) {
                   throw new AppError(
                         401,
-                        "Unable to determine uploader (Clerk ID) for image upload",
+                        "Unable to determine uploader (user ID) for image upload",
                   );
             }
 
@@ -40,14 +40,14 @@ export const createEvent = async (req: Request, res: Response) => {
             }
 
             const rawEventData = JSON.parse(eventJson);
-            rawEventData.createdBy = clerkId;
+            rawEventData.createdBy = userId;
 
             const eventData = CreateEventSchema.parse(rawEventData);
 
             const event = await createEventService({
                   eventData,
                   file: file,
-                  uploadedBy: clerkId,
+                  uploadedBy: userId,
             });
 
             return res.status(201).json({
@@ -62,9 +62,9 @@ export const createEvent = async (req: Request, res: Response) => {
 
 export const listEvents = async (req: Request, res: Response) => {
       try {
-            const clerkId = getClerkIdFromRequest(req);
-            if (!clerkId) {
-                  throw new AppError(401, "Unauthorized: ClerkId missing");
+            const userId = getUserIdFromRequest(req);
+            if (!userId) {
+                  throw new AppError(401, "Unauthorized: user ID missing");
             }
 
             const paginationQuery = getPagination(req.query);
@@ -83,9 +83,9 @@ export const listEvents = async (req: Request, res: Response) => {
 
 export const getEvent = async (req: Request, res: Response) => {
       try {
-            const clerkId = getClerkIdFromRequest(req);
-            if (!clerkId) {
-                  throw new AppError(401, "Unauthorized: ClerkId missing");
+            const userId = getUserIdFromRequest(req);
+            if (!userId) {
+                  throw new AppError(401, "Unauthorized: user ID missing");
             }
 
             const id = validateUuid(req.params.id);
@@ -105,9 +105,9 @@ export const getEvent = async (req: Request, res: Response) => {
 
 export const getEventBySlug = async (req: Request, res: Response) => {
       try {
-            const clerkId = getClerkIdFromRequest(req);
-            if (!clerkId) {
-                  throw new AppError(401, "Unauthorized: ClerkId missing");
+            const userId = getUserIdFromRequest(req);
+            if (!userId) {
+                  throw new AppError(401, "Unauthorized: user ID missing");
             }
 
             const slug = getStringParam(req.params.slug, "slug");
@@ -138,11 +138,11 @@ export const updateEvent = async (req: Request, res: Response) => {
             ]);
             const eventData = validateBody(UpdateEventSchema, eventPayload);
 
-            const clerkId = getClerkIdFromRequest(req);
-            if (file && !clerkId) {
+            const userId = getUserIdFromRequest(req);
+            if (file && !userId) {
                   throw new AppError(
                         401,
-                        "Unauthorized, missing clerkId, cannot proceed",
+                        "Unauthorized: missing user ID, cannot proceed",
                   );
             }
 
@@ -150,7 +150,7 @@ export const updateEvent = async (req: Request, res: Response) => {
                   id,
                   event: eventData,
                   file: file,
-                  uploadedBy: clerkId,
+                  uploadedBy: userId,
             });
 
             return res.status(200).json({
@@ -165,9 +165,9 @@ export const updateEvent = async (req: Request, res: Response) => {
 
 export const removeEvent = async (req: Request, res: Response) => {
       try {
-            const clerkId = getClerkIdFromRequest(req);
-            if (!clerkId) {
-                  throw new AppError(401, "Unauthorized: ClerkId missing");
+            const userId = getUserIdFromRequest(req);
+            if (!userId) {
+                  throw new AppError(401, "Unauthorized: user ID missing");
             }
 
             const id = validateUuid(req.params.id);

@@ -1,14 +1,14 @@
-import { AppError } from "../../utils/http";
-import { getPaginationMeta, Pagination } from "../../utils/pagination";
-import { uploadMedia } from "../../config/cloudinary/cloudinary.services";
-import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper";
-import { createMediaService } from "../media/media.services";
-import { getMediaById } from "../media/models/media.queries";
-import { cleanupReplacedMedia } from "../../utils/mediaHelper";
+import { AppError } from "../../utils/http.js";
+import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
+import { uploadMedia } from "../../config/cloudinary/cloudinary.services.js";
+import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper.js";
+import { createMediaService } from "../media/media.services.js";
+import { getMediaById } from "../media/models/media.queries.js";
+import { cleanupReplacedMedia } from "../../utils/mediaHelper.js";
 import {
       rollbackCloudinaryUpload,
       CloudinaryUploadResult,
-} from "../../config/cloudinary/utils/cloudinary-rollback-helper";
+} from "../../config/cloudinary/utils/cloudinary-rollback-helper.js";
 import {
       countPartners,
       deletePartner,
@@ -18,28 +18,28 @@ import {
       getPartners,
       insertPartner,
       updatePartner,
-} from "./models/partner.queries";
-import { CreatePartnerDTO, UpdatePartnerDTO } from "./partner.validations";
-import logger from "../../utils/logger";
-import { assertAdminExists } from "../auth/assertAdminExistsHelper";
-import { clearCacheByPrefix } from "../../config/redis/redis.services";
+} from "./models/partner.queries.js";
+import { CreatePartnerDTO, UpdatePartnerDTO } from "./partner.validations.js";
+import logger from "../../utils/logger.js";
+import { assertAdminExists } from "../auth/assertAdminExistsHelper.js";
+import { clearCacheByPrefix } from "../../config/redis/redis.services.js";
 
 // Folder directory for partners media
 const DEFAULT_PARTNERS_MEDIA_FOLDER = "partners-media";
 
 export const createPartnerService = async (
       data: CreatePartnerDTO,
-      clerkId: string,
+      userId: string,
       file?: Buffer,
 ) => {
       if (await getPartnerBySlug(data.slug)) {
             throw new AppError(409, "Partner slug already exists");
       }
 
-      if (!clerkId) {
-            throw new AppError(401, "Unauthorized: ClerkId missing");
+      if (!userId) {
+            throw new AppError(401, "Unauthorized: user ID missing");
       }
-      await assertAdminExists(clerkId);
+      await assertAdminExists(userId);
 
       let uploadResult: CloudinaryUploadResult | null = null;
       try {
@@ -50,7 +50,7 @@ export const createPartnerService = async (
                         folder: DEFAULT_PARTNERS_MEDIA_FOLDER,
                         resourceType: "image",
                   });
-                  const mediaData = createMediaRecord(uploadResult, clerkId);
+                  const mediaData = createMediaRecord(uploadResult, userId);
                   const mediaRecord = await createMediaService(mediaData);
                   logoMediaId = mediaRecord.id;
             } else {
@@ -63,8 +63,8 @@ export const createPartnerService = async (
             return insertPartner({
                   ...data,
                   logoMediaId,
-                  createdBy: clerkId,
-                  updatedBy: clerkId,
+                  createdBy: userId,
+                  updatedBy: userId,
                   updatedAt: new Date(),
             });
       } catch (error: any) {
@@ -119,7 +119,7 @@ export const getPublicPartnersService = async () => getActivePartners();
 export const updatePartnerService = async (
       id: string,
       data: UpdatePartnerDTO,
-      clerkId: string,
+      userId: string,
       file?: Buffer,
 ) => {
       const partner = await getPartnerById(id);
@@ -151,7 +151,7 @@ export const updatePartnerService = async (
                         folder: DEFAULT_PARTNERS_MEDIA_FOLDER,
                         resourceType: "image",
                   });
-                  const mediaData = createMediaRecord(uploadResult, clerkId);
+                  const mediaData = createMediaRecord(uploadResult, userId);
                   const mediaRecord = await createMediaService(mediaData);
                   newLogoMediaId = mediaRecord.id;
             }
@@ -160,7 +160,7 @@ export const updatePartnerService = async (
             const updated = await updatePartner(id, {
                   ...data,
                   logoMediaId: newLogoMediaId,
-                  updatedBy: clerkId,
+                  updatedBy: userId,
                   updatedAt: new Date(),
             });
             // Delete the previous logo media (if it existed)

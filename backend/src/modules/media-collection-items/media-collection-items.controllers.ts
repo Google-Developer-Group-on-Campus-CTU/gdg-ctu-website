@@ -4,19 +4,19 @@ import {
       handleControllerError,
       validateBody,
       validateUuid,
-} from "../../utils/http";
-import { validateParams } from "../../middleware/validateParams";
+} from "../../utils/http.js";
+import { validateParams } from "../../middleware/validateParams.js";
 import {
       createMediaCollectionItemService,
       listMediaCollectionItemsService,
       getMediaCollectionItemService,
       updateMediaCollectionItemService,
       deleteMediaCollectionItemService,
-} from "./media-collection-items.services";
+} from "./media-collection-items.services.js";
 import {
       CreateMediaCollectionItemSchema,
       UpdateMediaCollectionItemSchema,
-} from "./media-collection-items.validations";
+} from "./media-collection-items.validations.js";
 
 export const createMediaCollectionItem = async (
       req: Request,

@@ -5,9 +5,9 @@ import {
       getEventHost,
       updateEventHost,
       deleteEventHost,
-} from "./event-hosts.controllers";
-import { validateParams } from "../../middleware/validateParams";
-import { validateQuery } from "../../middleware/validateQuery";
+} from "./event-hosts.controllers.js";
+import { validateParams } from "../../middleware/validateParams.js";
+import { validateQuery } from "../../middleware/validateQuery.js";
 
 const router = Router();
 

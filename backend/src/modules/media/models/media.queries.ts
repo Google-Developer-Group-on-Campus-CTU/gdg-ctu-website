@@ -1,12 +1,12 @@
 import { count, eq } from "drizzle-orm";
-import { db } from "../../../config/connectDB";
-import { Pagination } from "../../../utils/pagination";
-import { eventSpeakers } from "../../event-speakers/models/event-speaker";
-import { events } from "../../events/models/event";
-import { memberTerms } from "../../member_terms/models/member-terms";
-import { siteContent } from "../../site-content/models/site-content";
-import { teamMembers } from "../../team-members/models/team-member";
-import { media } from "./media";
+import { db } from "../../../config/connectDB.js";
+import { Pagination } from "../../../utils/pagination.js";
+import { eventSpeakers } from "../../event-speakers/models/event-speaker.js";
+import { events } from "../../events/models/event.js";
+import { memberTerms } from "../../member_terms/models/member-terms.js";
+import { siteContent } from "../../site-content/models/site-content.js";
+import { teamMembers } from "../../team-members/models/team-member.js";
+import { media } from "./media.js";
 
 export type MediaRecord = typeof media.$inferSelect;
 export type NewMediaRecord = typeof media.$inferInsert;
