@@ -16,6 +16,18 @@ export const insertMedia = async (data: NewMediaRecord) => {
       return record;
 };
 
+/**
+ * This query is the counter part of insertBulkMediaService
+ */
+export const insertBulkMedia = async (bulkRecords: NewMediaRecord[]) => {
+      const records = await db
+            .insert(media)
+            .values(bulkRecords)
+            .returning({ id: media.id });
+
+      return records;
+};
+
 export const getMedia = async (pagination: Pagination) =>
       db.select().from(media).limit(pagination.limit).offset(pagination.offset);
 

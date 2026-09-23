@@ -8,6 +8,7 @@ import {
       getMedia,
       getMediaById,
       insertMedia,
+      insertBulkMedia,
       mediaHasReferences,
       updateMedia,
 } from "./models/media.queries";
@@ -19,6 +20,7 @@ import {
       clearCacheByPrefix,
 } from "../../config/redis/redis.services";
 import logger from "../../utils/logger";
+import { NewMediaRecord } from "./models/media.queries";
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
@@ -33,6 +35,18 @@ export const createMediaService = async (data: any) => {
 
       await clearCacheByPrefix("media:");
       return insertMedia(data);
+};
+
+/**
+ * This media function inserts bulk media records into the local DB and...
+ * returns their generated IDs for reference purposes
+ */
+export const insertBulkMediaService = async (records: NewMediaRecord[]) => {
+      if (!records.length) {
+            throw new AppError(400, "Missing bulk media, cannot proceed");
+      }
+
+      return insertBulkMedia(records);
 };
 
 export const getMediaService = async (pagination: Pagination) => {
