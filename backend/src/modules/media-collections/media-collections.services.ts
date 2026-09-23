@@ -9,6 +9,8 @@ import {
       getMediaCollectionById,
       updateMediaCollection,
       deleteMediaCollection,
+      detachMediaFromCollection,
+      NewMediaCollectionRecord,
 } from "./models/media-collection.queries";
 import {
       CreateMediaCollectionDTO,
@@ -21,21 +23,50 @@ import {
       deleteCache,
       clearCacheByPrefix,
 } from "../../config/redis/redis.services";
+import {
+      createMediaService,
+      insertBulkMediaService,
+} from "../media/media.services";
+import {
+      assignMediaToCollection,
+      removeMediaFromCollectionByIds,
+} from "../media/models/media.queries";
+import {
+      processBulkMediaUpload,
+      uploadMedia,
+} from "../../config/cloudinary/cloudinary.services";
+import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper";
+import {
+      CloudinaryUploadResult,
+      rollbackCloudinaryUpload,
+} from "../../config/cloudinary/utils/cloudinary-rollback-helper";
+import logger from "../../utils/logger";
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
+const DEFAULT_MEDIA_COLLECTION_FOLDER = "media-collections";
 
 export const toMediaCollectionResponse = (col: MediaCollectionRecord) => col; // no sensitive fields
 
 export const createMediaCollectionService = async (
+      collectionCoverImage: Buffer,
+      imageCollections: Express.Multer.File[],
       data: CreateMediaCollectionDTO,
 ) => {
+      if (!collectionCoverImage || !imageCollections) {
+            throw new AppError(
+                  400,
+                  "Collection cover image missing, cannot proceed",
+            );
+      }
+
       if (!(await getAdminById(data.createdBy))) {
             throw new AppError(
                   400,
                   "createdBy must reference an existing admin",
             );
       }
+
       if (data.coverMediaId && !(await getMediaById(data.coverMediaId))) {
             throw new AppError(
                   400,
@@ -43,10 +74,56 @@ export const createMediaCollectionService = async (
             );
       }
 
-      const col = await insertMediaCollection(data);
+      let uploadResult: CloudinaryUploadResult | null = null;
+      try {
+            // For Cover Image
+            const uploadResult = await uploadMedia(collectionCoverImage, {
+                  folder: `${DEFAULT_MEDIA_COLLECTION_FOLDER}/${data.name}`,
+                  resourceType: "image",
+            });
+            const mediaData = createMediaRecord(uploadResult, data.createdBy);
+            const mediaRecord = await createMediaService(mediaData);
 
-      await clearCacheByPrefix("collections:");
-      return toMediaCollectionResponse(col);
+            // For Bulk Image Upload
+            let mediaIds: string[] = [];
+            if (imageCollections && imageCollections.length > 0) {
+                  mediaIds = await processBulkMediaUpload({
+                        files: imageCollections,
+                        folderPath: `${DEFAULT_MEDIA_COLLECTION_FOLDER}/${data.name}`,
+                        uploadedBy: data.createdBy,
+                  });
+                  console.log("Media Ids", mediaIds);
+            }
+
+            const mediaCollectionData: NewMediaCollectionRecord = {
+                  ...data,
+                  coverMediaId: mediaRecord.id,
+                  createdBy: data.createdBy,
+            };
+
+            await clearCacheByPrefix("collections:");
+            const col = await insertMediaCollection(mediaCollectionData);
+            // Associate bulk uploaded images with the newly created collection
+            if (mediaIds.length > 0) {
+                  await assignMediaToCollection(mediaIds, col.id);
+            }
+            return toMediaCollectionResponse(col);
+      } catch (error: any) {
+            if (uploadResult) {
+                  await rollbackCloudinaryUpload(uploadResult);
+            }
+
+            logger.error("Failed to create Media Collection", {
+                  message: error.message,
+                  stack: error.stack,
+            });
+
+            if (error instanceof AppError) {
+                  throw error;
+            }
+
+            throw new AppError(400, "Failed to create Media Collection");
+      }
 };
 
 export const listMediaCollectionsService = async (pagination: Pagination) => {
@@ -94,12 +171,15 @@ export const getMediaCollectionService = async (id: string) => {
 export const updateMediaCollectionService = async (
       id: string,
       data: UpdateMediaCollectionDTO,
+      removeMediaIds: string[] = [],
+      newImageFiles: Express.Multer.File[] = [],
 ) => {
       const existing = await getMediaCollectionById(id);
       if (!existing) {
             throw new AppError(404, "Media collection not found");
       }
 
+      // Validate admin and cover media as before
       if (data.createdBy && !(await getAdminById(data.createdBy))) {
             throw new AppError(
                   400,
@@ -114,12 +194,53 @@ export const updateMediaCollectionService = async (
             );
       }
 
-      const updated = await updateMediaCollection(id, data);
+      try {
+            // 1. Detach any media the user wants removed from this collection
+            if (removeMediaIds.length > 0) {
+                  await removeMediaFromCollectionByIds(removeMediaIds);
+            }
 
-      await deleteCache(`collections:${id}`);
-      await clearCacheByPrefix("collections:");
+            // 2. Add any new images provided
+            if (newImageFiles.length > 0) {
+                  // Use collection's name for folder (fallback to existing name)
+                  const folderBase = existing.name ?? data.name ?? "collection";
+                  const newMediaIds = await processBulkMediaUpload({
+                        files: newImageFiles,
+                        folderPath: `${DEFAULT_MEDIA_COLLECTION_FOLDER}/${folderBase}`,
+                        uploadedBy: data.createdBy ?? existing.createdBy,
+                  });
+                  await assignMediaToCollection(newMediaIds, id);
+            }
 
-      return toMediaCollectionResponse(updated);
+            // 3. Update collection metadata (excluding images)
+            let updatedCol;
+            if (Object.keys(data).length > 0) {
+                  updatedCol = await updateMediaCollection(id, data);
+            } else {
+                  // No metadata changes – just fetch the current collection (includes images)
+                  updatedCol = await getMediaCollectionById(id);
+            }
+
+            // 4. Invalidate cache
+            await deleteCache(`collections:${id}`);
+            await clearCacheByPrefix("collections:");
+
+            if (!updatedCol) {
+                  throw new AppError(404, "Media collection not found");
+            }
+            return toMediaCollectionResponse(updatedCol);
+      } catch (error: any) {
+            logger.error("Failed to update media collection: ", {
+                  message: error.message,
+                  stack: error.stack,
+            });
+
+            if (error instanceof AppError) {
+                  throw error;
+            }
+
+            throw new AppError(500, "Failed to update media-collection");
+      }
 };
 
 export const deleteMediaCollectionService = async (id: string) => {
@@ -127,9 +248,11 @@ export const deleteMediaCollectionService = async (id: string) => {
       if (!existing) {
             throw new AppError(404, "Media collection not found");
       }
-      
+
       // Optional: could check for items referencing collection before delete
       await deleteCache(`collections:${id}`);
       await clearCacheByPrefix("collections:");
+      // Detach images so they remain in the DB but lose the collection reference
+      await detachMediaFromCollection(id);
       await deleteMediaCollection(id);
 };
