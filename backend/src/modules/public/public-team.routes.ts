@@ -8,6 +8,7 @@ import {
       getStringParam,
       handleControllerError,
 } from "../../utils/http";
+import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url";
 
 /**
  * Public team feed — no auth. Active members only, safe fields
@@ -38,21 +39,40 @@ const toPublicTeamMember = (m: Record<string, any>) => ({
       displayOrder: m.displayOrder,
 });
 
+/**
+ * Attach the resolved Cloudinary `photoUrl` alongside the stored FK columns.
+ * The join key mirrors the mapper's `profileMediaId ?? fallbackProfileMediaId`
+ * fallback so term snapshots without their own avatar still resolve.
+ */
+const withPhotoUrls = async (members: Record<string, any>[]) => {
+      const mapped = members.map(toPublicTeamMember);
+      const urlMap = await resolveMediaUrlMap(
+            mapped.map((m) => m.profileMediaId),
+      );
+      return mapped.map((m) => ({
+            ...m,
+            photoUrl: pickMediaUrl(urlMap, m.profileMediaId),
+      }));
+};
+
+const parseTermName = (query: Record<string, any>): string | undefined => {
+      // Accept both `termName` and legacy `term` for compatibility.
+      if (typeof query.termName === "string" && query.termName.trim() !== "") {
+            return query.termName.trim();
+      }
+      if (typeof query.term === "string" && query.term.trim() !== "") {
+            return query.term.trim();
+      }
+      return undefined;
+};
+
 // GET /public/team/term?termName={{termName (e.g. 2025-2026)}} — static public feed
 router.get("/term", async (req, res) => {
       try {
             // Static configuration: always show featured members only.
             const featuredOnly = true;
             // Users can select a term via the query param `termName` (e.g., ?termName=2025-2026).
-            // Accept both `termName` and legacy `term` for compatibility.
-            const termName =
-                  typeof req.query.termName === "string" &&
-                  req.query.termName.trim() !== ""
-                        ? req.query.termName.trim()
-                        : typeof req.query.term === "string" &&
-                            req.query.term.trim() !== ""
-                          ? req.query.term.trim()
-                          : undefined;
+            const termName = parseTermName(req.query);
 
             // Fetch members for the selected term, always filtering featured members.
             const members = await getActiveTeamMembersByTermService({
@@ -62,7 +82,30 @@ router.get("/term", async (req, res) => {
             // No pagination or capping needed beyond the featured filter; return all.
             return res.status(200).json({
                   success: true,
-                  team: members.map(toPublicTeamMember),
+                  team: await withPhotoUrls(members),
+            });
+      } catch (error) {
+            return handleControllerError(
+                  res,
+                  error,
+                  "Failed to list public team",
+            );
+      }
+});
+
+// GET /public/team?featured=true&termName=2025-2026 — Home carousel / Officers roster
+router.get("/", async (req, res) => {
+      try {
+            const featuredOnly = req.query.featured === "true";
+            const termName = parseTermName(req.query);
+            const members = await getActiveTeamMembersByTermService({
+                  termName,
+                  featuredOnly,
+            });
+            const capped = featuredOnly ? members.slice(0, 10) : members;
+            return res.status(200).json({
+                  success: true,
+                  team: await withPhotoUrls(capped),
             });
       } catch (error) {
             return handleControllerError(
@@ -82,9 +125,10 @@ router.get("/slug/:slug", async (req, res) => {
                   throw new AppError(404, "Team member not found");
             }
 
+            const [resolved] = await withPhotoUrls([member]);
             return res.status(200).json({
                   success: true,
-                  teamMember: toPublicTeamMember(member),
+                  teamMember: resolved,
             });
       } catch (error) {
             return handleControllerError(

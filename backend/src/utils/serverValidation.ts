@@ -72,17 +72,50 @@ export function configureCors(
       frontendOrigin: string,
       isProduction: boolean,
 ) {
+      // FR_ORIGIN may be a single origin or a comma-separated list.
+      // Normalize: trim whitespace + trailing slashes — a trailing slash
+      // (e.g. "http://localhost:5173/") never equals the browser Origin
+      // ("http://localhost:5173") and causes exactly the reported
+      // "Access-Control-Allow-Origin does not match Origin" failure.
+      const allowlist = frontendOrigin
+            .split(",")
+            .map((o) => o.trim().replace(/\/+$/, ""))
+            .filter(Boolean);
+
+      // Local loopback origins (any port) are safe to allow in development
+      // so Vite dev (5173), preview (4173), or a custom --port never trips
+      // CORS when the backend stays on :3000.
+      const isDevLoopback = (origin: string) =>
+            /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
       app.use(
             cors({
-                  origin: frontendOrigin,
+                  origin: (origin, callback) => {
+                        // Same-origin / curl / health probes send no Origin.
+                        if (!origin) return callback(null, true);
+                        if (allowlist.includes(origin))
+                              return callback(null, true);
+                        if (!isProduction && isDevLoopback(origin))
+                              return callback(null, true);
+                        logger.warn(`CORS: blocked origin ${origin}`);
+                        return callback(null, false);
+                  },
                   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-                  allowedHeaders: ["Content-Type", "Authorization"],
+                  allowedHeaders: [
+                        "Content-Type",
+                        "Authorization",
+                        // DEV-ONLY: instant-admin bypass (requireAuth.ts).
+                        // Harmless in production — bypass itself is gated on
+                        // NODE_ENV !== "production" && DEV_ADMIN_BYPASS === "true".
+                        "x-dev-admin-bypass",
+                  ],
                   credentials: true,
+                  optionsSuccessStatus: 204,
             }),
       );
 
       return logger.info(
-            `CORS: ${frontendOrigin} Running in ${isProduction ? "Production" : "Development"} Mode`,
+            `CORS: [${allowlist.join(", ")}] Running in ${isProduction ? "Production" : "Development"} Mode`,
       );
 }
 

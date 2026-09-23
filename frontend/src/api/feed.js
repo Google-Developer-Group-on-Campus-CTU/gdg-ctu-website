@@ -36,6 +36,8 @@ export function useFeed(loader, { depsKey = '', initialData = null, withRequestI
         }
       })
       .catch((err) => {
+        // Rejections (incl. apiFetch 504 timeout/abort errors) land in `error`
+        // so consumers can render a retry UI instead of a stuck loader.
         if (alive) {
           setError(err);
           setLoading(false);

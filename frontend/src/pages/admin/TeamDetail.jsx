@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getId, teamApi } from '../../api/resources.js';
 import { MAX_FEATURED_TEAM, checkSlugUnique, slugify, useDirtyGuard, validateTeam } from '../../admin/editorial.js';
 import { ErrorState, Field, FormSummary, LoadingSkeleton, focusSummary, inputProps, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
+import MediaPicker from '../../components/admin/MediaPicker.jsx';
 
 const EMPTY = {
   firstName: '', lastName: '', slug: '', roleTitle: '', bio: '',
@@ -167,9 +168,14 @@ export default function TeamDetail() {
           </Field>
         </div>
         <div className="admin-form-grid">
-          <Field label="Profile media ID" htmlFor="profileMediaId" error={errors.profileMediaId}>
-            <input {...inputProps('profileMediaId', errors.profileMediaId)} value={form.profileMediaId} onChange={(e) => set('profileMediaId', e.target.value)} />
-          </Field>
+          <MediaPicker
+            id="profileMediaId"
+            label="Profile media ID"
+            hint="Pick from the Media library below; the ID is stored on save."
+            error={errors.profileMediaId}
+            value={form.profileMediaId}
+            onChange={(v) => set('profileMediaId', v)}
+          />
           <Field label="Photo alt text" htmlFor="profileAlt" error={errors.profileAlt}>
             <input {...inputProps('profileAlt', errors.profileAlt)} value={form.profileAlt} onChange={(e) => set('profileAlt', e.target.value)} />
           </Field>

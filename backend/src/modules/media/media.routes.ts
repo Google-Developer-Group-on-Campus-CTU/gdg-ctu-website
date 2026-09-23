@@ -15,7 +15,7 @@ const router = Router();
 router.post("/", upload.single("file"), createMedia);
 router.get("/", validateQuery("page", "limit"), listMedia);
 router.get("/:id", validateParams("id"), getMedia);
-router.patch("/:id", validateParams("id"), updateMedia);
+router.patch("/:id", validateParams("id"), upload.single("file"), updateMedia);
 router.delete("/:id", validateParams("id"), removeMedia);
 
 export default router;

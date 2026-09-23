@@ -10,6 +10,7 @@ import {
       createMediaCollectionItemService,
       listMediaCollectionItemsService,
       getMediaCollectionItemService,
+      updateMediaCollectionItemService,
       deleteMediaCollectionItemService,
 } from "./media-collection-items.services";
 import {
@@ -67,6 +68,30 @@ export const getMediaCollectionItem = async (req: Request, res: Response) => {
                   res,
                   error,
                   "Failed to get media collection item",
+            );
+      }
+};
+
+export const updateMediaCollectionItem = async (
+      req: Request,
+      res: Response,
+) => {
+      try {
+            const { collectionId, mediaId } = req.params;
+            const collectionUuid = validateUuid(collectionId, "collectionId");
+            const mediaUuid = validateUuid(mediaId, "mediaId");
+            const data = validateBody(UpdateMediaCollectionItemSchema, req.body);
+            const item = await updateMediaCollectionItemService(
+                  collectionUuid,
+                  mediaUuid,
+                  data,
+            );
+            return res.status(200).json({ success: true, item });
+      } catch (error) {
+            return handleControllerError(
+                  res,
+                  error,
+                  "Failed to update media collection item",
             );
       }
 };

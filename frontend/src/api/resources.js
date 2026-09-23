@@ -1,13 +1,36 @@
-import { apiFetch, API_BASE_URL, getAuthToken } from './client.js';
+import { apiFetch, API_BASE_URL, getAuthToken, isDevAdminBypass } from './client.js';
 import { qs } from './feed.js';
 
 export { qs };
 
-/** Normalize list payloads: backend may return an array or { data/items/rows }. */
+/**
+ * Envelope keys a backend list payload may nest its array under.
+ * Generic keys first, then domain keys used by public routes
+ * (team/events/albums/partners/content/photos) and admin routes
+ * (teamMembers/siteContent/media/eventSpeakers).
+ */
+const LIST_KEYS = [
+  'data',
+  'items',
+  'rows',
+  'results',
+  'team',
+  'events',
+  'albums',
+  'partners',
+  'content',
+  'photos',
+  'teamMembers',
+  'siteContent',
+  'media',
+  'eventSpeakers',
+];
+
+/** Normalize list payloads: backend may return an array or a keyed envelope. */
 export function toArray(payload) {
   if (Array.isArray(payload)) return payload;
   if (!payload || typeof payload !== 'object') return [];
-  for (const key of ['data', 'items', 'rows', 'results']) {
+  for (const key of LIST_KEYS) {
     if (Array.isArray(payload[key])) return payload[key];
   }
   return [];
@@ -65,6 +88,9 @@ export const mediaApi = {
     const token = await getAuthToken();
     if (token) {
       headers.Authorization = `Bearer ${token}`;
+    }
+    if (isDevAdminBypass()) {
+      headers['x-dev-admin-bypass'] = 'dev-instant-admin';
     }
     const response = await fetch(`${API_BASE_URL}/media`, {
       method: 'POST',

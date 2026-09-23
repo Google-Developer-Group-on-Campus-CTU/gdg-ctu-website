@@ -3,6 +3,7 @@ import {
       createMediaCollectionItem,
       listMediaCollectionItems,
       getMediaCollectionItem,
+      updateMediaCollectionItem,
       deleteMediaCollectionItem,
 } from "./media-collection-items.controllers";
 import { validateParams } from "../../middleware/validateParams";
@@ -16,6 +17,11 @@ router.get(
       "/:collectionId/:mediaId",
       validateParams("collectionId", "mediaId"),
       getMediaCollectionItem,
+);
+router.patch(
+      "/:collectionId/:mediaId",
+      validateParams("collectionId", "mediaId"),
+      updateMediaCollectionItem,
 );
 router.delete(
       "/:collectionId/:mediaId",

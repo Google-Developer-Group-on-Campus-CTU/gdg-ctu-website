@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { mapContent, publicApi, sortPartners, usePublicFeed } from '../api/public.js';
-import { hideImage } from '../components/FeedStates.jsx';
+import { FeedError, FeedSkeleton, friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
 
 const purposeCards = [
   {
@@ -131,16 +131,25 @@ export default function About() {
             <a href={aboutContent.buttonUrl} className="gdg-btn gdg-btn-primary">{aboutContent.buttonText}</a>
           </div>
         ) : null}
+        {/* Loading/empty fall back to the hardcoded shell above; real failures get retry. */}
+        {!about.loading && about.error ? (
+          <FeedError message={friendlyFeedError(about.error)} onRetry={about.retry} />
+        ) : null}
       </section>
 
-      {communityContent ? (
-        <section className="gdg-section" aria-label="Community">
-          <span className="gdg-badge">Community</span>
-          <h2>{communityContent.title || 'Our Community'}</h2>
-          {communityContent.subtitle ? <p className="gdg-subtitle">{communityContent.subtitle}</p> : null}
-          {communityContent.body ? <p>{communityContent.body}</p> : null}
-        </section>
-      ) : null}
+      <section className="gdg-section" aria-label="Community">
+        <span className="gdg-badge">Community</span>
+        <h2>{communityContent?.title || 'Our Community'}</h2>
+        {community.loading ? <FeedSkeleton count={1} label="Loading community…" /> : null}
+        {!community.loading && community.error ? (
+          <FeedError message={friendlyFeedError(community.error)} onRetry={community.retry} />
+        ) : null}
+        {!community.loading && !community.error && !communityContent ? (
+          <p className="gdg-subtitle">No community updates published yet — check back soon.</p>
+        ) : null}
+        {communityContent?.subtitle ? <p className="gdg-subtitle">{communityContent.subtitle}</p> : null}
+        {communityContent?.body ? <p>{communityContent.body}</p> : null}
+      </section>
 
       <section className="gdg-section">
         <span className="gdg-badge">Our Purpose</span>
@@ -204,36 +213,46 @@ export default function About() {
           We proudly collaborate with leading technology companies, academic
           institutions, and developer communities.
         </p>
-        <div className="gdg-grid">
-          {cmsPartners?.length
-            ? cmsPartners.map((partner) => (
-              <div key={partner.id} className="gdg-card">
-                {partner.logoUrl ? (
-                  <img className="gdg-photo" src={partner.logoUrl} alt={partner.logoAlt} loading="lazy" onError={hideImage} />
-                ) : (
-                  <div className="gdg-photo-fallback">{partner.name.charAt(0)}</div>
-                )}
-                <h3>{partner.name}</h3>
-                <p>{partner.description || partner.tier}</p>
-              </div>
-            ))
-            : legacyPartners.map((partner) => (
-              <div key={partner.name} className="gdg-card">
-                {partner.image ? (
-                  <img
-                    className="gdg-photo"
-                    src={partner.image}
-                    alt={partner.name}
-                    onError={hideImage}
-                  />
-                ) : (
-                  <div className="gdg-photo-fallback">{partner.name.charAt(0)}</div>
-                )}
-                <h3>{partner.name}</h3>
-                <p>{partner.role}</p>
-              </div>
-            ))}
-        </div>
+        {partners.loading ? <FeedSkeleton count={4} label="Loading partners…" /> : null}
+        {!partners.loading && partners.error ? (
+          <FeedError message={`${friendlyFeedError(partners.error)} Showing legacy partners.`} onRetry={partners.retry} />
+        ) : null}
+        {!partners.loading && !partners.error && !cmsPartners?.length ? (
+          <p className="gdg-subtitle">No partners published yet — check back soon.</p>
+        ) : null}
+        {!partners.loading && (partners.error || cmsPartners?.length) ? (
+          <div className="gdg-grid">
+            {partners.error
+              ? legacyPartners.map((partner) => (
+                <div key={partner.name} className="gdg-card">
+                  {partner.image ? (
+                    <img
+                      className="gdg-photo"
+                      src={partner.image}
+                      alt={partner.name}
+                      onError={hideImage}
+                    />
+                  ) : (
+                    <div className="gdg-photo-fallback">{partner.name.charAt(0)}</div>
+                  )}
+                  <h3>{partner.name}</h3>
+                  <p>{partner.role}</p>
+                </div>
+              ))
+              : (cmsPartners ?? []).map((partner) => (
+                <div key={partner.id} className="gdg-card">
+                  {partner.logoUrl ? (
+                    <img className="gdg-photo" src={partner.logoUrl} alt={partner.logoAlt} loading="lazy" onError={hideImage} />
+                  ) : (
+                    <div className="gdg-photo-fallback">{partner.name.charAt(0)}</div>
+                  )}
+                  <h3>{partner.name}</h3>
+                  <p><span className="gdg-tag">{partner.tier}</span></p>
+                  {partner.description ? <p>{partner.description}</p> : null}
+                </div>
+              ))}
+          </div>
+        ) : null}
         {cmsPartners?.length ? (
           <div className="gdg-btn-row">
             <Link to="/partners" className="gdg-btn gdg-btn-secondary">All Partners</Link>

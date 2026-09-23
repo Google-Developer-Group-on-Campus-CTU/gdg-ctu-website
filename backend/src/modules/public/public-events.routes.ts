@@ -7,6 +7,7 @@ import {
       getPublishedEventBySlug,
 } from "../events/models/event.queries";
 import { AppError, getStringParam, handleControllerError } from "../../utils/http";
+import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url";
 
 /**
  * Public events feed — no auth, published only.
@@ -18,6 +19,17 @@ const router = Router();
 type Scope = "upcoming" | "past" | "featured" | "recent";
 
 const SCOPES: Scope[] = ["upcoming", "past", "featured", "recent"];
+
+/** Adds the resolved cover URL alongside the existing coverMediaId FK. */
+const withCoverUrl = async <T extends { coverMediaId?: string | null }>(
+      rows: T[],
+) => {
+      const urlMap = await resolveMediaUrlMap(rows.map((r) => r.coverMediaId));
+      return rows.map((row) => ({
+            ...row,
+            coverUrl: pickMediaUrl(urlMap, row.coverMediaId),
+      }));
+};
 
 router.get("/", async (req, res) => {
       try {
@@ -37,7 +49,13 @@ router.get("/", async (req, res) => {
                           : scope === "recent"
                             ? await getPublicRecentEvents(3)
                             : await getPublicUpcomingEvents();
-            return res.status(200).json({ success: true, scope, events });
+            return res
+                  .status(200)
+                  .json({
+                        success: true,
+                        scope,
+                        events: await withCoverUrl(events),
+                  });
       } catch (error) {
             return handleControllerError(res, error, "Failed to list public events");
       }
@@ -50,7 +68,8 @@ router.get("/slug/:slug", async (req, res) => {
             if (!event) {
                   throw new AppError(404, "Event not found");
             }
-            return res.status(200).json({ success: true, event });
+            const [withUrl] = await withCoverUrl([event]);
+            return res.status(200).json({ success: true, event: withUrl });
       } catch (error) {
             return handleControllerError(res, error, "Failed to get public event");
       }

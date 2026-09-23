@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { contentApi, getId } from '../../api/resources.js';
 import { CONTENT_KEYS, useDirtyGuard, validateContent } from '../../admin/editorial.js';
 import { ErrorState, Field, FormSummary, LoadingSkeleton, focusSummary, inputProps, Toggle } from '../../components/admin/shared.jsx';
+import MediaPicker from '../../components/admin/MediaPicker.jsx';
 
 const EMPTY = { title: '', subtitle: '', body: '', mediaId: '', buttonText: '', buttonUrl: '', is_active: true, status: 'draft' };
 
@@ -113,9 +114,14 @@ export default function ContentEditor() {
         <Field label="Body (markdown)" htmlFor="body" error={errors.body}>
           <textarea {...inputProps('body', errors.body)} id="body" rows={8} value={form.body} onChange={(e) => set('body', e.target.value)} />
         </Field>
-        <Field label="Media ID + preview" hint="Media ID from the Media library." htmlFor="mediaId" error={errors.mediaId}>
-          <input {...inputProps('mediaId', errors.mediaId)} value={form.mediaId} onChange={(e) => set('mediaId', e.target.value)} />
-        </Field>
+        <MediaPicker
+          id="mediaId"
+          label="Media ID"
+          hint="Search and select from the Media library below."
+          error={errors.mediaId}
+          value={form.mediaId}
+          onChange={(v) => set('mediaId', v)}
+        />
         <div className="admin-form-grid">
           <Field label="Button text" htmlFor="buttonText" error={errors.buttonText}>
             <input {...inputProps('buttonText', errors.buttonText)} value={form.buttonText} onChange={(e) => set('buttonText', e.target.value)} />

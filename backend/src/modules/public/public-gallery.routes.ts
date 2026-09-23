@@ -8,6 +8,7 @@ import {
       getItemsByCollectionId,
 } from "../media-collection-items/models/media-collection-item.queries";
 import { AppError, getStringParam, handleControllerError } from "../../utils/http";
+import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url";
 
 /**
  * Public gallery feed — no auth, active albums only, items ordered.
@@ -37,7 +38,16 @@ const toPublicPhoto = (r: {
 router.get("/albums", async (_req, res) => {
       try {
             const albums = await getActiveMediaCollections();
-            return res.status(200).json({ success: true, albums });
+            const urlMap = await resolveMediaUrlMap(
+                  albums.map((a) => a.coverMediaId),
+            );
+            return res.status(200).json({
+                  success: true,
+                  albums: albums.map((album) => ({
+                        ...album,
+                        coverUrl: pickMediaUrl(urlMap, album.coverMediaId),
+                  })),
+            });
       } catch (error) {
             return handleControllerError(res, error, "Failed to list public albums");
       }
@@ -51,7 +61,21 @@ router.get("/albums/slug/:slug", async (req, res) => {
                   throw new AppError(404, "Album not found");
             }
             const items = await getItemsByCollectionId(album.id);
-            return res.status(200).json({ success: true, album, items });
+            const urlMap = await resolveMediaUrlMap([
+                  album.coverMediaId,
+                  ...items.map((i) => i.mediaId),
+            ]);
+            return res.status(200).json({
+                  success: true,
+                  album: {
+                        ...album,
+                        coverUrl: pickMediaUrl(urlMap, album.coverMediaId),
+                  },
+                  items: items.map((item) => ({
+                        ...item,
+                        secureUrl: pickMediaUrl(urlMap, item.mediaId),
+                  })),
+            });
       } catch (error) {
             return handleControllerError(res, error, "Failed to get public album");
       }
