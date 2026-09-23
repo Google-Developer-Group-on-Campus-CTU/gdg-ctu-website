@@ -424,15 +424,92 @@ h2:nth-of-type(2) {
     padding: 40px 20px;
 }
 
-/* The outer box that holds everything — this defines the card's size */
 .track-one {
     position: relative;
     margin-top: 5px;
     width: 260px;
     height: 400px;
+    perspective: 1600px;
+    transition: transform 0.35s ease;
 }
 
-/* The card outline image fills the whole box, sits behind everything */
+.track-flip-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    transform-style: preserve-3d;
+}
+
+.track-front,
+.track-back {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+}
+
+.track-back {
+    transform: rotateY(180deg);
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.track-back-list {
+    list-style: none;
+    padding: 0;
+    margin: 1px 0 5px;
+    text-align: center;
+}
+
+.track-back-list li {
+    padding: 3px 0;
+    font-size: 14px;
+    color: #1a1a1a;
+    font-family: 'Google Sans Flex', sans-serif;
+    line-height: 1;
+    font-weight: 300;
+    text-align: left;
+    justify-content: left;
+}
+
+.track-btn-back {
+    border: 2px solid #1a1a1a;
+    border-radius: 999px;
+    padding: 8px 20px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: 'Google Sans Flex', sans-serif;
+}
+
+.track-one.flipped .track-flip-inner {
+    transform: rotateY(180deg);
+}
+
+.track-one.zoomed {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 320px;
+    height: 480px;
+    z-index: 100;
+}
+
+.track-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 90;
+}
+.track-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
 .track-one-bg {
     position: absolute;
     inset: 0;
@@ -441,7 +518,6 @@ h2:nth-of-type(2) {
     z-index: 1;
 }
 
-/* The badge pill sits centered, overlapping the top edge */
 .track-one-logo {
     position: absolute;
     top: 1px;             
@@ -452,7 +528,6 @@ h2:nth-of-type(2) {
     width: 90px;
 }
 
-/* Everything below the badge — icon, text, button */
 .track-one-content {
     position: relative;
     z-index: 2;
@@ -474,8 +549,8 @@ h2:nth-of-type(2) {
 
 .track-title {
     font-family: 'Google Sans Flex', sans-serif;
-    font-size: 25px;
-    font-weight: 400;
+    font-size: 20px;
+    font-weight: 500;
     color: #1a1a1a;
     margin: 0;
 }
@@ -505,6 +580,7 @@ h2:nth-of-type(2) {
     text-decoration: none;
     transition: background 0.2s ease;
     border: 2px solid black;
+    cursor: pointer;
 }
 
 .track-btn-one:hover {
@@ -568,6 +644,7 @@ h2:nth-of-type(2) {
     text-decoration: none;
     transition: background 0.2s ease;
     border: 2px solid black;
+    cursor: pointer;
 }
 
 .track-three-logo {
@@ -615,6 +692,7 @@ h2:nth-of-type(2) {
     text-decoration: none;
     transition: background 0.2s ease;
     border: 2px solid black;
+    cursor: pointer;
 }
 
 .track-four-logo {
@@ -662,6 +740,76 @@ h2:nth-of-type(2) {
     text-decoration: none;
     transition: background 0.2s ease;
     border: 2px solid black;
+    cursor: pointer;
+}
+
+.track-close {
+    display: none;
+    position: absolute;
+    top: -14px;
+    right: -14px;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 2px solid #1a1a1a;
+    background: #fff;
+    font-size: 15px;
+    font-family: 'Google Sans Flex', sans-serif;
+    cursor: pointer;
+    z-index: 101;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.track-one.zoomed .track-close {
+    display: flex;
+}
+
+.track-sub-title {
+    font-family: 'Google Sans Flex', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    color: #1a1a1a;
+    margin: -12px 0 0;
+}
+
+.tech-stack {
+    font-family: 'Google Sans Flex', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #444;
+    margin: 4px 0 0;
+    text-align: left;
+    align-self: stretch;
+    margin-left: 30px;
+}
+
+.tech-tools {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.tech-one,
+.tech-two,
+.tech-three {
+    border: 2px solid #1a1a1a;
+    border-radius: 999px;
+    padding: 3px 11px;
+    background: #fff;
+    font-size: 13px;
+    color: black;
+    font-family: 'Google Sans Flex', sans-serif;
+    cursor: default;
+}
+
+.track-one-content hr {
+    width: 85%;
+    margin: 6px 0;
+    border: none;
+    border-top: 1px solid #1a1a1a;
 }
 
 @media (max-width: 1024px) {
@@ -781,6 +929,11 @@ h2:nth-of-type(2) {
     .arrow-diagonal { font-size: 22px; }
 
     .dot { width: 20px; height: 20px; }
+
+    .track-one.zoomed {
+        width: 260px;
+        height: 400px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -814,7 +967,7 @@ h2:nth-of-type(2) {
         width: 151px;
         height: 20px;
         font-size: 9px;
-        margin-bottom: 2cap;
+        margin-bottom: 20px;
     }
 
     .upcoming-events-btn .up-dot {
@@ -827,7 +980,7 @@ h2:nth-of-type(2) {
         width: 160px;
         height: 20px;
         font-size: 9px;
-        margin-bottom: 2cap;
+        margin-bottom: 20px;
     }
 
     .card-featured {
@@ -839,7 +992,7 @@ h2:nth-of-type(2) {
         width: 120px;
         height: 20px;
         font-size: 9px;
-        margin-bottom: 2cap;
+        margin-bottom: 20px;
     }
 
     .card-rows {
@@ -881,4 +1034,9 @@ h2:nth-of-type(2) {
     .box-event h2 { font-size: 22px; }
 
     .register { width: 140px; font-size: 14px; }
+
+    .track-one.zoomed {
+        width: 220px;
+        height: 340px;
+    }
 }

@@ -99,3 +99,65 @@ fetch('../partials/index.html')
     script.src = '../partials/script.js';
     document.body.appendChild(script);
   });
+
+// ================= TRACK CARDS: ZOOM + FLIP =================
+const flipOverlay = document.querySelector('[data-flip-overlay]');
+
+if (flipOverlay) {
+    document.querySelectorAll('.track-one').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (!card.classList.contains('zoomed')) return;
+            if (e.target.closest('[data-flip-open], [data-flip-close], [data-flip-to-front]')) return;
+            card.classList.toggle('flipped');
+        });
+    });
+
+    document.querySelectorAll('[data-flip-close]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            btn.closest('.track-one').classList.remove('zoomed', 'flipped');
+            flipOverlay.classList.remove('active');
+        });
+    });
+
+    flipOverlay.addEventListener('click', () => {
+        document.querySelectorAll('.track-one.zoomed').forEach(card => {
+            card.classList.remove('zoomed', 'flipped');
+        });
+        flipOverlay.classList.remove('active');
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        document.querySelectorAll('.track-one.zoomed').forEach(card => {
+            card.classList.remove('zoomed', 'flipped');
+        });
+        flipOverlay.classList.remove('active');
+    });
+
+    document.querySelectorAll('[data-flip-open]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const card = btn.closest('.track-one');
+            const isZoomed = card.classList.contains('zoomed');
+
+            if (isZoomed) {
+                card.classList.add('flipped');
+            } else {
+                card.classList.add('zoomed');
+                flipOverlay.classList.add('active');
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-flip-to-front]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const card = btn.closest('.track-one');
+            card.classList.remove('flipped');
+        });
+    });
+}
