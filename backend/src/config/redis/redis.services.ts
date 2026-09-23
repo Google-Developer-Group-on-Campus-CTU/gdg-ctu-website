@@ -1,7 +1,7 @@
 import { createClient, RedisClientType } from "redis";
-import logger from "../../utils/logger";
-import { AppError } from "../../utils/http";
-import { isRedisEnabled } from "./redis.config";
+import logger from "../../utils/logger.js";
+import { AppError } from "../../utils/http.js";
+import { isRedisEnabled } from "./redis.config.js";
 
 export { isRedisEnabled };
 

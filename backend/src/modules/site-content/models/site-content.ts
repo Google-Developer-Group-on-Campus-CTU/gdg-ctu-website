@@ -1,7 +1,7 @@
 import { boolean, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core";
-import { admins } from "../../admins/models/admin";
-import { media } from "../../media/models/media";
+import { user } from "../../auth/models/auth.js";
+import { media } from "../../media/models/media.js";
 
 export const siteContent = pgTable("site_content", {
       id: uuid("id").defaultRandom().primaryKey(),
@@ -14,7 +14,8 @@ export const siteContent = pgTable("site_content", {
       buttonUrl: varchar("button_url", { length: 2048 }),
       isActive: boolean("is_active").default(true).notNull(),
       updatedAt: timestamp("updated_at").defaultNow().notNull(),
-      updatedBy: varchar("updated_by")
+      // Fold: references Better Auth's `user` table (text PK).
+      updatedBy: text("updated_by")
             .notNull()
-            .references(() => admins.id),
+            .references(() => user.id),
 });

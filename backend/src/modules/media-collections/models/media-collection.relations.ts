@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
-import { media } from "../../media/models/media";
-import { admins } from "../../admins/models/admin";
-import { mediaCollections } from "./media-collection";
+import { media } from "../../media/models/media.js";
+import { user } from "../../auth/models/auth.js";
+import { mediaCollections } from "./media-collection.js";
 
 export const mediaCollectionsRelations = relations(
       mediaCollections,
@@ -10,9 +10,9 @@ export const mediaCollectionsRelations = relations(
                   fields: [mediaCollections.coverMediaId],
                   references: [media.id],
             }),
-            createdByAdmin: one(admins, {
+            createdByUser: one(user, {
                   fields: [mediaCollections.createdBy],
-                  references: [admins.id],
+                  references: [user.id],
             }),
             // items relation omitted to avoid circular dependency
       }),

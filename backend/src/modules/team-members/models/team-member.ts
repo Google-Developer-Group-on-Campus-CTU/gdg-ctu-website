@@ -7,7 +7,7 @@ import {
       varchar,
 } from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core";
-import { media } from "../../media/models/media";
+import { media } from "../../media/models/media.js";
 
 export const teamMembers = pgTable("team_members", {
       id: uuid("id").defaultRandom().primaryKey(),

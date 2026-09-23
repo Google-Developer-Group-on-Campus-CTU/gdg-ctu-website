@@ -1,5 +1,5 @@
-import { AppError } from "../../utils/http";
-import { getPaginationMeta, Pagination } from "../../utils/pagination";
+import { AppError } from "../../utils/http.js";
+import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
 import {
       insertEventHost,
       getEventHosts,
@@ -7,15 +7,15 @@ import {
       getEventHostById,
       updateEventHost,
       deleteEventHost,
-} from "./models/event-host.queries";
-import { EventHostRecord } from "./event-hosts.validations";
-import { NewEventHostRecord } from "./models/event-host.queries";
+} from "./models/event-host.queries.js";
+import { EventHostRecord } from "./event-hosts.validations.js";
+import { NewEventHostRecord } from "./models/event-host.queries.js";
 import {
       getCache,
       setCache,
       deleteCache,
       clearCacheByPrefix,
-} from "../../config/redis/redis.services";
+} from "../../config/redis/redis.services.js";
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;

@@ -4,18 +4,18 @@ import {
       handleControllerError,
       validateBody,
       validateUuid,
-} from "../../utils/http";
+} from "../../utils/http.js";
 import {
       createMemberTermService,
       getMemberTermsService,
       getMemberTermByIdService,
       updateMemberTermService,
       deleteMemberTermService,
-} from "./member-terms.services";
+} from "./member-terms.services.js";
 import {
       CreateMemberTermsSchema,
       UpdateMemberTermSchema,
-} from "./member-terms.validations";
+} from "./member-terms.validations.js";
 
 export const createMemberTerm = async (req: Request, res: Response) => {
       try {

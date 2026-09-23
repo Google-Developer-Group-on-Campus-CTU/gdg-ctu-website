@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { useClerk, useUser } from '@clerk/clerk-react';
+import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { authClient } from '../../lib/auth-client';
 import { adminNewTargetFor } from '../../admin/editorial.js';
-import { DEV_BYPASS_STORAGE_KEY } from '../../api/client.js';
 import '../../styles/admin.css';
 
 export const ADMIN_NAV = [
@@ -13,6 +12,8 @@ export const ADMIN_NAV = [
   { to: '/admin/gallery', label: 'Gallery' },
   { to: '/admin/content', label: 'Content' },
   { to: '/admin/media', label: 'Media' },
+  { to: '/admin/invites', label: 'Invites' },
+  { to: '/admin/users', label: 'Users' },
   { to: '/admin/settings', label: 'Settings' },
 ];
 
@@ -44,11 +45,20 @@ function Breadcrumbs() {
 }
 
 function Identity() {
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const { data: session } = authClient.useSession();
   const navigate = useNavigate();
-  const name = user?.fullName ?? user?.primaryEmailAddress?.emailAddress ?? 'Admin';
+  const user = session?.user;
+  const name = user?.name || user?.email || 'Admin';
   const initial = String(name).trim().charAt(0).toUpperCase() || 'A';
+
+  const handleSignOut = async () => {
+    try {
+      await authClient.signOut();
+    } finally {
+      navigate('/admin/login', { replace: true });
+    }
+  };
+
   return (
     <div className="admin-identity">
       <span className="admin-avatar" aria-hidden="true">{initial}</span>
@@ -56,7 +66,7 @@ function Identity() {
       <button
         type="button"
         className="admin-link-btn"
-        onClick={() => signOut(() => navigate('/admin/login'))}
+        onClick={handleSignOut}
       >
         Sign out
       </button>
@@ -68,21 +78,17 @@ export default function AdminShell() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [params, setParams] = useSearchParams();
   const location = useLocation();
-  const navigate = useNavigate();
+  const { data: session } = authClient.useSession();
   const query = params.get('q') ?? '';
 
   useEffect(() => {
     setDrawerOpen(false);
   }, [location.pathname]);
 
-  const exitDevAdmin = () => {
-    try {
-      localStorage.removeItem(DEV_BYPASS_STORAGE_KEY);
-    } catch {
-      /* storage unavailable — still navigate to the login screen */
-    }
-    navigate('/admin/login');
-  };
+  // Defense in depth behind ProtectedRoute: the shell (and every list page
+  // under it) may only render with a live session — no session means no
+  // protected fetches should ever fire from admin children.
+  if (!session?.user) return <Navigate to="/admin/login" replace />;
 
   const nav = (
     <nav aria-label="Admin primary" className="admin-nav">
@@ -144,11 +150,6 @@ export default function AdminShell() {
             />
           </form>
           <Identity />
-          {import.meta.env.DEV ? (
-            <button type="button" className="admin-link-btn" onClick={exitDevAdmin}>
-              Exit Dev Admin
-            </button>
-          ) : null}
           <Link className="gdg-btn gdg-btn-primary admin-new-btn" to={adminNewTargetFor(location.pathname)}>
             + New
           </Link>

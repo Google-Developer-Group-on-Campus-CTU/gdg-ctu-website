@@ -1,5 +1,5 @@
-import { AppError } from "../../utils/http";
-import { getPaginationMeta, Pagination } from "../../utils/pagination";
+import { AppError } from "../../utils/http.js";
+import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
 import {
       insertTerm,
       getTerms,
@@ -8,14 +8,14 @@ import {
       getTermByName,
       updateTerm,
       deleteTerm,
-} from "./models/terms.queries";
-import { CreateTermDTO, UpdateTermDTO, Term } from "./terms.validations";
+} from "./models/terms.queries.js";
+import { CreateTermDTO, UpdateTermDTO, Term } from "./terms.validations.js";
 import {
       getCache,
       setCache,
       clearCacheByPrefix,
       deleteCache,
-} from "../../config/redis/redis.services";
+} from "../../config/redis/redis.services.js";
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;

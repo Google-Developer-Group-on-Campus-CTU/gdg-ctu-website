@@ -1,5 +1,5 @@
 import express, { Router } from "express";
-import { requireAuth } from "./requireAuth";
+import { requireAuth } from "./requireAuth.js";
 
 /**
  * Creates a router with auth applied to all routes registered on it.

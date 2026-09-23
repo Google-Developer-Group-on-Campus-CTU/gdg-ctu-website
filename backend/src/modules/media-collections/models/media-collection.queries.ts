@@ -1,8 +1,8 @@
 import { asc, count, eq } from "drizzle-orm";
-import { db } from "../../../config/connectDB";
-import { Pagination } from "../../../utils/pagination";
-import { activeByKey, activeOnly } from "../../../utils/activeScope";
-import { mediaCollections } from "./media-collection";
+import { db } from "../../../config/connectDB.js";
+import { Pagination } from "../../../utils/pagination.js";
+import { activeByKey, activeOnly } from "../../../utils/activeScope.js";
+import { mediaCollections } from "./media-collection.js";
 
 export type MediaCollectionRecord = typeof mediaCollections.$inferSelect;
 export type NewMediaCollectionRecord = typeof mediaCollections.$inferInsert;

@@ -1,7 +1,7 @@
-import { AppError } from "../../utils/http";
-import { getPaginationMeta, Pagination } from "../../utils/pagination";
-import { getMediaById } from "../media/models/media.queries";
-import { getMediaCollectionById } from "../media-collections/models/media-collection.queries";
+import { AppError } from "../../utils/http.js";
+import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
+import { getMediaById } from "../media/models/media.queries.js";
+import { getMediaCollectionById } from "../media-collections/models/media-collection.queries.js";
 import {
       insertMediaCollectionItem,
       getMediaCollectionItems,
@@ -9,18 +9,18 @@ import {
       getMediaCollectionItem,
       updateMediaCollectionItem,
       deleteMediaCollectionItem,
-} from "./models/media-collection-item.queries";
+} from "./models/media-collection-item.queries.js";
 import {
       CreateMediaCollectionItemDTO,
       MediaCollectionItemRecord,
       UpdateMediaCollectionItemDTO,
-} from "./media-collection-items.validations";
+} from "./media-collection-items.validations.js";
 import {
       getCache,
       setCache,
       deleteCache,
       clearCacheByPrefix,
-} from "../../config/redis/redis.services";
+} from "../../config/redis/redis.services.js";
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;

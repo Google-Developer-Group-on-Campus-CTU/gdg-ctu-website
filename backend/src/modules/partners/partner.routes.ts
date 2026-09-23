@@ -1,5 +1,5 @@
 import { Router } from "express";
-import upload from "../../middleware/upload";
+import upload from "../../middleware/upload.js";
 import {
       createPartner,
       getPartner,
@@ -7,7 +7,7 @@ import {
       listPartners,
       removePartner,
       updatePartner,
-} from "./partner.controllers";
+} from "./partner.controllers.js";
 
 const router = Router();
 

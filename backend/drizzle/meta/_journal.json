@@ -29,6 +29,20 @@
       "when": 1790158656788,
       "tag": "0003_deep_trish_tilby",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790164238735,
+      "tag": "0004_new_green_goblin",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790169121413,
+      "tag": "0005_needy_jackpot",
+      "breakpoints": true
     }
   ]
 }

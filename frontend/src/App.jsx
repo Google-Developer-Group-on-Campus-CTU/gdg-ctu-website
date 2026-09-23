@@ -11,6 +11,9 @@ import Events from './pages/Events.jsx';
 import Partners from './pages/Partners.jsx';
 import Contact from './pages/Contact.jsx';
 import AdminLogin from './pages/admin/Login.jsx';
+import AdminRegister from './pages/admin/Register.jsx';
+import AdminInvites from './pages/admin/Invites.jsx';
+import AdminUsers from './pages/admin/Users.jsx';
 import AdminDashboard from './pages/admin/Dashboard.jsx';
 import AdminEvents from './pages/admin/Events.jsx';
 import EventDetail from './pages/admin/EventDetail.jsx';
@@ -53,7 +56,8 @@ const router = createBrowserRouter([
       { path: '/contact', element: <Contact /> },
     ],
   },
-  { path: '/admin/login/*', element: <AdminLogin /> },
+  { path: '/admin/login', element: <AdminLogin /> },
+  { path: '/admin/register', element: <AdminRegister /> },
   {
     element: <ProtectedRoute />,
     children: [
@@ -76,6 +80,8 @@ const router = createBrowserRouter([
           { path: '/admin/content', element: <AdminContent /> },
           { path: '/admin/content/:sectionKey', element: <ContentEditor /> },
           { path: '/admin/media', element: <AdminMedia /> },
+          { path: '/admin/invites', element: <AdminInvites /> },
+          { path: '/admin/users', element: <AdminUsers /> },
           { path: '/admin/settings', element: <AdminSettings /> },
         ],
       },

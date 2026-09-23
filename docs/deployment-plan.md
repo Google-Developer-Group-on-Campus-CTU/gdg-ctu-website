@@ -36,7 +36,7 @@ Order matters: **backend first** (its URL is needed for `FR_ORIGIN` and `VITE_AP
 | Root Directory | `frontend` — set it on the import screen (Root Directory → Edit). For an existing project: Settings → General → Root Directory. CLI alternative: `cd frontend && vercel` (no dashboard setting needed) |
 | Build Command | `npm run build` |
 | Output Directory | `dist` |
-| Env vars | `VITE_API_URL=https://<render-backend>/GDGoC-CTU-Main/v0.0.1`, `VITE_CLERK_PUBLISHABLE_KEY=<same Clerk app>` |
+| Env vars | `VITE_API_URL=https://<render-backend>/GDGoC-CTU-Main/v0.0.1` |
 
 - React Router needs an SPA fallback, otherwise refresh on `/about`, `/events`, etc. returns 404.
   Add `frontend/vercel.json`:
@@ -55,5 +55,5 @@ Order matters: **backend first** (its URL is needed for `FR_ORIGIN` and `VITE_AP
 - [ ] Frontend loads; all public pages render with images.
 - [ ] `GET <backend>/GDGoC-CTU-Main/v0.0.1/admins` returns data (proves DB + API).
 - [ ] No CORS errors in browser console on API calls.
-- [ ] `/admin/login` shows Clerk Sign-In; sign-in reaches the admin dashboard.
+- [ ] `/admin/login` shows the GDG-CTU sign-in form; sign-in reaches the admin dashboard.
 - [ ] Authenticated admin request (e.g. list events) succeeds.

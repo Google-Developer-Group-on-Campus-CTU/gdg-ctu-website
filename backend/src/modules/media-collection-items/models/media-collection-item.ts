@@ -7,8 +7,8 @@ import {
       primaryKey,
       pgTable,
 } from "drizzle-orm/pg-core";
-import { mediaCollections } from "../../media-collections/models/media-collection";
-import { media } from "../../media/models/media";
+import { mediaCollections } from "../../media-collections/models/media-collection.js";
+import { media } from "../../media/models/media.js";
 
 export const mediaCollectionItems = pgTable(
       "media_collection_items",

@@ -4,15 +4,15 @@ import {
       handleControllerError,
       validateBody,
       validateUuid,
-} from "../../utils/http";
+} from "../../utils/http.js";
 import {
       createMediaCollectionService,
       listMediaCollectionsService,
       getMediaCollectionService,
       updateMediaCollectionService,
       deleteMediaCollectionService,
-} from "./media-collections.services";
-import { CreateMediaCollectionSchema, UpdateMediaCollectionSchema } from "./media-collections.validations";
+} from "./media-collections.services.js";
+import { CreateMediaCollectionSchema, UpdateMediaCollectionSchema } from "./media-collections.validations.js";
 
 export const createMediaCollection = async (req: Request, res: Response) => {
       try {

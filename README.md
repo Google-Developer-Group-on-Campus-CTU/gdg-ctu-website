@@ -12,7 +12,7 @@ A public club website (home, about, team, events, gallery, partners, contact) wh
 
 - Public pages: Home, About, Team/Officers, Events, Gallery, Partners, Contact
 - Admin dashboard at `/admin`: manage events, team members, partners, gallery albums, site text, media uploads, and settings
-- Login with Clerk (a login service — handles sign-in so we don't store passwords ourselves)
+- Login with Better Auth (email/password + Google — the backend keeps passwords, the browser keeps the session cookie)
 - Public reads, login-required writes: anyone can view the site, only signed-in active admins can change things
 - Image uploads with Cloudinary (an image-hosting service) with a 5 MB file limit
 - Versioned API (application programming interface — the backend's set of URLs the frontend calls), so future changes don't break the current site
@@ -21,7 +21,7 @@ A public club website (home, about, team, events, gallery, partners, contact) wh
 
 | Area | Tools |
 |---|---|
-| Frontend (what visitors see) | React 19, React Router 7, Vite 8, Clerk React (login buttons) |
+| Frontend (what visitors see) | React 19, React Router 7, Vite 8, Better Auth React (sign-in form) |
 | Backend (the server that stores data) | Node + Express 5, TypeScript, Drizzle ORM (tool that talks to the database) + Postgres (Neon), Clerk Express (checks logins), Redis (fast temporary memory/cache), Cloudinary (image storage), Zod (checks that incoming data has the right shape), Winston (writes server logs) |
 | Hosting (where it runs online) | Backend on Render, frontend on Vercel; database on Neon, cache on Upstash/Redis, images on Cloudinary |
 
@@ -92,7 +92,7 @@ gdg-ctu-main/
 │   ├── .env.example           ← template for frontend settings (copy to .env)
 │   ├── vercel.json            ← lets page refresh work on About/Events/etc.
 │   └── src/
-│       ├── main.jsx           ← starts the app, connects login (ClerkProvider)
+│       ├── main.jsx           ← starts the app (auth needs no provider)
 │       ├── App.jsx            ← page addresses (public pages vs /admin pages)
 │       ├── api/client.js      ← apiFetch helper the pages use to call the backend
 │       ├── pages/             ← one file per page (Home, Events, admin screens, ...)
@@ -121,8 +121,7 @@ Never commit real `.env` files — they hold secrets like passwords and keys.
 
 | Variable | What it is |
 |---|---|
-| `VITE_API_URL` | Full backend address **including** `/GDGoC-CTU-Main/v0.0.1` (e.g. `http://localhost:3000/GDGoC-CTU-Main/v0.0.1`) |
-| `VITE_CLERK_PUBLISHABLE_KEY` | Same Clerk app's public key as the backend uses |
+| `VITE_API_URL` | Full backend address **including** `/GDGoC-CTU-Main/v0.0.1` (e.g. `http://localhost:3000/GDGoC-CTU-Main/v0.0.1`) — sign-in (Better Auth) runs behind this base too |
 
 ## Scripts (commands you can run)
 
@@ -147,7 +146,7 @@ Never commit real `.env` files — they hold secrets like passwords and keys.
 
 ## Auth + data in 5 lines
 
-1. Visitors browse public pages freely; editing anything needs a Clerk login.
+1. Visitors browse public pages freely; editing anything needs an admin sign-in.
 2. Not logged in = error `401`; logged in but not an active admin = error `403`.
 3. Every backend URL starts with `/GDGoC-CTU-Main/v0.0.1` (the versioned base path).
 4. The backend only answers the one frontend address in `FR_ORIGIN` (this is CORS — a browser safety rule), and the frontend must point `VITE_API_URL` at the backend.

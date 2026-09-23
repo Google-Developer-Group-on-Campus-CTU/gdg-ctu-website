@@ -1,6 +1,6 @@
 import { inArray } from "drizzle-orm";
-import { db } from "../../config/connectDB";
-import { media } from "../media/models/media";
+import { db } from "../../config/connectDB.js";
+import { media } from "../media/models/media.js";
 
 /**
  * Batch-resolves media UUIDs to their Cloudinary `secureUrl` values for the

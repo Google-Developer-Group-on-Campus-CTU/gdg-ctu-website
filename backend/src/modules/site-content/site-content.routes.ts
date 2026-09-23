@@ -6,7 +6,7 @@ import {
       listSiteContent,
       removeSiteContent,
       updateSiteContent,
-} from "./site-content.controllers";
+} from "./site-content.controllers.js";
 
 const router = Router();
 

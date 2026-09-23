@@ -5,7 +5,7 @@ import {
       handleControllerError,
       validateBody,
       validateUuid,
-} from "../../utils/http";
+} from "../../utils/http.js";
 import {
       createSiteContentService,
       deleteSiteContentService,
@@ -13,11 +13,11 @@ import {
       getSiteContentBySectionKeyService,
       getSiteContentListService,
       updateSiteContentService,
-} from "./site-content.services";
+} from "./site-content.services.js";
 import {
       CreateSiteContentSchema,
       UpdateSiteContentSchema,
-} from "./site-content.validations";
+} from "./site-content.validations.js";
 
 export const createSiteContent = async (req: Request, res: Response) => {
       try {

@@ -1,8 +1,8 @@
 import { boolean, integer, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core";
-import { admins } from "../../admins/models/admin";
-import { events } from "../../events/models/event";
-import { media } from "../../media/models/media"; // reference media module
+import { user } from "../../auth/models/auth.js";
+import { events } from "../../events/models/event.js";
+import { media } from "../../media/models/media.js"; // reference media module
 
 export const mediaCollections = pgTable("media_collections", {
       id: uuid("id").defaultRandom().primaryKey(),
@@ -18,9 +18,10 @@ export const mediaCollections = pgTable("media_collections", {
       isFeatured: boolean("is_featured").default(false).notNull(),
       isActive: boolean("is_active").default(true).notNull(),
       displayOrder: integer("display_order").default(0).notNull(),
-      createdBy: varchar("created_by")
+      // Fold: references Better Auth's `user` table (text PK).
+      createdBy: text("created_by")
             .notNull()
-            .references(() => admins.id),
+            .references(() => user.id),
       createdAt: timestamp("created_at").defaultNow().notNull(),
       updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

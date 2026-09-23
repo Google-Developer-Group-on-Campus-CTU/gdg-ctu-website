@@ -2,9 +2,9 @@ import { Router } from "express";
 import {
       getActiveSiteContentBySectionKey,
       getActiveSiteContentList,
-} from "../site-content/models/site-content.queries";
-import { AppError, getStringParam, handleControllerError } from "../../utils/http";
-import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url";
+} from "../site-content/models/site-content.queries.js";
+import { AppError, getStringParam, handleControllerError } from "../../utils/http.js";
+import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url.js";
 
 /** Public site-content feed — no auth, active sections only. */
 const router = Router();

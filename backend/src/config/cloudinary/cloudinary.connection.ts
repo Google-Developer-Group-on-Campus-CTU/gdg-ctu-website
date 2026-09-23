@@ -1,6 +1,6 @@
-import cloudinary, { isCloudinaryEnabled } from "./cloudinary.config";
-import logger from "../../utils/logger";
-import { AppError } from "../../utils/http";
+import cloudinary, { isCloudinaryEnabled } from "./cloudinary.config.js";
+import logger from "../../utils/logger.js";
+import { AppError } from "../../utils/http.js";
 
 /**
  * The sole purpose of this function is to test connectivity to cloudinary.

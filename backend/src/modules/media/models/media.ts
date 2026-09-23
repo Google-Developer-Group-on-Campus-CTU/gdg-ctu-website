@@ -1,6 +1,6 @@
 import { integer, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core";
-import { admins } from "../../admins/models/admin";
+import { user } from "../../auth/models/auth.js";
 
 export const media = pgTable("media", {
       id: uuid("id").defaultRandom().primaryKey(),
@@ -39,9 +39,10 @@ export const media = pgTable("media", {
             length: 255,
       }),
 
-      uploadedBy: varchar("uploaded_by")
+      // Fold: audit columns now reference Better Auth's `user` table (text PK).
+      uploadedBy: text("uploaded_by")
             .notNull()
-            .references(() => admins.id),
+            .references(() => user.id),
 
       createdAt: timestamp("created_at").defaultNow().notNull(),
       updatedAt: timestamp("updated_at").defaultNow().notNull(),

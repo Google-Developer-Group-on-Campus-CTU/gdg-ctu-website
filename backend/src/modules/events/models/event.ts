@@ -1,7 +1,7 @@
 import { text, timestamp, uuid, varchar, boolean, integer } from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core";
-import { admins } from "../../admins/models/admin";
-import { media } from "../../media/models/media";
+import { user } from "../../auth/models/auth.js";
+import { media } from "../../media/models/media.js";
 
 /**
  * Event status enum – matches the Zod validation `EVENT_STATUSES`.
@@ -56,10 +56,10 @@ export const events = pgTable("events", {
 
       publishedAt: timestamp("published_at"),
 
-      // Stores Clerk ID directly as admin PK (string).
-      createdBy: varchar("created_by")
+      // Fold: references Better Auth's `user` table (text PK).
+      createdBy: text("created_by")
             .notNull()
-            .references(() => admins.id), // "CreatedBy must be a valid admin ID."
+            .references(() => user.id), // "CreatedBy must be a valid user ID."
 
       createdAt: timestamp("created_at").defaultNow().notNull(),
       updatedAt: timestamp("updated_at").defaultNow().notNull(),

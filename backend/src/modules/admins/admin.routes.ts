@@ -5,14 +5,13 @@ import {
       listAdmins,
       removeAdmin,
       updateAdmin,
-} from "./admin.controllers";
-import { validateParams } from "../../middleware/validateParams";
-import { validateQuery } from "../../middleware/validateQuery";
+} from "./admin.controllers.js";
+import { validateParams } from "../../middleware/validateParams.js";
 
 const router = Router();
 
 router.post("/", createAdmin);
-router.get("/", validateQuery("page", "limit"), listAdmins);
+router.get("/", listAdmins);
 router.get("/:id", validateParams("id"), getAdmin);
 router.patch("/:id", validateParams("id"), updateAdmin);
 router.delete("/:id", validateParams("id"), removeAdmin);

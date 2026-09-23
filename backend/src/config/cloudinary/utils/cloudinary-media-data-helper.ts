@@ -1,4 +1,4 @@
-import { NewMediaRecord } from "../../../modules/media/models/media.queries";
+import { NewMediaRecord } from "../../../modules/media/models/media.queries.js";
 
 export const createMediaRecord = (
       uploadResult: any,

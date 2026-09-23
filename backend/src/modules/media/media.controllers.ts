@@ -6,22 +6,22 @@ import {
       validateBody,
       validateUuid,
       AppError,
-} from "../../utils/http";
-import upload from "../../middleware/upload";
+} from "../../utils/http.js";
+import upload from "../../middleware/upload.js";
 import {
       createMediaService,
       getMediaService,
       getMediaByIdService,
       updateMediaService,
       deleteMediaService,
-} from "./media.services";
-import { CreateMediaSchema, UpdateMediaSchema } from "./media.validations";
+} from "./media.services.js";
+import { CreateMediaSchema, UpdateMediaSchema } from "./media.validations.js";
 import {
       uploadMedia,
       deleteMediaCloudinaryService,
-} from "../../config/cloudinary/cloudinary.services";
-import { rollbackCloudinaryUpload } from "../../config/cloudinary/utils/cloudinary-rollback-helper";
-import logger from "../../utils/logger";
+} from "../../config/cloudinary/cloudinary.services.js";
+import { rollbackCloudinaryUpload } from "../../config/cloudinary/utils/cloudinary-rollback-helper.js";
+import logger from "../../utils/logger.js";
 
 export const createMedia = async (req: Request, res: Response) => {
       try {

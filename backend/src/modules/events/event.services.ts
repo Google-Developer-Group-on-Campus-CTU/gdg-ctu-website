@@ -1,10 +1,10 @@
-import { AppError } from "../../utils/http";
-import { getPaginationMeta, Pagination } from "../../utils/pagination";
-import { getAdminByIdService } from "../admins/admin.services";
-import { createMediaService } from "../media/media.services";
-import { uploadMedia } from "../../config/cloudinary/cloudinary.services";
-import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper";
-import { EventStatus } from "./models/event";
+import { AppError } from "../../utils/http.js";
+import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
+import { getAdminByIdService } from "../admins/admin.services.js";
+import { createMediaService } from "../media/media.services.js";
+import { uploadMedia } from "../../config/cloudinary/cloudinary.services.js";
+import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper.js";
+import { EventStatus } from "./models/event.js";
 import {
       countEvents,
       deleteEvent,
@@ -14,20 +14,20 @@ import {
       insertEvent,
       NewEventRecord,
       updateEvent,
-} from "./models/event.queries";
-import { CreateEventDTO, UpdateEventDTO, Event } from "./event.validations";
+} from "./models/event.queries.js";
+import { CreateEventDTO, UpdateEventDTO, Event } from "./event.validations.js";
 import {
       getCache,
       setCache,
       clearCacheByPrefix,
-} from "../../config/redis/redis.services";
-import { cleanupReplacedMedia } from "../../utils/mediaHelper";
+} from "../../config/redis/redis.services.js";
+import { cleanupReplacedMedia } from "../../utils/mediaHelper.js";
 import {
       rollbackCloudinaryUpload,
       CloudinaryUploadResult,
-} from "../../config/cloudinary/utils/cloudinary-rollback-helper";
-import logger from "../../utils/logger";
-import { assertAdminExists } from "../auth/assertAdminExistsHelper";
+} from "../../config/cloudinary/utils/cloudinary-rollback-helper.js";
+import logger from "../../utils/logger.js";
+import { assertAdminExists } from "../auth/assertAdminExistsHelper.js";
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;

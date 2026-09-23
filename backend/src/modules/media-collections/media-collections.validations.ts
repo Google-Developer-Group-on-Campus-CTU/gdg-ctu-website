@@ -1,6 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { mediaCollections } from "./models/media-collection";
+import { mediaCollections } from "./models/media-collection.js";
 
 export const MediaCollectionRecordSchema = createSelectSchema(mediaCollections);
 
@@ -25,7 +25,7 @@ export const CreateMediaCollectionSchema = createInsertSchema(mediaCollections)
                   .string()
                   .trim()
                   .min(1, {
-                        message: "CreatedBy must be a non‑empty string (Clerk ID).",
+                        message: "CreatedBy must be a non‑empty string (user ID).",
                   }),
             eventId: z.uuid().nullable().optional(),
             date: z.coerce.date().nullable().optional(),

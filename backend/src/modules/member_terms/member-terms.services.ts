@@ -1,5 +1,5 @@
-import { AppError } from "../../utils/http";
-import { getPaginationMeta, Pagination } from "../../utils/pagination";
+import { AppError } from "../../utils/http.js";
+import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
 import {
       createMemberTerm,
       getMemberTerms,
@@ -8,21 +8,21 @@ import {
       getMemberTermById,
       updateMemberTerm,
       deleteMemberTerm,
-} from "./models/member-terms.queries";
+} from "./models/member-terms.queries.js";
 import {
       CreateMemberTermsDTO,
       UpdateMemberTermDTO,
       MemberTerms,
-} from "./member-terms.validations";
+} from "./member-terms.validations.js";
 import {
       getCache,
       setCache,
       deleteCache,
       clearCacheByPrefix,
-} from "../../config/redis/redis.services";
-import { getTeamMemberById } from "../team-members/models/team-member.queries";
-import { getTermById } from "../terms/models/terms.queries";
-import { getMediaById } from "../media/models/media.queries";
+} from "../../config/redis/redis.services.js";
+import { getTeamMemberById } from "../team-members/models/team-member.queries.js";
+import { getTermById } from "../terms/models/terms.queries.js";
+import { getMediaById } from "../media/models/media.queries.js";
 
 // Cache TTL in milliseconds (e.g., 60 seconds)
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;

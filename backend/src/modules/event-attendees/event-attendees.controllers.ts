@@ -4,15 +4,15 @@ import {
       handleControllerError,
       validateBody,
       validateUuid,
-} from "../../utils/http";
+} from "../../utils/http.js";
 import {
       createEventAttendeeService,
       listEventAttendeesService,
       getEventAttendeeService,
       updateEventAttendeeService,
       deleteEventAttendeeService,
-} from "./event-attendees.services";
-import { CreateEventAttendeeSchema, UpdateEventAttendeeSchema } from "./event-attendees.validations";
+} from "./event-attendees.services.js";
+import { CreateEventAttendeeSchema, UpdateEventAttendeeSchema } from "./event-attendees.validations.js";
 
 export const createEventAttendee = async (req: Request, res: Response) => {
       try {

@@ -1,4 +1,4 @@
-import upload from "../../middleware/upload";
+import upload from "../../middleware/upload.js";
 import { Router } from "express";
 import {
       createEvent,
@@ -7,7 +7,7 @@ import {
       listEvents,
       removeEvent,
       updateEvent,
-} from "./event.controllers";
+} from "./event.controllers.js";
 
 const router = Router();
 

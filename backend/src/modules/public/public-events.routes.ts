@@ -5,9 +5,9 @@ import {
       getPublicRecentEvents,
       getPublicUpcomingEvents,
       getPublishedEventBySlug,
-} from "../events/models/event.queries";
-import { AppError, getStringParam, handleControllerError } from "../../utils/http";
-import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url";
+} from "../events/models/event.queries.js";
+import { AppError, getStringParam, handleControllerError } from "../../utils/http.js";
+import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url.js";
 
 /**
  * Public events feed — no auth, published only.

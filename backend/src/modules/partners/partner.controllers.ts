@@ -6,7 +6,7 @@ import {
       handleControllerError,
       validateBody,
       validateUuid,
-} from "../../utils/http";
+} from "../../utils/http.js";
 import {
       createPartnerService,
       deletePartnerService,
@@ -14,18 +14,18 @@ import {
       getPartnerBySlugService,
       getPartnersService,
       updatePartnerService,
-} from "./partner.services";
+} from "./partner.services.js";
 import {
       CreatePartnerDTO,
       UpdatePartnerDTO,
       CreatePartnerSchema,
       UpdatePartnerSchema,
-} from "./partner.validations";
-import { getClerkIdFromRequest } from "../auth/auth.utils";
+} from "./partner.validations.js";
+import { getUserIdFromRequest } from "../auth/auth.utils.js";
 
 /**
  * Create a new partner.
- * • Requires a valid admin (Clerk) ID.
+ * • Requires a valid admin (user) ID.
  * • Expects multipart payload with `partner` JSON and a required logo image file.
  * • The logo image is mandatory; missing image results in a 400 error.
  * • Image is uploaded via Cloudinary and linked via `logoMediaId`.
@@ -33,9 +33,9 @@ import { getClerkIdFromRequest } from "../auth/auth.utils";
 export const createPartner = async (req: Request, res: Response) => {
       try {
             // 1. HTTP/Auth Extraction
-            const clerkId = getClerkIdFromRequest(req);
-            if (!clerkId) {
-                  throw new AppError(401, "Unauthorized: Missing clerkId");
+            const userId = getUserIdFromRequest(req);
+            if (!userId) {
+                  throw new AppError(401, "Unauthorized: Missing userId");
             }
 
             // 2. Payload Presence Validations
@@ -56,7 +56,7 @@ export const createPartner = async (req: Request, res: Response) => {
             // 4. Pass to Service Layer
             const partner = await createPartnerService(
                   validData,
-                  clerkId,
+                  userId,
                   file,
             );
 
@@ -77,9 +77,9 @@ export const createPartner = async (req: Request, res: Response) => {
 
 export const listPartners = async (req: Request, res: Response) => {
       try {
-            const clerkId = getClerkIdFromRequest(req);
-            if (!clerkId) {
-                  throw new AppError(401, "Unauthorized: Missing clerkId");
+            const userId = getUserIdFromRequest(req);
+            if (!userId) {
+                  throw new AppError(401, "Unauthorized: Missing userId");
             }
 
             const paginationQuery = getPagination(req.query);
@@ -95,9 +95,9 @@ export const listPartners = async (req: Request, res: Response) => {
 
 export const getPartner = async (req: Request, res: Response) => {
       try {
-            const clerkId = getClerkIdFromRequest(req);
-            if (!clerkId) {
-                  throw new AppError(401, "Unauthorized: Missing clerkId");
+            const userId = getUserIdFromRequest(req);
+            if (!userId) {
+                  throw new AppError(401, "Unauthorized: Missing userId");
             }
 
             const id = validateUuid(req.params.id);
@@ -120,7 +120,7 @@ export const getPartnerBySlug = async (req: Request, res: Response) => {
 
 /**
  * Update an existing partner.
- * • Requires a valid admin (Clerk) ID.
+ * • Requires a valid admin (user) ID.
  * • Accepts a multipart request with an optional new logo image file.
  * • If a new file is provided, the old logo media is removed (via service cleanup) and the
  *   new image is uploaded to Cloudinary, updating `logoMediaId`.
@@ -128,11 +128,11 @@ export const getPartnerBySlug = async (req: Request, res: Response) => {
  */
 export const updatePartner = async (req: Request, res: Response) => {
       try {
-            const clerkId = getClerkIdFromRequest(req);
-            if (!clerkId) {
+            const userId = getUserIdFromRequest(req);
+            if (!userId) {
                   return res.status(401).json({
                         success: false,
-                        message: "Unable to determine uploader (Clerk ID)",
+                        message: "Unable to determine uploader (user ID)",
                   });
             }
 
@@ -158,7 +158,7 @@ export const updatePartner = async (req: Request, res: Response) => {
             const partner = await updatePartnerService(
                   partnerId,
                   data,
-                  clerkId,
+                  userId,
                   file,
             );
 
@@ -178,9 +178,9 @@ export const updatePartner = async (req: Request, res: Response) => {
 
 export const removePartner = async (req: Request, res: Response) => {
       try {
-            const clerkId = getClerkIdFromRequest(req);
-            if (!clerkId) {
-                  throw new AppError(401, "Unauthorized: Missing clerkId");
+            const userId = getUserIdFromRequest(req);
+            if (!userId) {
+                  throw new AppError(401, "Unauthorized: Missing userId");
             }
 
             const id = validateUuid(req.params.id);

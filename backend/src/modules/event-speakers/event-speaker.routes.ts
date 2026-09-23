@@ -1,5 +1,5 @@
 import { Router } from "express";
-import upload from "../../middleware/upload";
+import upload from "../../middleware/upload.js";
 import {
       createEventSpeaker,
       getEventSpeaker,
@@ -8,7 +8,7 @@ import {
       listEventSpeakersForTeamMember,
       removeEventSpeaker,
       updateEventSpeaker,
-} from "./event-speaker.controllers";
+} from "./event-speaker.controllers.js";
 
 const router = Router();
 

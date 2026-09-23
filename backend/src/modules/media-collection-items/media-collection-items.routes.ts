@@ -5,14 +5,13 @@ import {
       getMediaCollectionItem,
       updateMediaCollectionItem,
       deleteMediaCollectionItem,
-} from "./media-collection-items.controllers";
-import { validateParams } from "../../middleware/validateParams";
-import { validateQuery } from "../../middleware/validateQuery";
+} from "./media-collection-items.controllers.js";
+import { validateParams } from "../../middleware/validateParams.js";
 
 const router = Router();
 
 router.post("/", createMediaCollectionItem);
-router.get("/", validateQuery("page", "limit"), listMediaCollectionItems);
+router.get("/", listMediaCollectionItems);
 router.get(
       "/:collectionId/:mediaId",
       validateParams("collectionId", "mediaId"),

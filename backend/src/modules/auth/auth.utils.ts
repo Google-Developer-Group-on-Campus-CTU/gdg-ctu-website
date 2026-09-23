@@ -1,26 +1,14 @@
-import { getAuth } from "@clerk/express";
-import { getStringParam } from "../../utils/http";
+import type { Request } from "express";
+import type { AuthedRequest } from "../../middleware/requireAuth.js";
 
 /**
- * Extracts the Clerk user ID from an Express request.
- * Prioritizes the Clerk auth session, falling back to req.body.uploadedBy.
+ * Returns the Better Auth user ID for the current request, or undefined when
+ * no session is attached.
  *
- * @param req - The Express Request object
- * @returns The Clerk ID as a string, or undefined if not found
+ * `requireAuth` resolves the session once and caches it on `req.authSession`;
+ * this helper is the single read path that replaced the old Clerk
+ * `getClerkIdFromRequest`. The old `req.body.uploadedBy` fallback is gone —
+ * callers must never trust a client-supplied actor ID.
  */
-export const getClerkIdFromRequest = (req: any): string | undefined => {
-      const auth = getAuth(req);
-
-      // 1. Check for standard Clerk authentication
-      if (auth.userId !== null && auth.userId !== undefined) {
-            return auth.userId;
-      }
-
-      // 2. Fallback: Check the request body for an explicit uploader ID
-      if (req.body?.uploadedBy) {
-            return getStringParam(req.body.uploadedBy, "uploadedBy");
-      }
-
-      // 3. Return undefined if no identifier can be resolved
-      return undefined;
-};
+export const getUserIdFromRequest = (req: Request): string | undefined =>
+      (req as Partial<AuthedRequest>).authSession?.user.id;

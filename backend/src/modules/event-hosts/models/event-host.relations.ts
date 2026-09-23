@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
-import { events } from "../../events/models/event";
-import { teamMembers } from "../../team-members/models/team-member";
-import { eventHosts } from "./event-host";
+import { events } from "../../events/models/event.js";
+import { teamMembers } from "../../team-members/models/team-member.js";
+import { eventHosts } from "./event-host.js";
 
 export const eventHostsRelations = relations(eventHosts, ({ one }) => ({
       event: one(events, {

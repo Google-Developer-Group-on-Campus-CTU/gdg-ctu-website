@@ -1,8 +1,8 @@
 import { text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core";
-import { media } from "../../media/models/media";
-import { teamMembers } from "../../team-members/models/team-member";
-import { events } from "../../events/models/event";
+import { media } from "../../media/models/media.js";
+import { teamMembers } from "../../team-members/models/team-member.js";
+import { events } from "../../events/models/event.js";
 
 export const eventSpeakers = pgTable("event_speakers", {
       eventId: uuid("event_id").references(() => events.id),

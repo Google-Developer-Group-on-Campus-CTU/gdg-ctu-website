@@ -1,11 +1,19 @@
 import { useNavigate } from 'react-router-dom';
-import { useClerk, useUser } from '@clerk/clerk-react';
+import { authClient } from '../../lib/auth-client';
 import { API_BASE_URL } from '../../api/resources.js';
 
 export default function AdminSettings() {
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const { data: session } = authClient.useSession();
   const navigate = useNavigate();
+  const user = session?.user;
+
+  const handleSignOut = async () => {
+    try {
+      await authClient.signOut();
+    } finally {
+      navigate('/admin/login', { replace: true });
+    }
+  };
 
   return (
     <section aria-label="Settings and profile">
@@ -18,11 +26,11 @@ export default function AdminSettings() {
       <div className="admin-cards">
         <article className="admin-card" aria-label="Profile">
           <h2>Profile</h2>
-          <p><strong>{user?.fullName ?? 'Admin'}</strong></p>
-          <p className="admin-muted">{user?.primaryEmailAddress?.emailAddress ?? 'No email on file'}</p>
+          <p><strong>{user?.name || user?.email || 'Admin'}</strong></p>
+          <p className="admin-muted">{user?.email ?? 'No email on file'}</p>
           <p className="admin-muted">User ID: {user?.id ?? '—'}</p>
           <div className="gdg-btn-row">
-            <button type="button" className="gdg-btn gdg-btn-secondary" onClick={() => signOut(() => navigate('/admin/login'))}>
+            <button type="button" className="gdg-btn gdg-btn-secondary" onClick={handleSignOut}>
               Sign out
             </button>
           </div>
@@ -31,7 +39,11 @@ export default function AdminSettings() {
           <h2>Environment</h2>
           <p className="admin-muted">API base (VITE_API_URL):</p>
           <p><code>{API_BASE_URL || '(not set)'}</code></p>
-          <p className="admin-muted">Expected: &lt;backend&gt;/GDGoC-CTU-Main/v0.0.1. Every mutation is verified server-side (Clerk requireAuth). 401 = signed out, 403 = inactive (contact tech/web officer).</p>
+          <p className="admin-muted">
+            Expected: &lt;backend&gt;/GDGoC-CTU-Main/v0.0.1. Every change is
+            checked on the server (Better Auth session cookie). 401 = signed
+            out, 403 = inactive account (contact the tech/web officer).
+          </p>
         </article>
       </div>
     </section>
