@@ -18,7 +18,7 @@ const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 
 const upload = multer.default({
       storage: multer.memoryStorage(),
-      limits: { fileSize: MAX_FILE_SIZE_BYTES, files: 5 },
+      limits: { fileSize: MAX_FILE_SIZE_BYTES, files: 25 },
       fileFilter: (
             _req: Request,
             file: Express.Multer.File,
