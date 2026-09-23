@@ -418,6 +418,8 @@ h2:nth-of-type(2) {
 
 .track-containers {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 24px;
     padding: 40px 20px;
 }
@@ -509,6 +511,158 @@ h2:nth-of-type(2) {
   background: #3cd8a1;
 }
 
+.track-btn-two:hover {
+  background: lightskyblue;
+}
+
+.track-btn-three:hover {
+  background: #FF7F7F;
+}
+
+.track-btn-four:hover {
+  background: #fbec5d;
+}
+
+.track-two-logo {
+    position: absolute;
+    top: 1px;             
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;               
+    height: 37px;             
+    width: 90px;
+}
+
+.track-two-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 50px 24px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+}
+
+.image-track-two {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-top: 20px;
+}
+
+.track-btn-two {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 35px;
+    width: 160px;
+    background: #4285F4;
+    border-radius: 999px;
+    color: #1a1a1a;
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    border: 2px solid black;
+}
+
+.track-three-logo {
+    position: absolute;
+    top: 1px;             
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;               
+    height: 37px;             
+    width: 90px;
+}
+
+.track-three-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 50px 24px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+}
+
+.image-track-three {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-top: 20px;
+}
+
+.track-btn-three {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 35px;
+    width: 160px;
+    background: #EA4335;
+    border-radius: 999px;
+    color: #1a1a1a;
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    border: 2px solid black;
+}
+
+.track-four-logo {
+    position: absolute;
+    top: 1px;             
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;               
+    height: 37px;             
+    width: 90px;
+}
+
+.track-four-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 50px 24px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+}
+
+.image-track-four {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-top: 20px;
+}
+
+.track-btn-four {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 35px;
+    width: 160px;
+    background: #F9AB00;
+    border-radius: 999px;
+    color: #1a1a1a;
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    border: 2px solid black;
+}
 
 @media (max-width: 1024px) {
     h1 { font-size: 56px; }

@@ -383,39 +383,20 @@
     }
 
     .big-logo {
-      position: absolute;
-      left: 48%;
-      transform: translateX(-50%);  /* ADD */
-      top: clamp(185px, 20vw, 205px);
+      position: absolute;            
+      left: 98%;
+      transform: translateX(-50%);
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 1100px;
-      margin-top: 60px;
     }
     
     .gdg-logo {
-      width: clamp(1200px, 34vw, 1200px);
-      height: auto;
+      width: 1100px;
+      max-width: none;
       align-items: center;
       justify-content: center;
-    }
-
-    .mail-decor {
-      text-decoration: none;
-      transition: text-decoration-color 1s ease;
-    }
-    .mail-decor:hover {
-      text-decoration: underline;
-    }
-
-    .address-decor {
-      text-decoration: none;
-      transition: text-decoration-color 1s ease;
-    }
-
-    .address-decor:hover {
-      text-decoration: underline;
+      margin-top: 60px;
     }
 
     .footer-links {
@@ -450,12 +431,44 @@
     .footer-column a:hover { text-decoration: underline; }
 
     .contact { min-width: clamp(120px, 12vw, 155px); }
-    .contact > a:first-of-type { margin-bottom: 15px; }
+    .contact > a:first-of-type { text-decoration: none; margin-bottom: 15px; }
     .address-title { margin-bottom: 9px !important; }
     .address {
       font-size: clamp(9px, 0.8vw, 11px) !important;
-      line-height: 1.5 !important;
+      line-height: 1.2 !important;
+      text-decoration: none;
+    }
 
+    .contact a:hover {
+      text-decoration: underline;
+      transition: 1s ease;
+    }
+
+    .address:hover {
+      text-decoration: underline;
+      transition: 1s ease;
+    }
+
+    .org-name {
+      position: absolute;
+      left: calc(100% + 16px);
+      top: 11px;
+      white-space: nowrap;
+      margin: 0;
+      font-size: clamp(16px, 1.6vw, 20px);
+      font-weight: 400;
+      color: #111;
+    }
+
+    .uni-name {
+      position: absolute;
+      left: calc(100% + 16px);
+      top: 45px;
+      white-space: nowrap;
+      margin: 0;
+      font-size: clamp(12px, 1.1vw, 14px);
+      font-weight: 400;
+      color: #555;
     }
 
     /* ==========================================
