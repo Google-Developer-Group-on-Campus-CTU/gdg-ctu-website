@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getId, mediaApi } from '../../api/resources.js';
 import { pickImage, safeSrc } from '../../api/public.js';
+import { ADMIN_ENTITY_ROUTES } from '../../admin/editorial.js';
 import { hideImage } from '../FeedStates.jsx';
 import { ErrorState, Field, LoadingSkeleton, inputProps } from './shared.jsx';
 
@@ -92,7 +93,7 @@ export default function MediaPicker({ id, label, hint, error, required, value = 
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search filename, alt, or ID"
         />
-        <Link to="/admin/media" className="gdg-btn gdg-btn-secondary">
+        <Link to={ADMIN_ENTITY_ROUTES.media.list} className="gdg-btn gdg-btn-secondary">
           Upload new media
         </Link>
       </div>

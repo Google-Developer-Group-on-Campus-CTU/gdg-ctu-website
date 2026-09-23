@@ -2,10 +2,27 @@ import { useEffect, useRef, useState } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { useFeed } from '../api/feed.js';
 
-export const RESERVED_SLUGS = ['api', 'admin', 'media', 'sitemap.xml', 'login', 'events', 'team', 'gallery', 'content', 'partners', 'settings', 'officers'];
+/* ===========================================================================
+ * GENERATED — backend contract vocabulary, hand-synced. DO NOT EDIT VALUES.
+ * The frontend cannot import backend TS at runtime, so these arrays are
+ * copied VERBATIM from the backend source of truth (order included). Re-sync
+ * whenever a source file changes.
+ *
+ *   EVENT_STATUSES ← backend/src/modules/events/models/event.ts         (EVENT_STATUSES)
+ *   PARTNER_TIERS  ← backend/src/modules/partners/models/partner.ts    (PARTNER_TIERS)
+ *   CONTENT_KEYS   ← backend/src/modules/site-content/section-keys.ts  (SECTION_KEYS — renamed CONTENT_KEYS here)
+ *
+ * Source snapshot date: 2026-09-24
+ * ========================================================================= */
 export const EVENT_STATUSES = ['draft', 'published', 'archived', 'cancelled'];
 export const PARTNER_TIERS = ['platinum', 'gold', 'silver', 'community'];
 export const CONTENT_KEYS = ['hero', 'about', 'community', 'cta', 'footer'];
+
+/* ---------------------------------------------------------------------------
+ * Frontend-only constants — no backend contract behind these: reserved route
+ * slugs, UX feature caps, and the media-picker limits.
+ * ------------------------------------------------------------------------- */
+export const RESERVED_SLUGS = ['api', 'admin', 'media', 'sitemap.xml', 'login', 'events', 'team', 'gallery', 'content', 'partners', 'settings', 'officers'];
 export const MAX_FEATURED_EVENTS = 3;
 export const MAX_FEATURED_TEAM = 10;
 export const MAX_FEATURED_PHOTOS = 8;
@@ -65,24 +82,25 @@ function required(value) {
   return value !== undefined && value !== null && String(value).trim() !== '';
 }
 
+/* ---------------------------------------------------------------------------
+ * validate* policy (architecture candidate 2): UX-level checks ONLY —
+ * (1) required-field presence for fields the backend also requires,
+ * (2) URL shape, (3) reserved slugs.
+ * The backend Zod schemas are the single source of truth for nullability,
+ * enums, ranges and cross-field rules; anything not checked here surfaces as
+ * a serverError banner from the backend 400 on save. Do not re-add rules that
+ * are stricter than the backend — they rejected payloads the API accepts.
+ * ------------------------------------------------------------------------- */
+
 export function validateEvent(v) {
   const errors = {};
   if (!required(v.title)) errors.title = 'Title is required.';
   if (!required(v.slug)) errors.slug = 'Slug is required.';
   else if (isReservedSlug(v.slug)) errors.slug = 'This slug is reserved.';
-  else if (!/^[a-z0-9-]+$/.test(v.slug)) errors.slug = 'Use lowercase letters, numbers, and hyphens only.';
-  if (!required(v.description)) errors.description = 'Description is required.';
-  if (!required(v.coverMediaId)) errors.coverMediaId = 'Cover image is required before publish.';
-  if (!required(v.coverAlt)) errors.coverAlt = 'Cover alt text is required.';
-  if (!v.startAt) errors.startAt = 'Start date/time is required.';
-  if (!v.endAt) errors.endAt = 'End date/time is required.';
-  else if (v.startAt && new Date(v.endAt) < new Date(v.startAt)) errors.endAt = 'End must be after start.';
-  if (!EVENT_STATUSES.includes(v.status)) errors.status = 'Pick a valid status.';
+  if (!required(v.startAt)) errors.startAt = 'Start date/time is required.';
+  if (!required(v.endAt)) errors.endAt = 'End date/time is required.';
   if (v.registrationEnabled && !isHttpsUrl(v.registrationUrl)) {
     errors.registrationUrl = 'Registration URL must be a valid https:// URL when registration is enabled.';
-  }
-  if (!Number.isInteger(Number(v.display_order)) || Number(v.display_order) < 0) {
-    errors.display_order = 'Display order must be an integer ≥ 0.';
   }
   return errors;
 }
@@ -93,12 +111,9 @@ export function validateTeam(v) {
   if (!required(v.lastName)) errors.lastName = 'Last name is required.';
   if (!required(v.slug)) errors.slug = 'Slug is required.';
   else if (isReservedSlug(v.slug)) errors.slug = 'This slug is reserved.';
-  if (!required(v.roleTitle)) errors.roleTitle = 'Role title is required.';
-  else if (String(v.roleTitle).length > 80) errors.roleTitle = 'Role title must be ≤ 80 characters.';
   for (const key of ['linkedin_url', 'github_url', 'website_url']) {
     if (v[key] && !isAnyUrl(v[key])) errors[key] = 'Must be a valid URL.';
   }
-  if (!required(v.profileAlt) && v.profileMediaId) errors.profileAlt = 'Photo alt text is required.';
   return errors;
 }
 
@@ -107,23 +122,18 @@ export function validatePartner(v) {
   if (!required(v.name)) errors.name = 'Name is required.';
   if (!required(v.slug)) errors.slug = 'Slug is required.';
   else if (isReservedSlug(v.slug)) errors.slug = 'This slug is reserved.';
-  if (!required(v.logoMediaId)) errors.logoMediaId = 'Logo is required.';
-  if (!required(v.logoAlt)) errors.logoAlt = 'Logo alt text is required.';
   if (v.websiteUrl && !isHttpsUrl(v.websiteUrl)) errors.websiteUrl = 'Website must be a valid https:// URL.';
-  if (!PARTNER_TIERS.includes(v.tier)) errors.tier = 'Pick a tier.';
-  if (!Number.isInteger(Number(v.display_order ?? 0)) || Number(v.display_order ?? 0) < 0) {
-    errors.display_order = 'Display order must be an integer ≥ 0.';
-  }
   return errors;
 }
 
 export function validateAlbum(v) {
   const errors = {};
-  if (!required(v.title)) errors.title = 'Title is required.';
+  // Primary-field presence intentionally not checked here: the form field is
+  // `title` but the backend contract requires `name` (FE↔BE payload mapping
+  // lives in AlbumDetail — out of this slice's scope); the backend 400 on a
+  // missing `name` is surfaced via serverError.
   if (!required(v.slug)) errors.slug = 'Slug is required.';
   else if (isReservedSlug(v.slug)) errors.slug = 'This slug is reserved.';
-  if (!required(v.coverMediaId)) errors.coverMediaId = 'Album cover is required before publish.';
-  if (!required(v.coverAlt)) errors.coverAlt = 'Cover alt text is required.';
   return errors;
 }
 
@@ -177,16 +187,21 @@ export function useDebouncedValue(value, delay = 250) {
 
 /**
  * Canonical admin entity→route map (spec v0.4 §3). Single source of truth for
- * Dashboard item links/labels and the shell +New target — do not duplicate
- * entity→route dispatch elsewhere.
+ * the App.jsx admin route table, the shell NAV, Dashboard item links and the
+ * +New target — do not hardcode admin entity paths elsewhere.
+ *
+ * - `label`: NAV display label.
+ * - `list` / `new`: exact route paths.
+ * - `detail(id)`: builds a detail path; `param` names the :param placeholder
+ *   (App.jsx derives the route pattern via `detail(':' + param)`).
  */
 export const ADMIN_ENTITY_ROUTES = {
-  events: { list: '/admin/events', new: '/admin/events/new', detail: (id) => `/admin/events/${id}` },
-  team: { list: '/admin/team', new: '/admin/team/new', detail: (id) => `/admin/team/${id}` },
-  partners: { list: '/admin/partners', new: '/admin/partners/new', detail: (id) => `/admin/partners/${id}` },
-  gallery: { list: '/admin/gallery', new: '/admin/gallery/albums/new', detail: (id) => `/admin/gallery/albums/${id}` },
-  content: { list: '/admin/content', new: '/admin/content', detail: (key) => `/admin/content/${key}` },
-  media: { list: '/admin/media', new: '/admin/media', detail: null },
+  events: { label: 'Events', list: '/admin/events', new: '/admin/events/new', detail: (id) => `/admin/events/${id}`, param: 'id' },
+  team: { label: 'Team', list: '/admin/team', new: '/admin/team/new', detail: (id) => `/admin/team/${id}`, param: 'id' },
+  partners: { label: 'Partners', list: '/admin/partners', new: '/admin/partners/new', detail: (id) => `/admin/partners/${id}`, param: 'id' },
+  gallery: { label: 'Gallery', list: '/admin/gallery', new: '/admin/gallery/albums/new', detail: (id) => `/admin/gallery/albums/${id}`, param: 'id' },
+  content: { label: 'Content', list: '/admin/content', new: '/admin/content', detail: (key) => `/admin/content/${key}`, param: 'sectionKey' },
+  media: { label: 'Media', list: '/admin/media', new: '/admin/media', detail: null, param: null },
 };
 
 export function adminItemLabel(item, fallback = 'Untitled') {

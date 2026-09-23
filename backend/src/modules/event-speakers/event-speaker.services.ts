@@ -1,7 +1,6 @@
 import { AppError } from "../../utils/http.js";
 import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
 import { getMediaById } from "../media/models/media.queries.js";
-import { getTeamMemberById } from "../team-members/models/team-member.queries.js";
 import { createMediaService } from "../media/media.services.js";
 import {
       uploadMedia,
@@ -16,15 +15,22 @@ import { assertAdminExists } from "../auth/assertAdminExistsHelper.js";
 import logger from "../../utils/logger.js";
 import {
       countEventSpeakers,
+      countEventSpeakersByEventId,
       countEventSpeakersByTeamMemberId,
       deleteEventSpeaker,
       getEventSpeakerById,
       getEventSpeakerBySlug,
       getEventSpeakers,
+      getEventSpeakersByEventId,
       getEventSpeakersByTeamMemberId,
       insertEventSpeaker,
       updateEventSpeaker,
 } from "./models/event-speaker.queries.js";
+import {
+      checkEventExists,
+      checkTeamMemberExists,
+} from "../event-roster/event-roster.services.js";
+import { getTeamMemberById } from "../team-members/models/team-member.queries.js";
 import {
       CreateEventSpeakerDTO,
       UpdateEventSpeakerDTO,
@@ -37,8 +43,8 @@ import {
       clearCacheByPrefix,
 } from "../../config/redis/redis.services.js";
 
-// Constant value for cache timeout
-const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
+// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
+const DEFAULT_CACHE_TTL_SECONDS = 60;
 const DEFAULT_SPEAKER_MEDIA_FOLDER = "event-speakers-media";
 
 /** Optional multipart context: profile image upload parity with events/team/partners. */
@@ -49,9 +55,13 @@ export interface EventSpeakerUploadContext {
 
 const validateEventSpeakerReferences = async (
       data: Partial<
-            Pick<CreateEventSpeakerDTO, "profileMediaId" | "teamMemberId">
+            Pick<
+                  CreateEventSpeakerDTO,
+                  "profileMediaId" | "teamMemberId" | "eventId"
+            >
       >,
 ) => {
+      // Media check stays local: media is not part of the roster seam.
       if (data.profileMediaId && !(await getMediaById(data.profileMediaId))) {
             throw new AppError(
                   400,
@@ -59,11 +69,14 @@ const validateEventSpeakerReferences = async (
             );
       }
 
-      if (data.teamMemberId && !(await getTeamMemberById(data.teamMemberId))) {
-            throw new AppError(
-                  400,
-                  "teamMemberId must reference an existing team member",
-            );
+      if (data.teamMemberId) {
+            await checkTeamMemberExists(data.teamMemberId);
+      }
+
+      // eventId is nullable — only validate when a value is supplied so
+      // null/absent keeps its existing semantics.
+      if (data.eventId) {
+            await checkEventExists(data.eventId);
       }
 };
 
@@ -129,8 +142,20 @@ export const createEventSpeakerService = async (
       }
 };
 
-export const getEventSpeakersService = async (pagination: Pagination) => {
-      const cacheKey = `speakers:${pagination.page}:${pagination.limit}`;
+export const getEventSpeakersService = async (
+      pagination: Pagination,
+      eventId?: string,
+) => {
+      // Optional ?eventId filter: 404 when the event does not exist.
+      if (eventId) {
+            await checkEventExists(eventId);
+      }
+
+      // Per-event keys share the `speakers:` prefix so existing
+      // clearCacheByPrefix("speakers:") invalidation covers them.
+      const cacheKey = eventId
+            ? `speakers:event:${eventId}:${pagination.page}:${pagination.limit}`
+            : `speakers:${pagination.page}:${pagination.limit}`;
 
       // Check Cache
       const cached = await getCache<{
@@ -142,8 +167,12 @@ export const getEventSpeakersService = async (pagination: Pagination) => {
 
       // Cache Miss
       const [eventSpeakers, total] = await Promise.all([
-            getEventSpeakers(pagination),
-            countEventSpeakers(),
+            eventId
+                  ? getEventSpeakersByEventId(eventId, pagination)
+                  : getEventSpeakers(pagination),
+            eventId
+                  ? countEventSpeakersByEventId(eventId)
+                  : countEventSpeakers(),
       ]);
 
       const res = {
@@ -151,7 +180,7 @@ export const getEventSpeakersService = async (pagination: Pagination) => {
             pagination: getPaginationMeta(pagination, total),
       };
 
-      await setCache(cacheKey, res, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
       return res;
 };
 
@@ -165,7 +194,7 @@ export const getEventSpeakerByIdService = async (id: string) => {
             throw new AppError(404, "Event speaker not found");
       }
 
-      await setCache(cacheKey, eventSpeaker, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, eventSpeaker, DEFAULT_CACHE_TTL_SECONDS);
       return eventSpeaker;
 };
 
@@ -179,7 +208,7 @@ export const getEventSpeakerBySlugService = async (slug: string) => {
             throw new AppError(404, "Event speaker not found");
       }
 
-      await setCache(cacheKey, eventSpeaker, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, eventSpeaker, DEFAULT_CACHE_TTL_SECONDS);
       return eventSpeaker;
 };
 
@@ -191,7 +220,8 @@ export const getEventSpeakersByTeamMemberIdService = async (
             throw new AppError(404, "Team member not found");
       }
 
-      const cacheKey = `speaker:${teamMemberId}:${pagination.page}:${pagination.limit}`;
+      // Was `speaker:` (singular) — that key escaped clearCacheByPrefix("speakers:").
+      const cacheKey = `speakers:${teamMemberId}:${pagination.page}:${pagination.limit}`;
 
       // Check Cache
       const cached = await getCache<{
@@ -212,7 +242,7 @@ export const getEventSpeakersByTeamMemberIdService = async (
             pagination: getPaginationMeta(pagination, total),
       };
 
-      await setCache(cacheKey, res, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
       return res;
 };
 

@@ -13,6 +13,7 @@ import {
       deleteEventHostService,
 } from "./event-hosts.services.js";
 import { CreateEventHostSchema, UpdateEventHostSchema } from "./event-hosts.validations.js";
+import { parseOptionalEventId } from "../event-roster/event-roster.validations.js";
 
 export const createEventHost = async (req: Request, res: Response) => {
       try {
@@ -27,7 +28,11 @@ export const createEventHost = async (req: Request, res: Response) => {
 export const listEventHosts = async (req: Request, res: Response) => {
       try {
             const paginationQuery = getPagination(req.query);
-            const result = await listEventHostsService(paginationQuery);
+            const eventId = parseOptionalEventId(req.query);
+            const result = await listEventHostsService(
+                  paginationQuery,
+                  eventId,
+            );
             return res.status(200).json({ success: true, ...result });
       } catch (error) {
             return handleControllerError(res, error, "Failed to list event hosts");

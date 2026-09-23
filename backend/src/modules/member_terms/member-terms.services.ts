@@ -24,8 +24,8 @@ import { getTeamMemberById } from "../team-members/models/team-member.queries.js
 import { getTermById } from "../terms/models/terms.queries.js";
 import { getMediaById } from "../media/models/media.queries.js";
 
-// Cache TTL in milliseconds (e.g., 60 seconds)
-const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
+// Cache TTL in seconds (setCache's ttl is seconds, not milliseconds)
+const DEFAULT_CACHE_TTL_SECONDS = 60;
 
 /**
  * Create a MemberTerm linking a team member to a term.
@@ -61,8 +61,11 @@ export const createMemberTermService = async (data: CreateMemberTermsDTO) => {
             throw new AppError(400, "profileMediaId must reference existing media");
       }
 
-      // Invalidate related caches before persisting
+      // Invalidate related caches before persisting. member_terms writes
+      // seed avatars from the member row, so also drop team-members: caches
+      // to avoid an avatar-snapshot staleness window.
       await clearCacheByPrefix("member-terms:");
+      await clearCacheByPrefix("team-members:");
 
       // If callers do not provide a term snapshot yet, seed it from the
       // member's current/default avatar so existing reads remain stable.
@@ -100,7 +103,7 @@ export const getMemberTermsService = async (pagination: Pagination) => {
             memberTerms,
             pagination: getPaginationMeta(pagination, total),
       };
-      await setCache(cacheKey, res, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
       return res;
 };
 
@@ -113,7 +116,7 @@ export const getMemberTermByIdService = async (id: string) => {
       if (!memberTerm) {
             throw new AppError(404, "Member term not found");
       }
-      await setCache(cacheKey, memberTerm, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, memberTerm, DEFAULT_CACHE_TTL_SECONDS);
       return memberTerm;
 };
 
@@ -136,6 +139,8 @@ export const updateMemberTermService = async (
       });
       await deleteCache(`member-terms:${id}`);
       await clearCacheByPrefix("member-terms:");
+      // Term avatar snapshots reference the member row; drop member caches too.
+      await clearCacheByPrefix("team-members:");
       return updated;
 };
 
@@ -146,5 +151,7 @@ export const deleteMemberTermService = async (id: string) => {
       }
       await deleteCache(`member-terms:${id}`);
       await clearCacheByPrefix("member-terms:");
+      // Term avatar snapshots reference the member row; drop member caches too.
+      await clearCacheByPrefix("team-members:");
       await deleteMemberTerm(id);
 };

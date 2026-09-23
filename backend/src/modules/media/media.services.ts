@@ -22,8 +22,8 @@ import {
 import logger from "../../utils/logger.js";
 import { NewMediaRecord } from "./models/media.queries.js";
 
-// Constant value for cache timeout
-const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
+// Cache TTL in seconds for setCache (its ttl parameter is seconds, not ms)
+const DEFAULT_CACHE_TTL_SECONDS = 60;
 
 export const createMediaService = async (data: any) => {
       if (!(await getAdminById(data.uploadedBy))) {
@@ -71,7 +71,7 @@ export const getMediaService = async (pagination: Pagination) => {
             pagination: getPaginationMeta(pagination, total),
       };
 
-      await setCache(cacheKey, res, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, res, DEFAULT_CACHE_TTL_SECONDS);
       return res;
 };
 
@@ -85,7 +85,7 @@ export const getMediaByIdService = async (id: string) => {
             throw new AppError(404, "Media not found");
       }
 
-      await setCache(cacheKey, media, DEFAULT_CACHE_TIME_TO_LIVE);
+      await setCache(cacheKey, media, DEFAULT_CACHE_TTL_SECONDS);
       return media;
 };
 

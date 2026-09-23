@@ -58,9 +58,10 @@ async function getMany(path) {
 /**
  * Content sections are loaded from GET /public/content (always 200; empty
  * list while the CMS has no rows) and matched by key client-side. The
- * per-key GET /public/content/:key route404s until an admin creates the
- * hero/cta/etc. rows, which used to spray red "Failed to load resource"
- * console lines on every public page load (×2 keys × StrictMode × pages).
+ * per-key GET /public/content/:key route was retired by the backend
+ * (architecture candidate 3): this app never called it and the backend had
+ * zero internal callers. List-only also keeps the console clean (no red
+ * "Failed to load resource" lines ×2 keys × StrictMode × pages).
  *
  * The promise is cached for the SPA session so StrictMode's double mount
  * and every content-backed page share one request. A 404 is cached as an

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { eventsApi, getId, mediaApi, publicPreview, speakersApi } from '../../api/resources.js';
 import { pickImage } from '../../api/public.js';
 import {
+  ADMIN_ENTITY_ROUTES,
   EVENT_STATUSES, MAX_FEATURED_EVENTS, checkSlugUnique, slugify,
   useDirtyGuard, validateEvent,
 } from '../../admin/editorial.js';
@@ -205,7 +206,7 @@ export default function EventDetail() {
       setForm(fresh);
       setOriginal(fresh);
       setToast(publish ? 'Published.' : 'Saved as draft.');
-      if (isNew && (getId(saved) ?? saved?.slug)) navigate(`/admin/events/${getId(saved) ?? saved.slug}`, { replace: true });
+      if (isNew && (getId(saved) ?? saved?.slug)) navigate(ADMIN_ENTITY_ROUTES.events.detail(getId(saved) ?? saved.slug), { replace: true });
       return true;
     } catch (err) {
       setServerError(err?.body?.message ?? err?.message ?? 'Save failed.');
@@ -234,7 +235,7 @@ export default function EventDetail() {
     setSaving(true);
     try {
       await eventsApi.remove(id);
-      navigate('/admin/events');
+      navigate(ADMIN_ENTITY_ROUTES.events.list);
     } catch (err) {
       setServerError(err?.body?.message ?? err?.message ?? 'Delete failed.');
       setSaving(false);
@@ -359,7 +360,7 @@ export default function EventDetail() {
             Create = draft · publish gate enforced · <a href={publicPreview.events()}>public preview</a>
           </p>
         </div>
-        {!isNew ? <Link className="gdg-btn gdg-btn-secondary" to="/admin/events">Back to list</Link> : null}
+        {!isNew ? <Link className="gdg-btn gdg-btn-secondary" to={ADMIN_ENTITY_ROUTES.events.list}>Back to list</Link> : null}
       </div>
 
       {blocker?.state === 'blocked' ? (

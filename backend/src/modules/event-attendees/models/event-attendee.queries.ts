@@ -1,4 +1,4 @@
-import { asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq, sql } from "drizzle-orm";
 import { db } from "../../../config/connectDB.js";
 import { Pagination } from "../../../utils/pagination.js";
 import { eventAttendees } from "./event-attendee.js";
@@ -25,6 +25,47 @@ export const getEventAttendees = async (pagination: Pagination) =>
 export const countEventAttendees = async () => {
       const [result] = await db.select({ total: count() }).from(eventAttendees);
       return result.total;
+};
+
+export const getEventAttendeesByEventId = async (
+      eventId: string,
+      pagination: Pagination,
+) =>
+      db
+            .select()
+            .from(eventAttendees)
+            .where(eq(eventAttendees.eventId, eventId))
+            .orderBy(
+                  asc(eventAttendees.lastName),
+                  asc(eventAttendees.firstName),
+            )
+            .limit(pagination.limit)
+            .offset(pagination.offset);
+
+export const countEventAttendeesByEventId = async (eventId: string) => {
+      const [result] = await db
+            .select({ total: count() })
+            .from(eventAttendees)
+            .where(eq(eventAttendees.eventId, eventId));
+      return result.total;
+};
+
+/** Roster dedupe lookup: case-insensitive email match within one event. */
+export const getEventAttendeeByEventAndEmail = async (
+      eventId: string,
+      email: string,
+) => {
+      const [att] = await db
+            .select({ id: eventAttendees.id })
+            .from(eventAttendees)
+            .where(
+                  and(
+                        eq(eventAttendees.eventId, eventId),
+                        sql`lower(${eventAttendees.email}) = lower(${email})`,
+                  ),
+            )
+            .limit(1);
+      return att;
 };
 
 export const getEventAttendeeById = async (id: string) => {

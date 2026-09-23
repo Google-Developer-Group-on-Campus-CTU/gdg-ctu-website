@@ -24,6 +24,7 @@ import {
       UpdateEventSpeakerDTO,
       UpdateEventSpeakerSchema,
 } from "./event-speaker.validations.js";
+import { parseOptionalEventId } from "../event-roster/event-roster.validations.js";
 
 export const createEventSpeaker = async (req: Request, res: Response) => {
       try {
@@ -66,8 +67,9 @@ export const createEventSpeaker = async (req: Request, res: Response) => {
 export const listEventSpeakers = async (req: Request, res: Response) => {
       try {
             const paginationQuery = getPagination(req.query);
+            const eventId = parseOptionalEventId(req.query);
             const { eventSpeakers, pagination } =
-                  await getEventSpeakersService(paginationQuery);
+                  await getEventSpeakersService(paginationQuery, eventId);
 
             return res.status(200).json({
                   success: true,

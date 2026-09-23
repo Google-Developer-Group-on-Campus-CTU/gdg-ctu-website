@@ -12,6 +12,11 @@ export class AppError extends Error {
       }
 }
 
+// UUID v1–v5 pattern shared by validateUuid (kept backend-local on purpose —
+// no cross-package sharing with the frontend).
+const UUID_PATTERN =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export const validateBody = <T>(schema: ZodType<T>, body: unknown): T => {
       const result = schema.safeParse(body);
 
@@ -41,10 +46,7 @@ export const getPagination = (query: unknown): Pagination => {
 };
 
 export const validateUuid = (value: string | string[], field = "id") => {
-      const uuidPattern =
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-      if (Array.isArray(value) || !uuidPattern.test(value)) {
+      if (Array.isArray(value) || !UUID_PATTERN.test(value)) {
             throw new AppError(400, `Invalid ${field}`);
       }
 

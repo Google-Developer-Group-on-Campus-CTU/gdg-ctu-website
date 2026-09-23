@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { contentApi, getId } from '../../api/resources.js';
-import { CONTENT_KEYS, useDirtyGuard, validateContent } from '../../admin/editorial.js';
+import { ADMIN_ENTITY_ROUTES, CONTENT_KEYS, useDirtyGuard, validateContent } from '../../admin/editorial.js';
 import { ErrorState, Field, FormSummary, LoadingSkeleton, focusSummary, inputProps, Toggle } from '../../components/admin/shared.jsx';
 import MediaPicker from '../../components/admin/MediaPicker.jsx';
+import { authClient } from '../../lib/auth-client';
 
 const EMPTY = { title: '', subtitle: '', body: '', mediaId: '', buttonText: '', buttonUrl: '', is_active: true, status: 'draft' };
 
@@ -13,14 +14,18 @@ function toForm(item = {}) {
     mediaId: item.mediaId ?? item.media_id ?? '',
     buttonText: item.buttonText ?? item.button_text ?? '',
     buttonUrl: item.buttonUrl ?? item.button_url ?? '',
-    is_active: item.is_active ?? true, status: String(item.status ?? 'draft').toLowerCase(),
-    updated_by: item.updated_by ?? null, updated_at: item.updated_at ?? null,
+    // Backend (Drizzle) returns camelCase; keep snake fallbacks for old payloads.
+    is_active: item.is_active ?? item.isActive ?? true,
+    status: String(item.status ?? 'draft').toLowerCase(),
+    updated_by: item.updated_by ?? item.updatedBy ?? null,
+    updated_at: item.updated_at ?? item.updatedAt ?? null,
   };
 }
 
 export default function ContentEditor() {
   const { sectionKey } = useParams();
   const summaryRef = useRef(null);
+  const { data: session } = authClient.useSession();
   const validKey = CONTENT_KEYS.includes(sectionKey);
   const [form, setForm] = useState(EMPTY);
   const [original, setOriginal] = useState(EMPTY);
@@ -56,7 +61,7 @@ export default function ContentEditor() {
   }, [sectionKey, validKey]);
 
   if (!validKey) {
-    return <section aria-label="Content editor"><h1>Unknown section</h1><p>Valid keys: {CONTENT_KEYS.join(', ')}.</p><Link to="/admin/content">Back</Link></section>;
+    return <section aria-label="Content editor"><h1>Unknown section</h1><p>Valid keys: {CONTENT_KEYS.join(', ')}.</p><Link to={ADMIN_ENTITY_ROUTES.content.list}>Back</Link></section>;
   }
   if (loading) return <section aria-label="Content editor"><h1>{sectionKey}</h1><LoadingSkeleton label="Loading section…" /></section>;
   if (loadError) return <section aria-label="Content editor"><h1>{sectionKey}</h1><ErrorState error={loadError} onRetry={() => window.location.reload()} context="load this section" /></section>;
@@ -70,10 +75,24 @@ export default function ContentEditor() {
     if (Object.keys(gate).length) { focusSummary(summaryRef); return; }
     setSaving(true); setServerError(null);
     try {
-      const payload = { ...next, section_key: sectionKey };
+      // Backend CreateSiteContentSchema is camelCase (sectionKey, isActive,
+      // updatedBy) — snake_case keys would be silently stripped by Zod.
+      const payload = {
+        title: next.title,
+        subtitle: next.subtitle || null,
+        body: next.body || null,
+        mediaId: next.mediaId || null,
+        buttonText: next.buttonText || null,
+        buttonUrl: next.buttonUrl || null,
+        isActive: !!next.is_active,
+        status: next.status,
+        sectionKey,
+        updatedBy: session?.user?.id ?? '',
+      };
       let saved;
-      if (rowId || !notFound) saved = rowId ? await contentApi.update(rowId, payload) : await contentApi.update(sectionKey, payload);
-      else saved = await contentApi.create({ ...payload, status: publish ? 'published' : 'draft' });
+      if (rowId) saved = await contentApi.update(rowId, payload);
+      else if (notFound) saved = await contentApi.create({ ...payload, status: publish ? 'published' : 'draft' });
+      else saved = await contentApi.updateBySection(sectionKey, payload);
       const fresh = toForm(saved ?? next);
       setForm(fresh); setOriginal(fresh);
       if (getId(saved)) setRowId(getId(saved));
@@ -91,7 +110,7 @@ export default function ContentEditor() {
           <h1>{sectionKey}</h1>
           <p className="admin-muted">sectionKey immutable · {notFound ? 'no row yet — saving creates it' : `row ${rowId ?? ''}`} {form.updated_at ? `· last edited ${form.updated_at}${form.updated_by ? ` by ${form.updated_by}` : ''}` : ''}</p>
         </div>
-        <Link className="gdg-btn gdg-btn-secondary" to="/admin/content">Back to sections</Link>
+        <Link className="gdg-btn gdg-btn-secondary" to={ADMIN_ENTITY_ROUTES.content.list}>Back to sections</Link>
       </div>
       {blocker?.state === 'blocked' ? (
         <div className="admin-summary" role="alert"><h3>Unsaved changes</h3>

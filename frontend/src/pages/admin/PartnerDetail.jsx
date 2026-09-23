@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getId, partnersApi } from '../../api/resources.js';
-import { PARTNER_TIERS, checkSlugUnique, slugify, useDirtyGuard, validatePartner } from '../../admin/editorial.js';
+import { ADMIN_ENTITY_ROUTES, PARTNER_TIERS, checkSlugUnique, slugify, useDirtyGuard, validatePartner } from '../../admin/editorial.js';
 import { ErrorState, Field, FormSummary, LoadingSkeleton, focusSummary, inputProps, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
 import MediaPicker from '../../components/admin/MediaPicker.jsx';
 
@@ -84,7 +84,7 @@ export default function PartnerDetail() {
       else saved = await partnersApi.update(id, payload);
       const fresh = toForm(saved ?? next);
       setForm(fresh); setOriginal(fresh); setToast(publish ? 'Published.' : 'Saved as draft.');
-      if (isNew && (getId(saved) ?? saved?.slug)) navigate(`/admin/partners/${getId(saved) ?? saved.slug}`, { replace: true });
+      if (isNew && (getId(saved) ?? saved?.slug)) navigate(ADMIN_ENTITY_ROUTES.partners.detail(getId(saved) ?? saved.slug), { replace: true });
     } catch (err) {
       setServerError(err?.status === 404
         ? 'POST /partners returned 404 — the greenfield partners module has not shipped on the backend yet.'
@@ -96,7 +96,7 @@ export default function PartnerDetail() {
     <section aria-label={isNew ? 'New partner' : 'Edit partner'}>
       <div className="admin-page-head">
         <div><h1>{isNew ? 'New partner' : form.name}</h1><p className="admin-muted">Tier-ordered public strip; website must be https://.</p></div>
-        {!isNew ? <Link className="gdg-btn gdg-btn-secondary" to="/admin/partners">Back to list</Link> : null}
+        {!isNew ? <Link className="gdg-btn gdg-btn-secondary" to={ADMIN_ENTITY_ROUTES.partners.list}>Back to list</Link> : null}
       </div>
       {blocker?.state === 'blocked' ? (
         <div className="admin-summary" role="alert"><h3>Unsaved changes</h3>
@@ -159,7 +159,7 @@ export default function PartnerDetail() {
         onCancel={() => setConfirm(false)}
         onConfirm={async () => {
           setSaving(true);
-          try { await partnersApi.update(id, { is_active: false }); navigate('/admin/partners'); }
+          try { await partnersApi.update(id, { is_active: false }); navigate(ADMIN_ENTITY_ROUTES.partners.list); }
           catch (err) { setServerError(err?.body?.message ?? err?.message ?? 'Archive failed.'); setSaving(false); setConfirm(false); }
         }} />
     </section>

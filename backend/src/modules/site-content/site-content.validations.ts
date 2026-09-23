@@ -1,15 +1,8 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { siteContent } from "./models/site-content.js";
-
-/** Fixed CMS section keys (spec §4.7) — no custom keys in V1. */
-export const SECTION_KEYS = [
-      "hero",
-      "about",
-      "community",
-      "cta",
-      "footer",
-] as const;
+// Fixed CMS section keys (spec §4.7) — single source in section-keys.ts.
+import { SECTION_KEYS } from "./section-keys.js";
 
 export const SiteContentSchema = createSelectSchema(siteContent);
 
@@ -20,8 +13,7 @@ export const CreateSiteContentSchema = createInsertSchema(siteContent)
       })
       .extend({
             sectionKey: z.enum(SECTION_KEYS, {
-                  message:
-                        "Section key must be one of hero, about, community, cta, footer.",
+                  message: `Section key must be one of ${SECTION_KEYS.join(", ")}.`,
             }),
             title: z.string().trim().min(1, { message: "Title is required." }),
             subtitle: z.string().nullable().optional(),

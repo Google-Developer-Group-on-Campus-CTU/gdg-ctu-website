@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getId, partnersApi } from '../../api/resources.js';
-import { useAdminList, useDebouncedValue } from '../../admin/editorial.js';
+import { ADMIN_ENTITY_ROUTES, useAdminList, useDebouncedValue } from '../../admin/editorial.js';
 import { EmptyState, ErrorState, LoadingSkeleton, StatusPill } from '../../components/admin/shared.jsx';
 
 const TIER_ORDER = { platinum: 0, gold: 1, silver: 2, community: 3 };
@@ -36,7 +36,7 @@ export default function AdminPartners() {
           <h1>Partners</h1>
           <p className="admin-muted">Grouped by tier · ordered by tier then display_order.</p>
         </div>
-        <Link className="gdg-btn gdg-btn-primary" to="/admin/partners/new">+ New partner</Link>
+        <Link className="gdg-btn gdg-btn-primary" to={ADMIN_ENTITY_ROUTES.partners.new}>+ New partner</Link>
       </div>
       <div className="admin-toolbar">
         <label className="admin-visually-hidden" htmlFor="partner-tier">Filter by tier</label>
@@ -59,11 +59,11 @@ export default function AdminPartners() {
           title="No partners yet (backend module may still be pending)"
           hint="Partners is greenfield per spec §4.5 and follows the team-members pattern. The form below posts to POST /partners; if the backend 404s, the V1 backend pass has not shipped yet."
           actionLabel="+ New partner"
-          actionTo="/admin/partners/new"
+          actionTo={ADMIN_ENTITY_ROUTES.partners.new}
         />
       ) : null}
       {!loading && !error && !missing && rows.length === 0 ? (
-        <EmptyState title="No partners match this filter" actionLabel="+ New partner" actionTo="/admin/partners/new" />
+        <EmptyState title="No partners match this filter" actionLabel="+ New partner" actionTo={ADMIN_ENTITY_ROUTES.partners.new} />
       ) : null}
       {!loading && !error && rows.length > 0 ? (
         <div className="admin-table-wrap">
@@ -74,7 +74,7 @@ export default function AdminPartners() {
                 const id = getId(p) ?? p.slug;
                 return (
                   <tr key={id}>
-                    <td><Link to={`/admin/partners/${id}`}>{p.name}</Link></td>
+                    <td><Link to={ADMIN_ENTITY_ROUTES.partners.detail(id)}>{p.name}</Link></td>
                     <td><span className="admin-pill">{p.tier ?? '—'}</span></td>
                     <td>{p.display_order ?? 0}</td>
                     <td><StatusPill status={p.status} active={p.is_active} /></td>

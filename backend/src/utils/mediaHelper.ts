@@ -1,6 +1,7 @@
 import { deleteMediaService } from "../modules/media/media.services.js";
 import { mediaHasReferences } from "../modules/media/models/media.queries.js";
 import { AppError } from "./http.js";
+import logger from "./logger.js";
 
 /**
  * Safely removes an old media asset from both cloud storage (Cloudinary) and the database
@@ -44,9 +45,12 @@ export const cleanupReplacedMedia = async (
             await deleteMediaService(oldMediaId);
       } catch (error: any) {
             // Log the error for observability in production environments
-            console.error(
+            logger.error(
                   `[cleanupReplacedMedia] Failed to delete orphaned media ${oldMediaId}:`,
-                  error,
+                  {
+                        message: error?.message ?? String(error),
+                        stack: error?.stack,
+                  },
             );
             throw new AppError(
                   500,

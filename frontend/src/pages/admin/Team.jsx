@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getId, teamApi } from '../../api/resources.js';
-import { useAdminList, useDebouncedValue } from '../../admin/editorial.js';
+import { ADMIN_ENTITY_ROUTES, useAdminList, useDebouncedValue } from '../../admin/editorial.js';
 import { AdminListPage, EmptyState, StatusPill } from '../../components/admin/shared.jsx';
 
 export default function AdminTeam() {
@@ -26,7 +26,7 @@ export default function AdminTeam() {
           <h1>Team</h1>
           <p className="admin-muted">Photo · name · roleTitle · dept/program/year · order · active.</p>
         </div>
-        <Link className="gdg-btn gdg-btn-primary" to="/admin/team/new">+ New member</Link>
+        <Link className="gdg-btn gdg-btn-primary" to={ADMIN_ENTITY_ROUTES.team.new}>+ New member</Link>
       </div>
       <AdminListPage
         loading={loading}
@@ -37,7 +37,7 @@ export default function AdminTeam() {
         errorContext="load team"
         isEmpty={rows.length === 0}
         empty={
-          <EmptyState title="No team members yet" hint="Create the first profile as a draft." actionLabel="+ New member" actionTo="/admin/team/new" />
+          <EmptyState title="No team members yet" hint="Create the first profile as a draft." actionLabel="+ New member" actionTo={ADMIN_ENTITY_ROUTES.team.new} />
         }
       >
         <div className="admin-table-wrap">
@@ -51,7 +51,7 @@ export default function AdminTeam() {
                 const name = `${m.firstName ?? m.first_name ?? ''} ${m.lastName ?? m.last_name ?? ''}`.trim() || '(unnamed)';
                 return (
                   <tr key={id}>
-                    <td><Link to={`/admin/team/${id}`}>{name}</Link>{m.is_featured ? ' ★' : ''}</td>
+                    <td><Link to={ADMIN_ENTITY_ROUTES.team.detail(id)}>{name}</Link>{m.is_featured ? ' ★' : ''}</td>
                     <td>{m.roleTitle ?? m.role_title ?? '—'}</td>
                     <td>{[m.department, m.program, m.yearSection ?? m.year_section].filter(Boolean).join(' · ') || '—'}</td>
                     <td>{m.display_order ?? 0}</td>
