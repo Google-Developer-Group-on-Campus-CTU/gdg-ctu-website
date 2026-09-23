@@ -384,7 +384,7 @@
 
     .big-logo {
       position: absolute;            
-      left: 98%;
+      left: 49%;
       transform: translateX(-50%);
       display: flex;
       align-items: center;
@@ -396,7 +396,7 @@
       max-width: none;
       align-items: center;
       justify-content: center;
-      margin-top: 60px;
+      margin-top: 150px;
     }
 
     .footer-links {
