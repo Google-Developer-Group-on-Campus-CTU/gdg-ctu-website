@@ -52,7 +52,6 @@ CREATE TABLE "verification" (
 );
 --> statement-breakpoint
 ALTER TABLE "admins" DISABLE ROW LEVEL SECURITY;--> statement-breakpoint
-DROP TABLE "admins" CASCADE;--> statement-breakpoint
 ALTER TABLE "events" DROP CONSTRAINT "events_created_by_admins_id_fk";
 --> statement-breakpoint
 ALTER TABLE "media_collections" DROP CONSTRAINT "media_collections_created_by_admins_id_fk";
@@ -65,6 +64,7 @@ ALTER TABLE "partners" DROP CONSTRAINT "partners_updated_by_admins_id_fk";
 --> statement-breakpoint
 ALTER TABLE "site_content" DROP CONSTRAINT "site_content_updated_by_admins_id_fk";
 --> statement-breakpoint
+DROP TABLE "admins" CASCADE;--> statement-breakpoint
 ALTER TABLE "events" ALTER COLUMN "created_by" SET DATA TYPE text;--> statement-breakpoint
 ALTER TABLE "media_collections" ALTER COLUMN "created_by" SET DATA TYPE text;--> statement-breakpoint
 ALTER TABLE "media" ALTER COLUMN "uploaded_by" SET DATA TYPE text;--> statement-breakpoint
