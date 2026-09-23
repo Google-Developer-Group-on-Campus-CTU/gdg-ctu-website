@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, RouterProvider, createBrowserRouter } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -35,48 +35,54 @@ function PublicLayout() {
   );
 }
 
-export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public routes (CMS-wired per spec v0.4 Home feeds + §5) */}
-        <Route element={<PublicLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/team" element={<Officers />} />
-          <Route path="/officers" element={<Navigate to="/team" replace />} />
-          <Route path="/partners" element={<Partners />} />
-          <Route path="/gallery" element={<Gallery />} />
-          <Route path="/gallery/:slug" element={<Gallery />} />
-          <Route path="/events" element={<Events />} />
-          <Route path="/events/:slug" element={<Events />} />
-          <Route path="/contact" element={<Contact />} />
-        </Route>
+// Data router is required for useBlocker (used by useDirtyGuard in
+// src/admin/editorial.js). Same route tree as before, object form.
+const router = createBrowserRouter([
+  {
+    element: <PublicLayout />,
+    children: [
+      { path: '/', element: <Home /> },
+      { path: '/about', element: <About /> },
+      { path: '/team', element: <Officers /> },
+      { path: '/officers', element: <Navigate to="/team" replace /> },
+      { path: '/partners', element: <Partners /> },
+      { path: '/gallery', element: <Gallery /> },
+      { path: '/gallery/:slug', element: <Gallery /> },
+      { path: '/events', element: <Events /> },
+      { path: '/events/:slug', element: <Events /> },
+      { path: '/contact', element: <Contact /> },
+    ],
+  },
+  { path: '/admin/login/*', element: <AdminLogin /> },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        element: <AdminShell />,
+        children: [
+          { path: '/admin', element: <AdminDashboard /> },
+          { path: '/admin/events', element: <AdminEvents /> },
+          { path: '/admin/events/new', element: <EventDetail /> },
+          { path: '/admin/events/:id', element: <EventDetail /> },
+          { path: '/admin/team', element: <AdminTeam /> },
+          { path: '/admin/team/new', element: <TeamDetail /> },
+          { path: '/admin/team/:id', element: <TeamDetail /> },
+          { path: '/admin/partners', element: <AdminPartners /> },
+          { path: '/admin/partners/new', element: <PartnerDetail /> },
+          { path: '/admin/partners/:id', element: <PartnerDetail /> },
+          { path: '/admin/gallery', element: <AdminGallery /> },
+          { path: '/admin/gallery/albums/new', element: <AlbumDetail /> },
+          { path: '/admin/gallery/albums/:id', element: <AlbumDetail /> },
+          { path: '/admin/content', element: <AdminContent /> },
+          { path: '/admin/content/:sectionKey', element: <ContentEditor /> },
+          { path: '/admin/media', element: <AdminMedia /> },
+          { path: '/admin/settings', element: <AdminSettings /> },
+        ],
+      },
+    ],
+  },
+]);
 
-        {/* Admin routes */}
-        <Route path="/admin/login/*" element={<AdminLogin />} />
-        <Route element={<ProtectedRoute />}>
-          <Route element={<AdminShell />}>
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/events" element={<AdminEvents />} />
-            <Route path="/admin/events/new" element={<EventDetail />} />
-            <Route path="/admin/events/:id" element={<EventDetail />} />
-            <Route path="/admin/team" element={<AdminTeam />} />
-            <Route path="/admin/team/new" element={<TeamDetail />} />
-            <Route path="/admin/team/:id" element={<TeamDetail />} />
-            <Route path="/admin/partners" element={<AdminPartners />} />
-            <Route path="/admin/partners/new" element={<PartnerDetail />} />
-            <Route path="/admin/partners/:id" element={<PartnerDetail />} />
-            <Route path="/admin/gallery" element={<AdminGallery />} />
-            <Route path="/admin/gallery/albums/new" element={<AlbumDetail />} />
-            <Route path="/admin/gallery/albums/:id" element={<AlbumDetail />} />
-            <Route path="/admin/content" element={<AdminContent />} />
-            <Route path="/admin/content/:sectionKey" element={<ContentEditor />} />
-            <Route path="/admin/media" element={<AdminMedia />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
-          </Route>
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  );
+export default function App() {
+  return <RouterProvider router={router} />;
 }

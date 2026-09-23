@@ -2,6 +2,18 @@ import { AppError } from "../../utils/http";
 import { getPaginationMeta, Pagination } from "../../utils/pagination";
 import { getMediaById } from "../media/models/media.queries";
 import { getTeamMemberById } from "../team-members/models/team-member.queries";
+import { createMediaService } from "../media/media.services";
+import {
+      uploadMedia,
+} from "../../config/cloudinary/cloudinary.services";
+import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper";
+import {
+      rollbackCloudinaryUpload,
+      CloudinaryUploadResult,
+} from "../../config/cloudinary/utils/cloudinary-rollback-helper";
+import { cleanupReplacedMedia } from "../../utils/mediaHelper";
+import { assertAdminExists } from "../auth/assertAdminExistsHelper";
+import logger from "../../utils/logger";
 import {
       countEventSpeakers,
       countEventSpeakersByTeamMemberId,
@@ -27,6 +39,13 @@ import {
 
 // Constant value for cache timeout
 const DEFAULT_CACHE_TIME_TO_LIVE = 60000;
+const DEFAULT_SPEAKER_MEDIA_FOLDER = "event-speakers-media";
+
+/** Optional multipart context: profile image upload parity with events/team/partners. */
+export interface EventSpeakerUploadContext {
+      file?: Buffer;
+      uploadedBy?: string;
+}
 
 const validateEventSpeakerReferences = async (
       data: Partial<
@@ -50,15 +69,64 @@ const validateEventSpeakerReferences = async (
 
 export const createEventSpeakerService = async (
       data: CreateEventSpeakerDTO,
+      upload?: EventSpeakerUploadContext,
 ) => {
       if (await getEventSpeakerBySlug(data.slug)) {
             throw new AppError(409, "Event speaker slug already exists");
       }
 
-      await validateEventSpeakerReferences(data);
+      let uploadResult: CloudinaryUploadResult | null = null;
+      try {
+            let profileMediaId = data.profileMediaId ?? undefined;
 
-      await clearCacheByPrefix("speakers:");
-      return insertEventSpeaker(data);
+            // Optional profile image — uploaded first so FK validation covers it.
+            if (upload?.file) {
+                  if (!upload.uploadedBy) {
+                        throw new AppError(
+                              401,
+                              "Admin ID missing: Unauthorized",
+                        );
+                  }
+                  await assertAdminExists(upload.uploadedBy);
+
+                  uploadResult = await uploadMedia(upload.file, {
+                        folder: DEFAULT_SPEAKER_MEDIA_FOLDER,
+                        resourceType: "image",
+                  });
+                  const mediaData = createMediaRecord(
+                        uploadResult,
+                        upload.uploadedBy,
+                  );
+                  const mediaRecord = await createMediaService(mediaData);
+                  profileMediaId = mediaRecord.id;
+            }
+
+            await validateEventSpeakerReferences({
+                  ...data,
+                  profileMediaId,
+            });
+
+            await clearCacheByPrefix("speakers:");
+            return await insertEventSpeaker({ ...data, profileMediaId });
+      } catch (error: any) {
+            if (uploadResult) {
+                  await rollbackCloudinaryUpload(uploadResult);
+            }
+
+            logger.error("Failed to create event speaker", {
+                  message: error.message,
+                  stack: error.stack,
+            });
+
+            if (error instanceof AppError) {
+                  throw error;
+            }
+
+            throw new AppError(
+                  400,
+                  `Failed to create event speaker: ${error.message}`,
+            );
+      }
 };
 
 export const getEventSpeakersService = async (pagination: Pagination) => {
@@ -151,6 +219,7 @@ export const getEventSpeakersByTeamMemberIdService = async (
 export const updateEventSpeakerService = async (
       id: string,
       data: UpdateEventSpeakerDTO,
+      upload?: EventSpeakerUploadContext,
 ) => {
       const eventSpeaker = await getEventSpeakerById(id);
 
@@ -166,15 +235,68 @@ export const updateEventSpeakerService = async (
             }
       }
 
-      await validateEventSpeakerReferences(data);
+      const oldProfileMediaId = eventSpeaker.profileMediaId ?? undefined;
 
-      await deleteCache(`speakers:${id}`);
-      await clearCacheByPrefix(`speakers:`);
+      let uploadResult: CloudinaryUploadResult | null = null;
+      try {
+            let newProfileMediaId = oldProfileMediaId;
 
-      return updateEventSpeaker(id, {
-            ...data,
-            updatedAt: new Date(),
-      });
+            // Optional new profile image — upload and link before validating refs.
+            if (upload?.file) {
+                  if (!upload.uploadedBy) {
+                        throw new AppError(
+                              401,
+                              "Admin ID missing: Unauthorized",
+                        );
+                  }
+                  await assertAdminExists(upload.uploadedBy);
+
+                  uploadResult = await uploadMedia(upload.file, {
+                        folder: DEFAULT_SPEAKER_MEDIA_FOLDER,
+                        resourceType: "image",
+                  });
+                  const mediaData = createMediaRecord(
+                        uploadResult,
+                        upload.uploadedBy,
+                  );
+                  const mediaRecord = await createMediaService(mediaData);
+                  newProfileMediaId = mediaRecord.id;
+            }
+
+            await validateEventSpeakerReferences(
+                  upload?.file
+                        ? { ...data, profileMediaId: newProfileMediaId }
+                        : data,
+            );
+
+            await deleteCache(`speakers:${id}`);
+            await clearCacheByPrefix(`speakers:`);
+
+            const updated = await updateEventSpeaker(id, {
+                  ...data,
+                  ...(upload?.file ? { profileMediaId: newProfileMediaId } : {}),
+                  updatedAt: new Date(),
+            });
+
+            // Remove the replaced profile media once nothing references it anymore.
+            await cleanupReplacedMedia(oldProfileMediaId, newProfileMediaId);
+            return updated;
+      } catch (error: any) {
+            if (uploadResult) {
+                  await rollbackCloudinaryUpload(uploadResult);
+            }
+
+            logger.error("Failed to update event speaker", {
+                  message: error.message,
+                  stack: error.stack,
+            });
+
+            if (error instanceof AppError) {
+                  throw error;
+            }
+
+            throw new AppError(400, "Failed to update event speaker");
+      }
 };
 
 export const deleteEventSpeakerService = async (id: string) => {

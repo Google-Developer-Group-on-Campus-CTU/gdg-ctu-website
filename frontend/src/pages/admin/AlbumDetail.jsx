@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { apiFetch } from '../../api/client.js';
 import { albumItemsApi, albumsApi, getId, mediaApi } from '../../api/resources.js';
 import { MAX_FEATURED_PHOTOS, checkSlugUnique, slugify, useDirtyGuard, validateAlbum } from '../../admin/editorial.js';
 import { ErrorState, Field, FormSummary, LoadingSkeleton, focusSummary, inputProps, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
@@ -16,6 +17,32 @@ function toForm(item = {}) {
     description: item.description ?? '',
     is_featured: !!item.is_featured, is_active: item.is_active ?? true,
     status: String(item.status ?? 'draft').toLowerCase(),
+  };
+}
+
+/** Composite identity: backend routes are /media-collection-items/:collectionId/:mediaId (two params). */
+function itemPath(collectionId, mediaId) {
+  return `/media-collection-items/${encodeURIComponent(collectionId)}/${encodeURIComponent(mediaId)}`;
+}
+
+/** Map local patch keys to the backend update body (caption/altText/displayOrder/isFeatured). */
+function toItemBody(patch = {}) {
+  const body = {};
+  if ('order' in patch) body.displayOrder = patch.order;
+  if ('is_featured' in patch) body.isFeatured = !!patch.is_featured;
+  if ('caption' in patch) body.caption = patch.caption;
+  if ('altText' in patch) body.altText = patch.altText;
+  return body;
+}
+
+/** Normalize backend rows (camelCase composite PK, no single id) to the shape the Photos table reads. */
+function normalizeItem(item = {}, collectionId = '') {
+  return {
+    ...item,
+    collection_id: item.collection_id ?? item.collectionId ?? collectionId,
+    media_id: item.media_id ?? item.mediaId ?? '',
+    order: item.order ?? item.displayOrder ?? 0,
+    is_featured: !!(item.is_featured ?? item.isFeatured),
   };
 }
 
@@ -61,7 +88,8 @@ export default function AlbumDetail() {
       const mine = (Array.isArray(allItems) ? allItems : []).filter((it) => {
         const key = it.collection_id ?? it.collectionId ?? it.album_id ?? it.albumId;
         return String(key) === String(getId(album) ?? id);
-      }).sort((a, b) => (a.order ?? a.display_order ?? 0) - (b.order ?? b.display_order ?? 0));
+      }).map((it) => normalizeItem(it, String(getId(album) ?? id)))
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
       setPhotos(mine);
       setLoading(false);
     }).catch((err) => {
@@ -119,11 +147,17 @@ export default function AlbumDetail() {
     }
     setSaving(true); setServerError(null);
     try {
+      const picked = media.find((m) => String(getId(m)) === String(pickerId));
+      const altText = String(picked?.alt_text ?? picked?.altText ?? picked?.filename ?? picked?.originalName ?? '').trim() || 'Photo';
       const created = await albumItemsApi.create({
-        collection_id: albumId, media_id: pickerId,
-        order: photos.length, is_featured: false,
+        collectionId: albumId,
+        mediaId: pickerId,
+        displayOrder: photos.length,
+        altText,
+        isFeatured: false,
       });
-      setPhotos((list) => [...list, created ?? { id: `tmp-${Date.now()}`, media_id: pickerId, order: list.length }]);
+      const row = normalizeItem(created?.item ?? created, albumId);
+      setPhotos((list) => [...list, row]);
       setPickerId('');
       setToast('Photo added from Media picker.');
     } catch (err) {
@@ -131,36 +165,51 @@ export default function AlbumDetail() {
     } finally { setSaving(false); }
   };
 
+  /** Optimistic single-photo PATCH; reverts + error banner on failure. Returns false when it failed. */
   const mutatePhoto = async (photo, patch) => {
-    const pid = getId(photo);
     const prev = photos;
+    const collectionId = photo.collection_id ?? photo.collectionId ?? albumId;
+    const mediaId = photo.media_id ?? photo.mediaId;
     setPhotos((list) => list.map((p) => (p === photo ? { ...p, ...patch } : p)));
+    if (String(photo.id ?? '').startsWith('tmp-') || !mediaId) return true;
+    setSaving(true); setServerError(null);
     try {
-      if (String(pid ?? '').startsWith('tmp-')) return;
-      await albumItemsApi.update(pid, patch);
+      await apiFetch(itemPath(collectionId, mediaId), {
+        method: 'PATCH',
+        body: JSON.stringify(toItemBody(patch)),
+      });
+      return true;
     } catch {
       setPhotos(prev);
       setServerError('Photo update failed — rolled back.');
-    }
+      return false;
+    } finally { setSaving(false); }
   };
 
   const movePhoto = async (index, dir) => {
+    const prev = photos;
     const next = [...photos];
     const j = index + dir;
     if (j < 0 || j >= next.length) return;
     [next[index], next[j]] = [next[j], next[index]];
     const ordered = next.map((p, i) => ({ ...p, order: i }));
     setPhotos(ordered);
+    setSaving(true); setServerError(null);
     try {
       await Promise.all(ordered.map((p) => {
-        const pid = getId(p);
-        if (String(pid ?? '').startsWith('tmp-')) return null;
-        return albumItemsApi.update(pid, { order: p.order });
+        const collectionId = p.collection_id ?? p.collectionId ?? albumId;
+        const mediaId = p.media_id ?? p.mediaId;
+        if (String(p.id ?? '').startsWith('tmp-') || !mediaId) return null;
+        return apiFetch(itemPath(collectionId, mediaId), {
+          method: 'PATCH',
+          body: JSON.stringify({ displayOrder: p.order }),
+        });
       }));
       setToast('Order saved.');
     } catch {
-      setServerError('Reorder failed to persist — reload to see server order.');
-    }
+      setPhotos(prev);
+      setServerError('Reorder failed — rolled back.');
+    } finally { setSaving(false); }
   };
 
   const toggleFeaturePhoto = async (photo) => {
@@ -168,19 +217,25 @@ export default function AlbumDetail() {
       setServerError(`Featured-photo cap reached (max ${MAX_FEATURED_PHOTOS}). Unfeature another photo first.`);
       return;
     }
-    await mutatePhoto(photo, { is_featured: !photo.is_featured });
+    const saved = await mutatePhoto(photo, { is_featured: !photo.is_featured });
+    if (!saved) setToast('Change reverted — feature not saved.');
   };
 
   const removePhoto = async (photo) => {
-    const pid = getId(photo);
+    const prev = photos;
+    const collectionId = photo.collection_id ?? photo.collectionId ?? albumId;
+    const mediaId = photo.media_id ?? photo.mediaId;
     setPhotos((list) => list.filter((p) => p !== photo));
+    setSaving(true); setServerError(null);
     try {
-      if (!String(pid ?? '').startsWith('tmp-')) await albumItemsApi.remove(pid);
+      if (!String(photo.id ?? '').startsWith('tmp-') && mediaId) {
+        await apiFetch(itemPath(collectionId, mediaId), { method: 'DELETE' });
+      }
       setToast('Photo removed from album (media kept).');
     } catch {
-      setPhotos((list) => [...list, photo]);
+      setPhotos(prev);
       setServerError('Remove failed — rolled back.');
-    }
+    } finally { setSaving(false); }
   };
 
   const mediaName = (mid) => {
@@ -271,16 +326,16 @@ export default function AlbumDetail() {
                     <thead><tr><th scope="col">Media</th><th scope="col">Order</th><th scope="col">Featured</th><th scope="col">Actions</th></tr></thead>
                     <tbody>
                       {photos.map((p, i) => (
-                        <tr key={getId(p) ?? i}>
+                        <tr key={p.media_id ?? i}>
                           <td>{p.caption ?? mediaName(p.media_id ?? p.mediaId)}</td>
                           <td>{p.order ?? i}</td>
                           <td>
-                            <input type="checkbox" checked={!!p.is_featured} onChange={() => toggleFeaturePhoto(p)} aria-label={`Feature photo ${i + 1}`} />
+                            <input type="checkbox" checked={!!p.is_featured} disabled={saving} onChange={() => toggleFeaturePhoto(p)} aria-label={`Feature photo ${i + 1}`} />
                           </td>
                           <td>
-                            <button type="button" onClick={() => movePhoto(i, -1)} disabled={i === 0} aria-label={`Move photo ${i + 1} up`}>↑</button>{' '}
-                            <button type="button" onClick={() => movePhoto(i, 1)} disabled={i === photos.length - 1} aria-label={`Move photo ${i + 1} down`}>↓</button>{' '}
-                            <button type="button" onClick={() => removePhoto(p)}>Remove</button>
+                            <button type="button" onClick={() => movePhoto(i, -1)} disabled={saving || i === 0} aria-label={`Move photo ${i + 1} up`}>↑</button>{' '}
+                            <button type="button" onClick={() => movePhoto(i, 1)} disabled={saving || i === photos.length - 1} aria-label={`Move photo ${i + 1} down`}>↓</button>{' '}
+                            <button type="button" onClick={() => removePhoto(p)} disabled={saving}>Remove</button>
                           </td>
                         </tr>
                       ))}

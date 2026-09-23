@@ -49,19 +49,20 @@ const faqs = [
   },
 ];
 
-/* Render null while loading only if the strip also hides when empty:
-   skeleton keeps layout stable, so always render the section shell. */
+/* Strip states per spec: skeleton → error+retry → empty message → content.
+   The section shell always renders so layout stays stable while loading. */
 function TeamStrip() {
   const { data, loading, error, retry } = usePublicFeed(
     () => publicApi.getTeam({ featured: 'true' }).then((rows) => rows.map(mapMember).slice(0, 10)),
     'home-team',
   );
-  if (!loading && !error && (!data || data.length === 0)) return null;
+  const empty = !loading && !error && (!data || data.length === 0);
   return (
     <section className="gdg-section" aria-label="Our team">
       <StripHead badge="Our Team" title="Meet the Team" to="/team" linkLabel="Our Team" />
       {loading ? <FeedSkeleton label="Loading team…" /> : null}
       {!loading && error ? <FeedError message={friendlyFeedError(error)} onRetry={retry} /> : null}
+      {empty ? <p className="gdg-subtitle">No team members published yet — check back soon.</p> : null}
       {!loading && !error && data?.length ? (
         <div className="gdg-carousel">
           {data.map((m) => (
@@ -86,12 +87,13 @@ function RecentEventsStrip() {
     () => publicApi.getEvents('recent').then((rows) => rows.map(mapEvent).slice(0, 3)),
     'home-recent',
   );
-  if (!loading && !error && (!data || data.length === 0)) return null;
+  const empty = !loading && !error && (!data || data.length === 0);
   return (
     <section className="gdg-section" aria-label="Recent events">
       <StripHead badge="Events" title="Recent Events" to="/events" linkLabel="All Events" />
       {loading ? <FeedSkeleton label="Loading events…" /> : null}
       {!loading && error ? <FeedError message={friendlyFeedError(error)} onRetry={retry} /> : null}
+      {empty ? <p className="gdg-subtitle">No events published yet — check back soon.</p> : null}
       {!loading && !error && data?.length ? (
         <div className="gdg-grid">
           {data.map((event) => (
@@ -102,6 +104,12 @@ function RecentEventsStrip() {
             >
               {event.coverUrl ? (
                 <img className="gdg-photo" src={event.coverUrl} alt={event.coverAlt} loading="lazy" onError={hideImage} />
+              ) : null}
+              {event.featured || event.status ? (
+                <p>
+                  {event.featured ? <span className="gdg-tag">Featured</span> : null}{' '}
+                  {event.status ? <span className="gdg-tag gdg-tag-green">{event.status}</span> : null}
+                </p>
               ) : null}
               <h3>{event.title}</h3>
               {event.short ? <p>{event.short}</p> : null}
@@ -122,12 +130,13 @@ function PartnersStrip() {
     () => publicApi.getPartners().then(sortPartners),
     'home-partners',
   );
-  if (!loading && !error && (!data || data.length === 0)) return null;
+  const empty = !loading && !error && (!data || data.length === 0);
   return (
     <section className="gdg-section" aria-label="Our partners">
       <StripHead badge="Partners" title="Our Partners" to="/partners" linkLabel="All Partners" />
       {loading ? <FeedSkeleton label="Loading partners…" /> : null}
       {!loading && error ? <FeedError message={friendlyFeedError(error)} onRetry={retry} /> : null}
+      {empty ? <p className="gdg-subtitle">No partners published yet — check back soon.</p> : null}
       {!loading && !error && data?.length ? (
         <div className="gdg-partner-strip">
           {data.map((p) => (
@@ -150,12 +159,13 @@ function MomentsStrip() {
     () => publicApi.getFeaturedPhotos().then((rows) => rows.map(mapPhoto).slice(0, 8)),
     'home-moments',
   );
-  if (!loading && !error && (!data || data.length === 0)) return null;
+  const empty = !loading && !error && (!data || data.length === 0);
   return (
     <section className="gdg-section" aria-label="Captured moments">
       <StripHead badge="Gallery" title="Captured Moments" to="/gallery" linkLabel="Gallery" />
       {loading ? <FeedSkeleton label="Loading photos…" /> : null}
       {!loading && error ? <FeedError message={friendlyFeedError(error)} onRetry={retry} /> : null}
+      {empty ? <p className="gdg-subtitle">No photos published yet — check back soon.</p> : null}
       {!loading && !error && data?.length ? (
         <div className="gdg-carousel">
           {data.map((photo) => (
@@ -215,6 +225,9 @@ export default function Home() {
               About Us
             </Link>
           </div>
+          {!hero.loading && hero.error ? (
+            <FeedError message={friendlyFeedError(hero.error)} onRetry={hero.retry} />
+          ) : null}
         </div>
         <div>
           {heroContent?.mediaUrl && typeof heroContent.mediaUrl === 'string' ? (
@@ -281,6 +294,9 @@ export default function Home() {
               Join Us
             </a>
           )}
+          {!cta.loading && cta.error ? (
+            <FeedError message={friendlyFeedError(cta.error)} onRetry={cta.retry} />
+          ) : null}
         </div>
       </section>
     </div>

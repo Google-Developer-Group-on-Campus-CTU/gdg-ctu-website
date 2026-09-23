@@ -1,4 +1,5 @@
 import { Router } from "express";
+import upload from "../../middleware/upload";
 import {
       createEventSpeaker,
       getEventSpeaker,
@@ -11,11 +12,11 @@ import {
 
 const router = Router();
 
-router.post("/", createEventSpeaker);
+router.post("/", upload.single("file"), createEventSpeaker);
 router.get("/", listEventSpeakers);
 router.get("/slug/:slug", getEventSpeakerBySlug);
 router.get("/:id", getEventSpeaker);
-router.patch("/:id", updateEventSpeaker);
+router.patch("/:id", upload.single("file"), updateEventSpeaker);
 router.delete("/:id", removeEventSpeaker);
 router.get(
       "/team-members/:teamMemberId/event-speakers",

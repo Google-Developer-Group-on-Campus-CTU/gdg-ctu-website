@@ -90,6 +90,24 @@ export const getFeaturedCollectionItems = async (limit = 8) =>
             .orderBy(asc(mediaCollectionItems.displayOrder))
             .limit(limit);
 
+export const updateMediaCollectionItem = async (
+      collectionId: string,
+      mediaId: string,
+      data: Partial<NewMediaCollectionItemRecord>,
+) => {
+      const [item] = await db
+            .update(mediaCollectionItems)
+            .set(data)
+            .where(
+                  and(
+                        eq(mediaCollectionItems.collectionId, collectionId),
+                        eq(mediaCollectionItems.mediaId, mediaId),
+                  ),
+            )
+            .returning();
+      return item;
+};
+
 export const deleteMediaCollectionItem = async (
       collectionId: string,
       mediaId: string,

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import { adminNewTargetFor } from '../../admin/editorial.js';
+import { DEV_BYPASS_STORAGE_KEY } from '../../api/client.js';
 import '../../styles/admin.css';
 
 export const ADMIN_NAV = [
@@ -67,11 +68,21 @@ export default function AdminShell() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [params, setParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const query = params.get('q') ?? '';
 
   useEffect(() => {
     setDrawerOpen(false);
   }, [location.pathname]);
+
+  const exitDevAdmin = () => {
+    try {
+      localStorage.removeItem(DEV_BYPASS_STORAGE_KEY);
+    } catch {
+      /* storage unavailable — still navigate to the login screen */
+    }
+    navigate('/admin/login');
+  };
 
   const nav = (
     <nav aria-label="Admin primary" className="admin-nav">
@@ -133,6 +144,11 @@ export default function AdminShell() {
             />
           </form>
           <Identity />
+          {import.meta.env.DEV ? (
+            <button type="button" className="admin-link-btn" onClick={exitDevAdmin}>
+              Exit Dev Admin
+            </button>
+          ) : null}
           <Link className="gdg-btn gdg-btn-primary admin-new-btn" to={adminNewTargetFor(location.pathname)}>
             + New
           </Link>

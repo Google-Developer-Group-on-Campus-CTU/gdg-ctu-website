@@ -7,6 +7,7 @@ import {
       getMediaCollectionItems,
       countMediaCollectionItems,
       getMediaCollectionItem,
+      updateMediaCollectionItem,
       deleteMediaCollectionItem,
 } from "./models/media-collection-item.queries";
 import {
@@ -93,6 +94,29 @@ export const getMediaCollectionItemService = async (
       await setCache(cacheKey, res, DEFAULT_CACHE_TIME_TO_LIVE);
 
       return res;
+};
+
+export const updateMediaCollectionItemService = async (
+      collectionId: string,
+      mediaId: string,
+      data: UpdateMediaCollectionItemDTO,
+) => {
+      const existing = await getMediaCollectionItem(collectionId, mediaId);
+      if (!existing) {
+            throw new AppError(404, "Media collection item not found");
+      }
+
+      // Identity (composite PK) comes from the URL — ignore PK fields in the body.
+      const { collectionId: _collectionId, mediaId: _mediaId, ...updates } =
+            data;
+      if (Object.keys(updates).length === 0) {
+            throw new AppError(400, "At least one updatable field is required");
+      }
+
+      const item = await updateMediaCollectionItem(collectionId, mediaId, updates);
+      await deleteCache(`collection-items:${collectionId}:${mediaId}`);
+      await clearCacheByPrefix("collection-items:");
+      return toMediaCollectionItemResponse(item);
 };
 
 export const deleteMediaCollectionItemService = async (

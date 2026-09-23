@@ -15,6 +15,13 @@
       "when": 1789022492233,
       "tag": "0001_hard_mongoose",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790084049530,
+      "tag": "0002_graceful_shadow_king",
+      "breakpoints": true
     }
   ]
 }

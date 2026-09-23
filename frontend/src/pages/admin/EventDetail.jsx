@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { eventsApi, getId, publicPreview } from '../../api/resources.js';
+import { eventsApi, getId, mediaApi, publicPreview, speakersApi } from '../../api/resources.js';
+import { pickImage } from '../../api/public.js';
 import {
   EVENT_STATUSES, MAX_FEATURED_EVENTS, checkSlugUnique, slugify,
   useDirtyGuard, validateEvent,
 } from '../../admin/editorial.js';
 import { ErrorState, Field, FormSummary, LoadingSkeleton, focusSummary, inputProps, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
+import MediaPicker from '../../components/admin/MediaPicker.jsx';
 
 const EMPTY = {
   title: '', slug: '', short_description: '', description: '', coverMediaId: '', coverAlt: '',
   location: '', locationEmbedUrl: '', registrationEnabled: false, registrationUrl: '',
   startAt: '', endAt: '', status: 'draft', is_featured: false, display_order: 0, is_active: true,
 };
+
+const SPEAKER_EMPTY = { firstName: '', lastName: '', slug: '', role: '', profileMediaId: '', teamMemberId: '' };
 
 function toForm(item = {}) {
   return {
@@ -49,6 +53,19 @@ export default function EventDetail() {
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [toast, setToast] = useState('');
+  const [speakers, setSpeakers] = useState([]);
+  const [speakersLoading, setSpeakersLoading] = useState(!isNew);
+  const [speakersError, setSpeakersError] = useState(null);
+  const [speakerRetry, setSpeakerRetry] = useState(0);
+  const [speaker, setSpeaker] = useState(SPEAKER_EMPTY);
+  const [speakerErrors, setSpeakerErrors] = useState({});
+  const [speakerError, setSpeakerError] = useState(null);
+  const [speakerSaving, setSpeakerSaving] = useState(false);
+  const [speakerSlugTouched, setSpeakerSlugTouched] = useState(false);
+  const [speakerFile, setSpeakerFile] = useState(null);
+  const [confirmSpeaker, setConfirmSpeaker] = useState(null);
+  const [media, setMedia] = useState([]);
+  const activePending = useRef(false);
 
   const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(original), [form, original]);
   const blocker = useDirtyGuard(dirty && !saving);
@@ -103,6 +120,48 @@ export default function EventDetail() {
       clearTimeout(t);
     };
   }, [form.slug, id, isNew, original]);
+
+  /* Speakers are per-event: backend list returns everything, filter client-side by eventId. */
+  useEffect(() => {
+    if (isNew) {
+      setSpeakersLoading(false);
+      return;
+    }
+    let alive = true;
+    setSpeakersLoading(true);
+    setSpeakersError(null);
+    speakersApi.list({ limit: 100 })
+      .then((rows) => {
+        if (!alive) return;
+        const mine = (Array.isArray(rows) ? rows : []).filter(
+          (s) => String(s.eventId ?? s.event_id ?? '') === String(id),
+        );
+        setSpeakers(mine);
+        setSpeakersLoading(false);
+      })
+      .catch((err) => {
+        if (!alive) return;
+        setSpeakersError(err);
+        setSpeakersLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [id, isNew, speakerRetry]);
+
+  /* Media library for profile thumbnails (profileSrc resolves profileMediaId → URL, never a raw UUID). */
+  useEffect(() => {
+    if (isNew) return;
+    let alive = true;
+    mediaApi.list({ limit: 100 })
+      .then((rows) => {
+        if (alive) setMedia(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [isNew]);
 
   if (!isNew && loading) return <section aria-label="Event editor"><h1>Event</h1><LoadingSkeleton label="Loading event…" /></section>;
   if (!isNew && error) return <section aria-label="Event editor"><h1>Event</h1><ErrorState error={error} onRetry={() => window.location.reload()} context="load this event" /></section>;
@@ -183,6 +242,113 @@ export default function EventDetail() {
     }
   };
 
+  /* Spec §6: is_active is optimistic — persist immediately, roll back + announce on failure.
+     New events have no id yet, so the toggle stays form-only until first save. */
+  const toggleActive = async (value) => {
+    if (isNew) {
+      set('is_active', value);
+      return;
+    }
+    if (activePending.current || value === form.is_active) return;
+    activePending.current = true;
+    const prev = form.is_active;
+    setForm((f) => ({ ...f, is_active: value }));
+    try {
+      await eventsApi.update(id, { is_active: value });
+      setOriginal((o) => ({ ...o, is_active: value }));
+      setToast(value ? 'Event is active.' : 'Event hidden publicly.');
+    } catch (err) {
+      setForm((f) => ({ ...f, is_active: prev }));
+      setToast(err?.body?.message ?? err?.message ?? 'Could not save visibility — toggle reverted.');
+    } finally {
+      activePending.current = false;
+    }
+  };
+
+  /** Resolve a speaker profileMediaId through the media list; pickImage rejects UUIDs. */
+  const profileSrc = (mediaId) => {
+    if (!mediaId) return null;
+    const record = media.find((m) => String(getId(m)) === String(mediaId));
+    const url = pickImage(record);
+    return typeof url === 'string' ? url : null;
+  };
+
+  const setSpeakerField = (key, value) => {
+    setSpeaker((s) => {
+      const next = { ...s, [key]: value };
+      if ((key === 'firstName' || key === 'lastName') && !speakerSlugTouched) {
+        next.slug = slugify(`${next.firstName} ${next.lastName}`.trim());
+      }
+      return next;
+    });
+  };
+
+  const addSpeaker = async (e) => {
+    e.preventDefault();
+    const gate = {};
+    if (!speaker.firstName.trim()) gate.firstName = 'Required.';
+    if (!speaker.lastName.trim()) gate.lastName = 'Required.';
+    if (!speaker.slug.trim()) gate.slug = 'Required.';
+    setSpeakerErrors(gate);
+    if (Object.keys(gate).length) return;
+    setSpeakerSaving(true);
+    setSpeakerError(null);
+    try {
+      let profileMediaId = speaker.profileMediaId.trim() || null;
+      if (speakerFile) {
+        // Upload parity: backend already stores the file; reuse the Media pipeline and link its ID.
+        const uploaded = await mediaApi.upload(speakerFile, `${speaker.firstName} ${speaker.lastName}`.trim());
+        const uploadedId = uploaded?.media?.id ?? null;
+        if (uploadedId) {
+          profileMediaId = uploadedId;
+          setMedia((list) => [uploaded.media, ...list]);
+        }
+      }
+      const created = await speakersApi.create({
+        eventId: id,
+        firstName: speaker.firstName.trim(),
+        lastName: speaker.lastName.trim(),
+        slug: speaker.slug.trim(),
+        role: speaker.role.trim() || null,
+        profileMediaId,
+        teamMemberId: speaker.teamMemberId.trim() || null,
+      });
+      const row = created?.eventSpeaker ?? created;
+      setSpeakers((list) => [...list, row]);
+      setSpeaker(SPEAKER_EMPTY);
+      setSpeakerSlugTouched(false);
+      setSpeakerFile(null);
+      setToast('Speaker added.');
+    } catch (err) {
+      setSpeakerError(err?.body?.message ?? err?.message ?? 'Could not add speaker.');
+    } finally {
+      setSpeakerSaving(false);
+    }
+  };
+
+  const removeSpeaker = async () => {
+    const sid = getId(confirmSpeaker);
+    if (!sid) {
+      setConfirmSpeaker(null);
+      return;
+    }
+    const prev = speakers;
+    setSpeakers((list) => list.filter((s) => getId(s) !== sid));
+    setSpeakerSaving(true);
+    setSpeakerError(null);
+    try {
+      await speakersApi.remove(sid);
+      setToast('Speaker removed.');
+      setConfirmSpeaker(null);
+    } catch (err) {
+      setSpeakers(prev);
+      setSpeakerError(err?.body?.message ?? err?.message ?? 'Remove failed — change reverted.');
+      setConfirmSpeaker(null);
+    } finally {
+      setSpeakerSaving(false);
+    }
+  };
+
   return (
     <section aria-label={isNew ? 'New event' : 'Edit event'}>
       <div className="admin-page-head">
@@ -227,9 +393,15 @@ export default function EventDetail() {
           <textarea {...inputProps('description', errors.description)} id="description" rows={6} value={form.description} onChange={(e) => set('description', e.target.value)} />
         </Field>
         <div className="admin-form-grid">
-          <Field label="Cover media ID" hint="Pick from Media; store the media ID here." htmlFor="coverMediaId" error={errors.coverMediaId} required>
-            <input {...inputProps('coverMediaId', errors.coverMediaId)} value={form.coverMediaId} onChange={(e) => set('coverMediaId', e.target.value)} />
-          </Field>
+          <MediaPicker
+            id="coverMediaId"
+            label="Cover media ID"
+            hint="Pick from the Media library below; the ID is stored on save."
+            error={errors.coverMediaId}
+            required
+            value={form.coverMediaId}
+            onChange={(v) => set('coverMediaId', v)}
+          />
           <Field label="Cover alt text" htmlFor="coverAlt" error={errors.coverAlt} required>
             <input {...inputProps('coverAlt', errors.coverAlt)} value={form.coverAlt} onChange={(e) => set('coverAlt', e.target.value)} />
           </Field>
@@ -265,7 +437,7 @@ export default function EventDetail() {
           </Field>
         </div>
         <Toggle id="is_featured" label={`Featured (max ${MAX_FEATURED_EVENTS})`} checked={form.is_featured} onChange={(v) => set('is_featured', v)} hint="UI-enforced cap; server is truth." />
-        <Toggle id="is_active" label="Active (off hides publicly)" checked={form.is_active} onChange={(v) => set('is_active', v)} />
+        <Toggle id="is_active" label="Active (off hides publicly)" checked={form.is_active} onChange={toggleActive} hint="Saves immediately for saved events (reverts + announces on failure)." />
 
         <div className="gdg-btn-row">
           <button type="submit" className="gdg-btn gdg-btn-secondary" disabled={saving}>{saving ? 'Saving…' : 'Save draft'}</button>
@@ -286,8 +458,128 @@ export default function EventDetail() {
         )}
       </form>
 
+      {isNew ? (
+        <div className="admin-card">
+          <p className="admin-muted">Save the event first, then add speakers.</p>
+        </div>
+      ) : (
+        <>
+          <div className="admin-card">
+            <h2>Speakers</h2>
+            <p className="admin-muted">
+              Profile via Media ID or direct upload (backend stores the file and links profileMediaId).
+              Team-member link is optional. Slug is unique across speakers.
+            </p>
+            {speakerError ? (
+              <div className="admin-summary" role="alert">
+                <p>{speakerError}</p>
+              </div>
+            ) : null}
+            {speakersLoading ? <LoadingSkeleton label="Loading speakers…" /> : null}
+            {!speakersLoading && speakersError ? (
+              <ErrorState error={speakersError} onRetry={() => setSpeakerRetry((t) => t + 1)} context="load speakers" />
+            ) : null}
+            {!speakersLoading && !speakersError && speakers.length === 0 ? (
+              <p className="admin-muted">No speakers yet — add the first one below.</p>
+            ) : null}
+            {!speakersLoading && !speakersError && speakers.length > 0 ? (
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Name</th>
+                      <th scope="col">Role</th>
+                      <th scope="col">Team member</th>
+                      <th scope="col">Profile</th>
+                      <th scope="col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {speakers.map((s, i) => {
+                      const sid = getId(s);
+                      const src = profileSrc(s.profileMediaId ?? s.profile_media_id);
+                      const teamId = s.teamMemberId ?? s.team_member_id;
+                      return (
+                        <tr key={sid ?? s.slug ?? i}>
+                          <td>
+                            {s.firstName} {s.lastName}
+                            <br />
+                            <span className="admin-muted">{s.slug}</span>
+                          </td>
+                          <td>{s.role || '—'}</td>
+                          <td>{teamId ? `${String(teamId).slice(0, 8)}…` : '—'}</td>
+                          <td>
+                            {src ? (
+                              <img className="admin-thumb" src={src} alt="" loading="lazy" />
+                            ) : (
+                              <span className="admin-muted">—</span>
+                            )}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="gdg-btn gdg-btn-secondary admin-danger"
+                              disabled={speakerSaving}
+                              onClick={() => setConfirmSpeaker(s)}
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+          </div>
+
+          <form className="admin-form" onSubmit={addSpeaker} noValidate>
+            <h3>Add speaker</h3>
+            <div className="admin-form-grid">
+              <Field label="First name" htmlFor="speakerFirstName" error={speakerErrors.firstName} required>
+                <input {...inputProps('speakerFirstName', speakerErrors.firstName)} value={speaker.firstName} onChange={(e) => setSpeakerField('firstName', e.target.value)} />
+              </Field>
+              <Field label="Last name" htmlFor="speakerLastName" error={speakerErrors.lastName} required>
+                <input {...inputProps('speakerLastName', speakerErrors.lastName)} value={speaker.lastName} onChange={(e) => setSpeakerField('lastName', e.target.value)} />
+              </Field>
+            </div>
+            <div className="admin-form-grid">
+              <Field label="Slug" hint="Auto from name; override allowed. Unique across speakers." htmlFor="speakerSlug" error={speakerErrors.slug} required>
+                <input {...inputProps('speakerSlug', speakerErrors.slug)} value={speaker.slug} onChange={(e) => { setSpeakerSlugTouched(true); setSpeakerField('slug', slugify(e.target.value)); }} />
+              </Field>
+              <Field label="Role" htmlFor="speakerRole" error={speakerErrors.role}>
+                <input {...inputProps('speakerRole', speakerErrors.role)} value={speaker.role} onChange={(e) => setSpeakerField('role', e.target.value)} />
+              </Field>
+            </div>
+            <div className="admin-form-grid">
+              <MediaPicker
+                id="speakerProfileMediaId"
+                label="Profile media ID"
+                hint="Optional — pick an asset below, or upload a photo further down (upload wins)."
+                error={speakerErrors.profileMediaId}
+                value={speaker.profileMediaId}
+                onChange={(v) => setSpeakerField('profileMediaId', v)}
+              />
+              <Field label="Team member ID (optional)" hint="Link this speaker to a team-member UUID." htmlFor="speakerTeamMemberId" error={speakerErrors.teamMemberId}>
+                <input {...inputProps('speakerTeamMemberId', speakerErrors.teamMemberId)} value={speaker.teamMemberId} onChange={(e) => setSpeakerField('teamMemberId', e.target.value)} />
+              </Field>
+            </div>
+            <Field label="Profile photo (optional)" hint="Uploads to Media and uses its ID; overrides the media ID above." htmlFor="speakerFile" error={speakerErrors.file}>
+              <input {...inputProps('speakerFile', speakerErrors.file)} type="file" accept="image/*" onChange={(e) => setSpeakerFile(e.target.files?.[0] ?? null)} />
+            </Field>
+            <div className="gdg-btn-row">
+              <button type="submit" className="gdg-btn gdg-btn-primary" disabled={speakerSaving}>
+                {speakerSaving ? 'Adding…' : 'Add speaker'}
+              </button>
+            </div>
+          </form>
+        </>
+      )}
+
       <TypedConfirm open={confirmArchive} title="Archive event?" body="Archive hides it publicly but keeps it editable and restorable (preferred over delete)." expected={form.slug} confirmLabel="Archive" busy={saving} onCancel={() => setConfirmArchive(false)} onConfirm={archive} />
       <TypedConfirm open={confirmDelete} title="Delete never-published draft?" body="Hard delete is only for never-published drafts. This cannot be undone." expected={form.slug} confirmLabel="Delete forever" busy={saving} onCancel={() => setConfirmDelete(false)} onConfirm={hardDelete} />
+      <TypedConfirm open={!!confirmSpeaker} title="Remove speaker?" body="Deletes this speaker record from the event. It can be re-added later." expected={confirmSpeaker ? `${confirmSpeaker.firstName} ${confirmSpeaker.lastName}` : ''} confirmLabel="Remove" busy={speakerSaving} onCancel={() => setConfirmSpeaker(null)} onConfirm={removeSpeaker} />
     </section>
   );
 }

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getId, partnersApi } from '../../api/resources.js';
 import { PARTNER_TIERS, checkSlugUnique, slugify, useDirtyGuard, validatePartner } from '../../admin/editorial.js';
 import { ErrorState, Field, FormSummary, LoadingSkeleton, focusSummary, inputProps, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
+import MediaPicker from '../../components/admin/MediaPicker.jsx';
 
 const EMPTY = { name: '', slug: '', logoMediaId: '', logoAlt: '', websiteUrl: '', tier: 'community', description: '', display_order: 0, is_active: true, status: 'draft' };
 
@@ -118,9 +119,15 @@ export default function PartnerDetail() {
           </Field>
         </div>
         <div className="admin-form-grid">
-          <Field label="Logo media ID" htmlFor="logoMediaId" error={errors.logoMediaId} required>
-            <input {...inputProps('logoMediaId', errors.logoMediaId)} value={form.logoMediaId} onChange={(e) => set('logoMediaId', e.target.value)} />
-          </Field>
+          <MediaPicker
+            id="logoMediaId"
+            label="Logo media ID"
+            hint="Pick from the Media library below; the ID is stored on save."
+            error={errors.logoMediaId}
+            required
+            value={form.logoMediaId}
+            onChange={(v) => set('logoMediaId', v)}
+          />
           <Field label="Logo alt text" htmlFor="logoAlt" error={errors.logoAlt} required>
             <input {...inputProps('logoAlt', errors.logoAlt)} value={form.logoAlt} onChange={(e) => set('logoAlt', e.target.value)} />
           </Field>

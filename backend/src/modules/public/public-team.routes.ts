@@ -4,6 +4,7 @@ import {
       getActiveTeamMembers,
 } from "../team-members/models/team-member.queries";
 import { AppError, getStringParam, handleControllerError } from "../../utils/http";
+import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url";
 
 /**
  * Public team feed — no auth. Active members only, safe fields
@@ -35,9 +36,15 @@ router.get("/", async (req, res) => {
             const featuredOnly = req.query.featured === "true";
             const members = await getActiveTeamMembers(featuredOnly);
             const capped = featuredOnly ? members.slice(0, 10) : members;
+            const urlMap = await resolveMediaUrlMap(
+                  capped.map((m) => m.profileMediaId),
+            );
             return res.status(200).json({
                   success: true,
-                  team: capped.map(toPublicTeamMember),
+                  team: capped.map((m) => ({
+                        ...toPublicTeamMember(m),
+                        photoUrl: pickMediaUrl(urlMap, m.profileMediaId),
+                  })),
             });
       } catch (error) {
             return handleControllerError(res, error, "Failed to list public team");
@@ -52,9 +59,14 @@ router.get("/slug/:slug", async (req, res) => {
             if (!member) {
                   throw new AppError(404, "Team member not found");
             }
-            return res
-                  .status(200)
-                  .json({ success: true, teamMember: toPublicTeamMember(member) });
+            const urlMap = await resolveMediaUrlMap([member.profileMediaId]);
+            return res.status(200).json({
+                  success: true,
+                  teamMember: {
+                        ...toPublicTeamMember(member),
+                        photoUrl: pickMediaUrl(urlMap, member.profileMediaId),
+                  },
+            });
       } catch (error) {
             return handleControllerError(res, error, "Failed to get public team member");
       }

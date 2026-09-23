@@ -1,11 +1,14 @@
 import { Request, Response } from "express";
+import { getClerkIdFromRequest } from "../auth/auth.utils";
 import {
+      AppError,
       getPagination,
       getStringParam,
       handleControllerError,
       validateBody,
       validateUuid,
 } from "../../utils/http";
+import { extractMultipartPayload } from "../../utils/multiPartPayloadHelper";
 import {
       createEventSpeakerService,
       deleteEventSpeakerService,
@@ -16,14 +19,35 @@ import {
       updateEventSpeakerService,
 } from "./event-speaker.services";
 import {
+      CreateEventSpeakerDTO,
       CreateEventSpeakerSchema,
+      UpdateEventSpeakerDTO,
       UpdateEventSpeakerSchema,
 } from "./event-speaker.validations";
 
 export const createEventSpeaker = async (req: Request, res: Response) => {
       try {
-            const data = validateBody(CreateEventSpeakerSchema, req.body);
-            const eventSpeaker = await createEventSpeakerService(data);
+            // Multipart: `speaker` JSON + optional `file`; plain JSON body still works.
+            const hasBody = Boolean(
+                  req.body && Object.keys(req.body).length > 0,
+            );
+            if (!hasBody) {
+                  throw new AppError(400, "'speaker' payload missing");
+            }
+
+            const payload = extractMultipartPayload(req.body, "speaker", [
+                  "uploadedBy",
+            ]);
+            const data: CreateEventSpeakerDTO = validateBody(
+                  CreateEventSpeakerSchema,
+                  payload,
+            );
+
+            const file = (req as any).file?.buffer as Buffer | undefined;
+            const eventSpeaker = await createEventSpeakerService(data, {
+                  file,
+                  uploadedBy: getClerkIdFromRequest(req),
+            });
 
             return res.status(201).json({
                   success: true,
@@ -131,8 +155,34 @@ export const listEventSpeakersForTeamMember = async (
 export const updateEventSpeaker = async (req: Request, res: Response) => {
       try {
             const id = validateUuid(req.params.id);
-            const data = validateBody(UpdateEventSpeakerSchema, req.body);
-            const eventSpeaker = await updateEventSpeakerService(id, data);
+            const file = (req as any).file?.buffer as Buffer | undefined;
+
+            // Body is optional when a replacement profile file is supplied.
+            // `uploadedBy` is an auth fallback, not a DTO field — ignore it here.
+            const bodyFields: Record<string, unknown> = {
+                  ...(req.body ?? {}),
+            };
+            delete bodyFields.uploadedBy;
+            const hasBody = Object.keys(bodyFields).length > 0;
+            let data: UpdateEventSpeakerDTO = {} as UpdateEventSpeakerDTO;
+            if (hasBody) {
+                  const payload = extractMultipartPayload(req.body, "speaker", [
+                        "uploadedBy",
+                  ]);
+                  data = validateBody(UpdateEventSpeakerSchema, payload);
+            }
+
+            if (!hasBody && !file) {
+                  throw new AppError(
+                        400,
+                        "At least one field or file is required",
+                  );
+            }
+
+            const eventSpeaker = await updateEventSpeakerService(id, data, {
+                  file,
+                  uploadedBy: getClerkIdFromRequest(req),
+            });
 
             return res.status(200).json({
                   success: true,
