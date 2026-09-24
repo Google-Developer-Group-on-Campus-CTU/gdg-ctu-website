@@ -1,9 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiFetch } from '../../api/client.js';
-import { albumItemsApi, albumsApi, getId, mediaApi } from '../../api/resources.js';
-import { ADMIN_ENTITY_ROUTES, MAX_FEATURED_PHOTOS, checkSlugUnique, slugify, useDirtyGuard, validateAlbum } from '../../admin/editorial.js';
-import { ErrorState, Field, FormSummary, LoadingSkeleton, focusSummary, inputProps, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
+import { albumItemsApi, albumsApi, getId, mediaApi, publicPreview } from '../../api/resources.js';
+import { ADMIN_ENTITY_ROUTES, MAX_FEATURED_PHOTOS, slugify, useDirtyGuard } from '../../admin/editorial.js';
+import {
+  albumEditorSchema,
+  DirtyGuardBanner,
+  EditorCard,
+  EditorErrors,
+  EditorField,
+  EditorFooter,
+  focusEditorErrors,
+  toEditorPayload,
+  useEditorForm,
+  useSlugUniqueness,
+} from '../../components/admin/form-shell.jsx';
+import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
+import { Form } from '../../components/ui/form';
+import { Input } from '../../components/ui/input';
 import { authClient } from '../../lib/auth-client';
 
 const EMPTY = { title: '', slug: '', coverMediaId: '', eventId: '', date: '', description: '', is_featured: false, is_active: true };
@@ -78,8 +92,12 @@ export default function AlbumDetail() {
   const navigate = useNavigate();
   const summaryRef = useRef(null);
   const { data: session } = authClient.useSession();
+  const methods = useEditorForm({ schema: albumEditorSchema, defaultValues: EMPTY });
+  const {
+    control, reset, watch, setValue, setError: setFieldError, handleSubmit,
+    formState: { errors: rhfErrors },
+  } = methods;
   const [tab, setTab] = useState('content');
-  const [form, setForm] = useState(EMPTY);
   const [original, setOriginal] = useState(EMPTY);
   const [photos, setPhotos] = useState([]);
   const [media, setMedia] = useState([]);
@@ -89,17 +107,15 @@ export default function AlbumDetail() {
   // Load retry that preserves form state — bumps the fetch effect below
   // instead of window.location.reload(), which would wipe unsaved edits.
   const [loadRetry, setLoadRetry] = useState(0);
-  const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
-  const [slugDup, setSlugDup] = useState(false);
-  const [slugCheckError, setSlugCheckError] = useState(null);
   const [mediaError, setMediaError] = useState(null);
   const [confirm, setConfirm] = useState(false);
   const [toast, setToast] = useState('');
 
-  const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(original), [form, original]);
+  const values = watch();
+  const dirty = useMemo(() => JSON.stringify(values) !== JSON.stringify(original), [values, original]);
   const blocker = useDirtyGuard(dirty && !saving);
   const albumId = isNew ? null : id;
   const featuredCount = photos.filter((p) => p.is_featured).length;
@@ -119,7 +135,7 @@ export default function AlbumDetail() {
       if (!alive) return;
       const album = albumRes?.collection ?? albumRes;
       const next = toForm(album);
-      setForm(next); setOriginal(next);
+      reset(next); setOriginal(next);
       const mine = (Array.isArray(allItems) ? allItems : []).filter((it) => {
         const key = it.collection_id ?? it.collectionId ?? it.album_id ?? it.albumId;
         return String(key) === String(getId(album) ?? id);
@@ -132,33 +148,16 @@ export default function AlbumDetail() {
       setError(err); setLoading(false);
     });
     return () => { alive = false; };
-  }, [id, isNew, loadRetry]);
+  }, [id, isNew, loadRetry, reset]);
 
-  const set = (key, value) => {
-    setForm((f) => {
-      const next = { ...f, [key]: value };
-      if (key === 'title' && !slugTouched) next.slug = slugify(value);
-      return next;
-    });
-  };
-
+  // Slug auto-fills from the title until touched (same contract as before).
+  const title = watch('title');
   useEffect(() => {
-    if (!form.slug) { setSlugDup(false); setSlugCheckError(null); return; }
-    let alive = true;
-    setSlugCheckError(null);
-    const t = setTimeout(() => {
-      checkSlugUnique(albumsApi, form.slug, isNew ? null : getId(original) ?? id)
-        .then((unique) => { if (alive) { setSlugDup(!unique); setSlugCheckError(null); } })
-        .catch((err) => {
-          if (!alive) return;
-          if (err?.status === 404) { setSlugDup(false); setSlugCheckError(null); return; }
-          // 500/timeout/network: unverifiable — block save with the error.
-          setSlugDup(false);
-          setSlugCheckError(err?.body?.message ?? err?.message ?? 'Could not verify slug uniqueness.');
-        });
-    }, 400);
-    return () => { alive = false; clearTimeout(t); };
-  }, [form.slug, id, isNew, original]);
+    if (!slugTouched) setValue('slug', slugify(title ?? ''));
+  }, [title, slugTouched, setValue]);
+
+  const currentId = isNew ? null : getId(original) ?? id;
+  const { slugDup, slugCheckError } = useSlugUniqueness(albumsApi, watch('slug'), currentId);
 
   if (!isNew && loading) return <section aria-label="Album editor"><h1>Album</h1><LoadingSkeleton label="Loading album…" /></section>;
   // Retry clears the error + shows the loader from the click handler (not the
@@ -170,19 +169,17 @@ export default function AlbumDetail() {
   };
   if (!isNew && error) return <section aria-label="Album editor"><h1>Album</h1><ErrorState error={error} onRetry={retryLoad} context="load this album" /></section>;
 
-  const persist = async (publish = false) => {
-    if (slugCheckError) { setErrors({ slug: slugCheckError }); focusSummary(summaryRef); setTab('content'); return; }
-    const next = publish ? { ...form, is_active: true } : form;
-    // `name` (mapped from title) must be non-empty on every save, not just publish.
-    const gate = {
-      ...(String(next.title ?? '').trim() ? {} : { title: 'Title is required.' }),
-      ...(publish ? { ...validateAlbum(next), ...(slugDup ? { slug: 'Slug is already in use.' } : {}) } : {}),
-    };
-    setErrors(gate);
-    if (Object.keys(gate).length) { focusSummary(summaryRef); setTab('content'); return; }
+  const onInvalid = () => { focusEditorErrors(summaryRef); setTab('content'); };
+
+  const persist = (publish) => async (next) => {
+    if (slugCheckError) { setFieldError('slug', { message: slugCheckError }); onInvalid(); return; }
+    // `title` (mapped to backend `name`) is required on every save via the
+    // zod schema; slug-dup only gates publish — exactly like today.
+    if (publish && slugDup) { setFieldError('slug', { message: 'Slug is already in use.' }); onInvalid(); return; }
+    const effective = publish ? { ...next, is_active: true } : next;
     setSaving(true); setServerError(null);
     try {
-      const payload = toApiPayload(next);
+      const payload = toApiPayload(toEditorPayload(effective));
       let saved;
       if (isNew) {
         // CreateMediaCollectionSchema requires `createdBy` (must resolve to an
@@ -197,8 +194,8 @@ export default function AlbumDetail() {
         saved = await albumsApi.update(id, payload);
       }
       const row = saved?.collection ?? saved;
-      const fresh = toForm(row ?? next);
-      setForm(fresh); setOriginal(fresh); setToast(publish ? 'Published.' : 'Saved.');
+      const fresh = toForm(row ?? effective);
+      reset(fresh); setOriginal(fresh); setToast(publish ? 'Published.' : 'Saved.');
       if (isNew && (getId(row) ?? row?.slug)) navigate(ADMIN_ENTITY_ROUTES.gallery.detail(getId(row) ?? row.slug), { replace: true });
     } catch (err) {
       setServerError(err?.body?.message ?? err?.message ?? 'Save failed.');
@@ -312,20 +309,10 @@ export default function AlbumDetail() {
   return (
     <section aria-label={isNew ? 'New album' : 'Edit album'}>
       <div className="admin-page-head">
-        <div><h1>{isNew ? 'New album' : form.title}</h1><p className="admin-muted">Manual create · Media picker · reorder · featured ≤ {MAX_FEATURED_PHOTOS}.</p></div>
+        <div><h1>{isNew ? 'New album' : values.title}</h1><p className="admin-muted">Manual create · Media picker · reorder · featured ≤ {MAX_FEATURED_PHOTOS}.</p></div>
         <Link className="gdg-btn gdg-btn-secondary" to={ADMIN_ENTITY_ROUTES.gallery.list}>Back to albums</Link>
       </div>
-      {blocker?.state === 'blocked' ? (
-        <div className="admin-summary" role="alert"><h3>Unsaved changes</h3>
-          <div className="gdg-btn-row">
-            <button type="button" className="gdg-btn gdg-btn-secondary" onClick={() => blocker.reset()}>Stay</button>
-            <button type="button" className="gdg-btn gdg-btn-primary admin-danger" onClick={() => blocker.proceed()}>Discard</button>
-          </div>
-        </div>
-      ) : null}
-      <FormSummary errors={errors} summaryRef={summaryRef} />
-      {serverError ? <div className="admin-summary" role="alert"><p>{serverError}</p></div> : null}
-      {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
+      <DirtyGuardBanner blocker={blocker} />
 
       <div className="admin-tabs" role="tablist" aria-label="Album sections">
         {['content', 'photos', 'settings'].map((t) => (
@@ -335,99 +322,148 @@ export default function AlbumDetail() {
         ))}
       </div>
 
-      {tab === 'content' ? (
-        <form className="admin-form" onSubmit={(e) => { e.preventDefault(); persist(false); }} noValidate>
-          <div className="admin-form-grid">
-            <Field label="Title" htmlFor="title" error={errors.title} required>
-              <input {...inputProps('title', errors.title)} value={form.title} onChange={(e) => set('title', e.target.value)} />
-            </Field>
-            <Field label="Slug" htmlFor="slug" error={errors.slug ?? slugCheckError ?? (slugDup ? 'Slug is already in use.' : null)} required>
-              <input {...inputProps('slug', errors.slug || slugCheckError || slugDup)} value={form.slug} onChange={(e) => { setSlugTouched(true); set('slug', slugify(e.target.value)); }} />
-            </Field>
-          </div>
-          <div className="admin-form-grid">
-            <Field label="Cover media ID" htmlFor="coverMediaId" error={errors.coverMediaId} required>
-              <input {...inputProps('coverMediaId', errors.coverMediaId)} value={form.coverMediaId} onChange={(e) => set('coverMediaId', e.target.value)} />
-            </Field>
-          </div>
-          <div className="admin-form-grid">
-            <Field label="Linked event ID (optional)" htmlFor="eventId" error={errors.eventId}>
-              <input {...inputProps('eventId', errors.eventId)} value={form.eventId} onChange={(e) => set('eventId', e.target.value)} />
-            </Field>
-            <Field label="Date" htmlFor="date" error={errors.date}>
-              <input {...inputProps('date', errors.date)} type="date" value={form.date} onChange={(e) => set('date', e.target.value)} />
-            </Field>
-          </div>
-          <Field label="Description" htmlFor="description" error={errors.description}>
-            <textarea {...inputProps('description', errors.description)} id="description" rows={4} value={form.description} onChange={(e) => set('description', e.target.value)} />
-          </Field>
-          <div className="gdg-btn-row">
-            <button type="submit" className="gdg-btn gdg-btn-secondary" disabled={saving}>{saving ? 'Saving…' : 'Save draft'}</button>
-            <button type="button" className="gdg-btn gdg-btn-primary" disabled={saving} onClick={() => persist(true)}>{saving ? 'Publishing…' : 'Publish'}</button>
-          </div>
-        </form>
-      ) : null}
-
-      {tab === 'photos' ? (
-        <div className="admin-card">
-          {isNew ? <p className="admin-muted">Save the album first, then add photos.</p> : (
-            <>
-              <div className="admin-toolbar">
-                {mediaError ? (
-                  <p role="alert" className="admin-muted">
-                    Media library failed to load: {mediaError?.body?.message ?? mediaError?.message ?? 'request failed'}.
-                  </p>
-                ) : null}
-                <label className="admin-visually-hidden" htmlFor="photo-picker">Add photo from Media</label>
-                <select id="photo-picker" value={pickerId} onChange={(e) => setPickerId(e.target.value)}>
-                  <option value="">Pick from Media…</option>
-                  {media.map((m) => (
-                    <option key={getId(m)} value={getId(m)}>{mediaName(getId(m))}</option>
-                  ))}
-                </select>
-                <button type="button" className="gdg-btn gdg-btn-primary" disabled={!pickerId || saving} onClick={addPhoto}>Add photo</button>
-                <span className="admin-muted" aria-live="polite">Featured {featuredCount}/{MAX_FEATURED_PHOTOS}</span>
-              </div>
-              {photos.length === 0 ? <p className="admin-muted">No photos yet — add from the Media picker (no new upload flow here).</p> : (
-                <div className="admin-table-wrap">
-                  <table className="admin-table">
-                    <thead><tr><th scope="col">Media</th><th scope="col">Order</th><th scope="col">Featured</th><th scope="col">Actions</th></tr></thead>
-                    <tbody>
-                      {photos.map((p, i) => (
-                        <tr key={p.media_id ?? i}>
-                          <td>{p.caption ?? mediaName(p.media_id ?? p.mediaId)}</td>
-                          <td>{p.order ?? i}</td>
-                          <td>
-                            <input type="checkbox" checked={!!p.is_featured} disabled={saving} onChange={() => toggleFeaturePhoto(p)} aria-label={`Feature photo ${i + 1}`} />
-                          </td>
-                          <td>
-                            <button type="button" onClick={() => movePhoto(i, -1)} disabled={saving || i === 0} aria-label={`Move photo ${i + 1} up`}>↑</button>{' '}
-                            <button type="button" onClick={() => movePhoto(i, 1)} disabled={saving || i === photos.length - 1} aria-label={`Move photo ${i + 1} down`}>↓</button>{' '}
-                            <button type="button" onClick={() => removePhoto(p)} disabled={saving}>Remove</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+      <Form {...methods}>
+        {tab === 'content' ? (
+          <form onSubmit={(e) => handleSubmit(persist(false), onInvalid)(e)} noValidate>
+            <EditorCard
+              title={isNew ? 'New album' : 'Edit album'}
+              eyebrow="Gallery"
+              actions={(
+                <a
+                  className="gdg-btn gdg-btn-secondary"
+                  href={values.slug ? publicPreview.albumSlug(values.slug) : ADMIN_ENTITY_ROUTES.gallery.list}
+                  target={values.slug ? '_blank' : undefined}
+                  rel="noreferrer"
+                >
+                  Public preview
+                </a>
               )}
-            </>
-          )}
-        </div>
-      ) : null}
+            >
+              <EditorErrors errors={rhfErrors} serverError={serverError} summaryRef={summaryRef} />
+              {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
+              <div className="editor-grid">
+                <EditorField control={control} name="title" label="Title" required>
+                  {(field) => <Input {...field} />}
+                </EditorField>
+                <EditorField
+                  control={control}
+                  name="slug"
+                  label="Slug"
+                  required
+                  hint={slugCheckError ?? (slugDup ? 'Slug is already in use.' : 'Auto-fills from title until edited.')}
+                >
+                  {(field) => <Input {...field} onChange={(e) => { setSlugTouched(true); field.onChange(slugify(e.target.value)); }} />}
+                </EditorField>
+              </div>
+              <div className="editor-grid">
+                <EditorField control={control} name="coverMediaId" label="Cover media ID" required>
+                  {(field) => <Input {...field} value={field.value ?? ''} />}
+                </EditorField>
+              </div>
+              <div className="editor-grid">
+                <EditorField control={control} name="eventId" label="Linked event ID (optional)">
+                  {(field) => <Input {...field} value={field.value ?? ''} />}
+                </EditorField>
+                <EditorField control={control} name="date" label="Date">
+                  {(field) => <input type="date" {...field} value={field.value ?? ''} />}
+                </EditorField>
+              </div>
+              <EditorField control={control} name="description" label="Description">
+                {(field) => <textarea {...field} value={field.value ?? ''} rows={4} />}
+              </EditorField>
+              <EditorFooter
+                saving={saving}
+                isNew={isNew}
+                onPublish={() => handleSubmit(persist(true), onInvalid)()}
+                saveLabel="Save draft"
+                publishLabel="Publish"
+              />
+            </EditorCard>
+          </form>
+        ) : null}
 
-      {tab === 'settings' ? (
-        <form className="admin-form" onSubmit={(e) => { e.preventDefault(); persist(false); }}>
-          <Toggle id="album-featured" label="Highlight album" checked={form.is_featured} onChange={(v) => set('is_featured', v)} />
-          <Toggle id="album-active" label="Active (off hides publicly)" checked={form.is_active} onChange={(v) => set('is_active', v)} />
-          <div className="gdg-btn-row">
-            <button type="submit" className="gdg-btn gdg-btn-secondary" disabled={saving}>Save settings</button>
-            {!isNew ? <button type="button" className="gdg-btn gdg-btn-secondary" onClick={() => setConfirm(true)}>Archive / delete</button> : null}
+        {tab === 'photos' ? (
+          <div className="admin-card">
+            {isNew ? <p className="admin-muted">Save the album first, then add photos.</p> : (
+              <>
+                <div className="admin-toolbar">
+                  {mediaError ? (
+                    <p role="alert" className="admin-muted">
+                      Media library failed to load: {mediaError?.body?.message ?? mediaError?.message ?? 'request failed'}.
+                    </p>
+                  ) : null}
+                  <label className="admin-visually-hidden" htmlFor="photo-picker">Add photo from Media</label>
+                  <select id="photo-picker" value={pickerId} onChange={(e) => setPickerId(e.target.value)}>
+                    <option value="">Pick from Media…</option>
+                    {media.map((m) => (
+                      <option key={getId(m)} value={getId(m)}>{mediaName(getId(m))}</option>
+                    ))}
+                  </select>
+                  <button type="button" className="gdg-btn gdg-btn-primary" disabled={!pickerId || saving} onClick={addPhoto}>Add photo</button>
+                  <span className="admin-muted" aria-live="polite">Featured {featuredCount}/{MAX_FEATURED_PHOTOS}</span>
+                </div>
+                {photos.length === 0 ? <p className="admin-muted">No photos yet — add from the Media picker (no new upload flow here).</p> : (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead><tr><th scope="col">Media</th><th scope="col">Order</th><th scope="col">Featured</th><th scope="col">Actions</th></tr></thead>
+                      <tbody>
+                        {photos.map((p, i) => (
+                          <tr key={p.media_id ?? i}>
+                            <td>{p.caption ?? mediaName(p.media_id ?? p.mediaId)}</td>
+                            <td>{p.order ?? i}</td>
+                            <td>
+                              <input type="checkbox" checked={!!p.is_featured} disabled={saving} onChange={() => toggleFeaturePhoto(p)} aria-label={`Feature photo ${i + 1}`} />
+                            </td>
+                            <td>
+                              <button type="button" onClick={() => movePhoto(i, -1)} disabled={saving || i === 0} aria-label={`Move photo ${i + 1} up`}>↑</button>{' '}
+                              <button type="button" onClick={() => movePhoto(i, 1)} disabled={saving || i === photos.length - 1} aria-label={`Move photo ${i + 1} down`}>↓</button>{' '}
+                              <button type="button" onClick={() => removePhoto(p)} disabled={saving}>Remove</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        </form>
-      ) : null}
+        ) : null}
 
-      <TypedConfirm open={confirm} title="Archive album?" body="Archive hides it publicly but keeps it editable (preferred)." expected={form.slug} confirmLabel="Archive" busy={saving}
+        {tab === 'settings' ? (
+          <form onSubmit={(e) => handleSubmit(persist(false), onInvalid)(e)}>
+            <EditorField control={control} name="is_featured" label="Highlight album" plain>
+              {(field) => (
+                <Toggle id="album-featured" label="Highlight album" checked={!!field.value} onChange={field.onChange} />
+              )}
+            </EditorField>
+            <EditorField control={control} name="is_active" label="Active (off hides publicly)" plain>
+              {(field) => (
+                <Toggle id="album-active" label="Active (off hides publicly)" checked={!!field.value} onChange={field.onChange} />
+              )}
+            </EditorField>
+            <div className="editor-btn-row">
+              <button type="submit" className="editor-btn editor-btn-secondary" disabled={saving}>
+                {saving ? (
+                  <>
+                    <span className="editor-spinner" aria-hidden="true" />
+                    Saving…
+                  </>
+                ) : (
+                  'Save settings'
+                )}
+              </button>
+              {!isNew ? (
+                <button type="button" className="editor-btn editor-btn-danger" disabled={saving} onClick={() => setConfirm(true)}>
+                  Archive / delete
+                </button>
+              ) : null}
+            </div>
+          </form>
+        ) : null}
+      </Form>
+
+      <TypedConfirm open={confirm} title="Archive album?" body="Archive hides it publicly but keeps it editable (preferred)." expected={values.slug} confirmLabel="Archive" busy={saving}
         onCancel={() => setConfirm(false)}
         onConfirm={async () => {
           setSaving(true);

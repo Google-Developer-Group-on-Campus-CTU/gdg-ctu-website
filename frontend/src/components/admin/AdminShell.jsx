@@ -1,16 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { authClient } from '../../lib/auth-client';
 import { ADMIN_ENTITY_ROUTES, adminNewTargetFor } from '../../admin/editorial.js';
 import '../../styles/admin.css';
 
 // Entity nav rows derive from the canonical ADMIN_ENTITY_ROUTES map (list path + label) — non-entity sections stay local here.
+// `kind` drives the pill active language: dashboard → yellow, entity → blue/white, system (invites/users/settings) → white.
 export const ADMIN_NAV = [
-  { to: '/admin', label: 'Dashboard', end: true },
-  ...Object.values(ADMIN_ENTITY_ROUTES).map((entity) => ({ to: entity.list, label: entity.label })),
-  { to: '/admin/invites', label: 'Invites' },
-  { to: '/admin/users', label: 'Users' },
-  { to: '/admin/settings', label: 'Settings' },
+  { to: '/admin', label: 'Dashboard', end: true, kind: 'dashboard' },
+  ...Object.values(ADMIN_ENTITY_ROUTES).map((entity) => ({ to: entity.list, label: entity.label, kind: 'entity' })),
+  { to: '/admin/invites', label: 'Invites', kind: 'system' },
+  { to: '/admin/users', label: 'Users', kind: 'system' },
+  { to: '/admin/settings', label: 'Settings', kind: 'system' },
 ];
 
 function Breadcrumbs() {
@@ -70,10 +71,44 @@ export default function AdminShell() {
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   const query = params.get('q') ?? '';
+  const drawerRef = useRef(null);
 
   useEffect(() => {
     setDrawerOpen(false);
   }, [location.pathname]);
+
+  // Drawer open: lock body scroll, close on Esc, trap Tab focus inside.
+  useEffect(() => {
+    if (!drawerOpen) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setDrawerOpen(false);
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const root = drawerRef.current;
+      if (!root) return;
+      const items = root.querySelectorAll('a[href], button:not([disabled])');
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    drawerRef.current?.querySelector('button')?.focus();
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [drawerOpen]);
 
   // No session guard here — <ProtectedRoute> above this shell already
   // redirects unauthenticated visits to /admin/login. A second useSession +
@@ -87,6 +122,7 @@ export default function AdminShell() {
             <NavLink
               to={item.to}
               end={item.end}
+              data-kind={item.kind}
               className={({ isActive }) => (isActive ? 'admin-nav-link is-active' : 'admin-nav-link')}
             >
               {item.label}
@@ -153,7 +189,7 @@ export default function AdminShell() {
 
       {drawerOpen ? (
         <div className="admin-drawer-backdrop" onClick={() => setDrawerOpen(false)} role="presentation">
-          <div className="admin-drawer" role="dialog" aria-modal="true" aria-label="Admin navigation" onClick={(e) => e.stopPropagation()}>
+          <div ref={drawerRef} className="admin-drawer" role="dialog" aria-modal="true" aria-label="Admin navigation" onClick={(e) => e.stopPropagation()}>
             <div className="admin-drawer-head">
               <strong>GDG-CTU Admin</strong>
               <button type="button" aria-label="Close navigation" onClick={() => setDrawerOpen(false)}>✕</button>

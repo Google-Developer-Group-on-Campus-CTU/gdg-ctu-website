@@ -2,9 +2,25 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { albumsApi, contentApi, eventsApi, getId, getStatus, getUpdatedAt, mediaApi, partnersApi, teamApi } from '../../api/resources.js';
 import { toArray } from '../../api/resources.js';
-import { adminDetailPathFor, adminItemLabel, timeAgo } from '../../admin/editorial.js';
+import { ADMIN_ENTITY_ROUTES, adminDetailPathFor, adminItemLabel, timeAgo } from '../../admin/editorial.js';
+import { EditorCard } from '../../components/admin/form-shell.jsx';
 import { ErrorState, LoadingSkeleton, StatusPill } from '../../components/admin/shared.jsx';
+import { Skeleton } from '../../components/ui/skeleton';
 import { authClient } from '../../lib/auth-client';
+
+/* Brutal wrapper contract — mirrors WRAPPER_CLASS in data-table.jsx
+   (data-table owns it; Dashboard reuses the same class string, never restyles). */
+const WRAPPER_CLASS =
+  'overflow-hidden rounded-xl border-[1.5px] border-border bg-card shadow-[4px_4px_0_#111]';
+
+/* Stat strip: one pill per section (red/blue/green/yellow), each linking its
+   filtered list with total + draft/hidden splits. */
+const STAT_SECTIONS = [
+  { kind: 'events', label: 'Events', className: 'admin-stat--red' },
+  { kind: 'team', label: 'Team', className: 'admin-stat--blue' },
+  { kind: 'partners', label: 'Partners', className: 'admin-stat--green' },
+  { kind: 'gallery', label: 'Gallery', className: 'admin-stat--yellow' },
+];
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
@@ -13,6 +29,7 @@ export default function AdminDashboard() {
   const [retryCount, setRetryCount] = useState(0);
   const [drafts, setDrafts] = useState([]);
   const [recent, setRecent] = useState([]);
+  const [stats, setStats] = useState([]);
   const { data: session, isPending } = authClient.useSession();
   const authed = !!session?.user;
 
@@ -66,6 +83,20 @@ export default function AdminDashboard() {
         (a, b) => new Date(getUpdatedAt(b.item) ?? 0) - new Date(getUpdatedAt(a.item) ?? 0),
       ).slice(0, 8);
       if (alive) {
+        setStats(
+          STAT_SECTIONS.map(({ kind, label, className }) => {
+            const items = tagged.filter((t) => t.kind === kind).map((t) => t.item);
+            return {
+              kind,
+              label,
+              className,
+              to: ADMIN_ENTITY_ROUTES[kind].list,
+              total: items.length,
+              drafts: items.filter((i) => getStatus(i) === 'draft').length,
+              hidden: items.filter((i) => i?.is_active === false).length,
+            };
+          }),
+        );
         setDrafts(needPublish.slice(0, 8));
         setRecent(edited);
         setLoading(false);
@@ -98,8 +129,20 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <section aria-label="Dashboard">
-        <h1>Dashboard</h1>
-        <LoadingSkeleton label="Loading dashboard…" />
+        <div className="admin-page-head">
+          <div>
+            <p className="admin-eyebrow">Overview</p>
+            <h1>Dashboard</h1>
+          </div>
+        </div>
+        <div className={WRAPPER_CLASS}>
+          <div className="admin-skeleton-pad" role="status" aria-label="Loading dashboard…">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-5 w-full" aria-hidden="true" />
+            ))}
+            <span className="admin-visually-hidden">Loading dashboard…</span>
+          </div>
+        </div>
       </section>
     );
   }
@@ -117,13 +160,23 @@ export default function AdminDashboard() {
     <section aria-label="Dashboard">
       <div className="admin-page-head">
         <div>
+          <p className="admin-eyebrow">Overview</p>
           <h1>Dashboard</h1>
           <p className="admin-muted">MVP slice: drafts needing publish + recent edits only.</p>
         </div>
       </div>
+      <ul className="admin-stats" aria-label="Section totals">
+        {stats.map((s) => (
+          <li key={s.kind}>
+            <Link to={s.to} className={`admin-stat ${s.className}`}>
+              <strong>{s.label}</strong>
+              <span>{s.total} total · {s.drafts} drafts · {s.hidden} hidden</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
       <div className="admin-cards">
-        <article className="admin-card" aria-label="Drafts needing publish">
-          <h2>Drafts needing publish ({drafts.length})</h2>
+        <EditorCard title={`Drafts needing publish (${drafts.length})`} eyebrow="Needs attention">
           {drafts.length === 0 ? (
             <p className="admin-muted">Nothing waiting. Create a draft from any section.</p>
           ) : (
@@ -137,9 +190,8 @@ export default function AdminDashboard() {
               ))}
             </ul>
           )}
-        </article>
-        <article className="admin-card" aria-label="Recent edits">
-          <h2>Recent edits</h2>
+        </EditorCard>
+        <EditorCard title="Recent edits" eyebrow="Activity">
           {recent.length === 0 ? (
             <p className="admin-muted">No edits yet.</p>
           ) : (
@@ -155,7 +207,7 @@ export default function AdminDashboard() {
               ))}
             </ul>
           )}
-        </article>
+        </EditorCard>
       </div>
     </section>
   );

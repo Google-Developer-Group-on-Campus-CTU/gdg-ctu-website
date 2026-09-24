@@ -1,8 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { getId, partnersApi } from '../../api/resources.js';
-import { ADMIN_ENTITY_ROUTES, PARTNER_TIERS, checkSlugUnique, slugify, useDirtyGuard, validatePartner } from '../../admin/editorial.js';
-import { ErrorState, Field, FormSummary, LoadingSkeleton, focusSummary, inputProps, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
+import { getId, partnersApi, publicPreview } from '../../api/resources.js';
+import { ADMIN_ENTITY_ROUTES, PARTNER_TIERS, slugify, useDirtyGuard } from '../../admin/editorial.js';
+import {
+  DirtyGuardBanner,
+  EditorCard,
+  EditorErrors,
+  EditorField,
+  EditorFooter,
+  focusEditorErrors,
+  partnerEditorSchema,
+  toEditorPayload,
+  useEditorForm,
+  useSlugUniqueness,
+} from '../../components/admin/form-shell.jsx';
+import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
+import { Form } from '../../components/ui/form';
+import { Input } from '../../components/ui/input';
 import MediaPicker from '../../components/admin/MediaPicker.jsx';
 
 const EMPTY = { name: '', slug: '', logoMediaId: '', logoAlt: '', websiteUrl: '', tier: 'community', description: '', display_order: 0, is_active: true, status: 'draft' };
@@ -24,23 +38,25 @@ export default function PartnerDetail() {
   const isNew = id === 'new';
   const navigate = useNavigate();
   const summaryRef = useRef(null);
-  const [form, setForm] = useState(EMPTY);
+  const methods = useEditorForm({ schema: partnerEditorSchema, defaultValues: EMPTY });
+  const {
+    control, reset, watch, setValue, setError: setFieldError, handleSubmit,
+    formState: { errors: rhfErrors },
+  } = methods;
   const [original, setOriginal] = useState(EMPTY);
   const [loading, setLoading] = useState(!isNew);
   const [error, setError] = useState(null);
   // Load retry that preserves form state — bumps the fetch effect below
   // instead of window.location.reload(), which would wipe unsaved edits.
   const [loadRetry, setLoadRetry] = useState(0);
-  const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
-  const [slugDup, setSlugDup] = useState(false);
-  const [slugCheckError, setSlugCheckError] = useState(null);
   const [confirm, setConfirm] = useState(false);
   const [toast, setToast] = useState('');
 
-  const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(original), [form, original]);
+  const values = watch();
+  const dirty = useMemo(() => JSON.stringify(values) !== JSON.stringify(original), [values, original]);
   const blocker = useDirtyGuard(dirty && !saving);
 
   useEffect(() => {
@@ -49,36 +65,19 @@ export default function PartnerDetail() {
     partnersApi.get(id).then((item) => {
       if (!alive) return;
       const next = toForm(item);
-      setForm(next); setOriginal(next); setLoading(false);
+      reset(next); setOriginal(next); setLoading(false);
     }).catch((err) => { if (!alive) return; setError(err); setLoading(false); });
     return () => { alive = false; };
-  }, [id, isNew, loadRetry]);
+  }, [id, isNew, loadRetry, reset]);
 
-  const set = (key, value) => {
-    setForm((f) => {
-      const next = { ...f, [key]: value };
-      if (key === 'name' && !slugTouched) next.slug = slugify(value);
-      return next;
-    });
-  };
-
+  // Slug auto-fills from the name until touched (same contract as before).
+  const name = watch('name');
   useEffect(() => {
-    if (!form.slug) { setSlugDup(false); setSlugCheckError(null); return; }
-    let alive = true;
-    setSlugCheckError(null);
-    const t = setTimeout(() => {
-      checkSlugUnique(partnersApi, form.slug, isNew ? null : getId(original) ?? id)
-        .then((unique) => { if (alive) { setSlugDup(!unique); setSlugCheckError(null); } })
-        .catch((err) => {
-          if (!alive) return;
-          if (err?.status === 404) { setSlugDup(false); setSlugCheckError(null); return; }
-          // 500/timeout/network: unverifiable — block save with the error.
-          setSlugDup(false);
-          setSlugCheckError(err?.body?.message ?? err?.message ?? 'Could not verify slug uniqueness.');
-        });
-    }, 400);
-    return () => { alive = false; clearTimeout(t); };
-  }, [form.slug, id, isNew, original]);
+    if (!slugTouched) setValue('slug', slugify(name ?? ''));
+  }, [name, slugTouched, setValue]);
+
+  const currentId = isNew ? null : getId(original) ?? id;
+  const { slugDup, slugCheckError } = useSlugUniqueness(partnersApi, watch('slug'), currentId);
 
   if (!isNew && loading) return <section aria-label="Partner editor"><h1>Partner</h1><LoadingSkeleton label="Loading partner…" /></section>;
   // Retry clears the error + shows the loader from the click handler (not the
@@ -90,20 +89,20 @@ export default function PartnerDetail() {
   };
   if (!isNew && error) return <section aria-label="Partner editor"><h1>Partner</h1><ErrorState error={error} onRetry={retryLoad} context="load this partner" /></section>;
 
-  const persist = async (publish = false) => {
-    if (slugCheckError) { setErrors({ slug: slugCheckError }); focusSummary(summaryRef); return; }
-    const next = publish ? { ...form, status: 'published', is_active: true } : form;
-    const gate = publish ? { ...validatePartner(next), ...(slugDup ? { slug: 'Slug is already in use.' } : {}) } : {};
-    setErrors(gate);
-    if (Object.keys(gate).length) { focusSummary(summaryRef); return; }
+  const persist = (publish) => async (next) => {
+    if (slugCheckError) { setFieldError('slug', { message: slugCheckError }); focusEditorErrors(summaryRef); return; }
+    // Client validation runs through the zod schema (same UX-level policy as
+    // validatePartner: required presence, https website, reserved slugs) on
+    // publish; drafts save unvalidated, exactly like today.
+    if (publish && slugDup) { setFieldError('slug', { message: 'Slug is already in use.' }); focusEditorErrors(summaryRef); return; }
     setSaving(true); setServerError(null);
     try {
-      const payload = { ...next, display_order: Number(next.display_order) || 0 };
+      const payload = toEditorPayload(publish ? { ...next, status: 'published', is_active: true } : next);
       let saved;
       if (isNew) saved = await partnersApi.create({ ...payload, status: publish ? 'published' : 'draft' });
       else saved = await partnersApi.update(id, payload);
       const fresh = toForm(saved ?? next);
-      setForm(fresh); setOriginal(fresh); setToast(publish ? 'Published.' : 'Saved as draft.');
+      reset(fresh); setOriginal(fresh); setToast(publish ? 'Published.' : 'Saved as draft.');
       if (isNew && (getId(saved) ?? saved?.slug)) navigate(ADMIN_ENTITY_ROUTES.partners.detail(getId(saved) ?? saved.slug), { replace: true });
     } catch (err) {
       setServerError(err?.status === 404
@@ -115,73 +114,110 @@ export default function PartnerDetail() {
   return (
     <section aria-label={isNew ? 'New partner' : 'Edit partner'}>
       <div className="admin-page-head">
-        <div><h1>{isNew ? 'New partner' : form.name}</h1><p className="admin-muted">Tier-ordered public strip; website must be https://.</p></div>
+        <div><h1>{isNew ? 'New partner' : values.name}</h1><p className="admin-muted">Tier-ordered public strip; website must be https://.</p></div>
         {!isNew ? <Link className="gdg-btn gdg-btn-secondary" to={ADMIN_ENTITY_ROUTES.partners.list}>Back to list</Link> : null}
       </div>
-      {blocker?.state === 'blocked' ? (
-        <div className="admin-summary" role="alert"><h3>Unsaved changes</h3>
-          <div className="gdg-btn-row">
-            <button type="button" className="gdg-btn gdg-btn-secondary" onClick={() => blocker.reset()}>Stay</button>
-            <button type="button" className="gdg-btn gdg-btn-primary admin-danger" onClick={() => blocker.proceed()}>Discard</button>
-          </div>
-        </div>
-      ) : null}
-      <FormSummary errors={errors} summaryRef={summaryRef} />
-      {serverError ? <div className="admin-summary" role="alert"><p>{serverError}</p></div> : null}
-      {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
-      <form className="admin-form" onSubmit={(e) => { e.preventDefault(); persist(false); }} noValidate>
-        <div className="admin-form-grid">
-          <Field label="Name" htmlFor="name" error={errors.name} required>
-            <input {...inputProps('name', errors.name)} value={form.name} onChange={(e) => set('name', e.target.value)} />
-          </Field>
-          <Field label="Slug" htmlFor="slug" error={errors.slug ?? slugCheckError ?? (slugDup ? 'Slug is already in use.' : null)} required>
-            <input {...inputProps('slug', errors.slug || slugCheckError || slugDup)} value={form.slug} onChange={(e) => { setSlugTouched(true); set('slug', slugify(e.target.value)); }} />
-          </Field>
-        </div>
-        <div className="admin-form-grid">
-          <MediaPicker
-            id="logoMediaId"
-            label="Logo media ID"
-            hint="Pick from the Media library below; the ID is stored on save."
-            error={errors.logoMediaId}
-            required
-            value={form.logoMediaId}
-            onChange={(v) => set('logoMediaId', v)}
-          />
-          <Field label="Logo alt text" htmlFor="logoAlt" error={errors.logoAlt} required>
-            <input {...inputProps('logoAlt', errors.logoAlt)} value={form.logoAlt} onChange={(e) => set('logoAlt', e.target.value)} />
-          </Field>
-        </div>
-        <div className="admin-form-grid">
-          <Field label="Website (https)" htmlFor="websiteUrl" error={errors.websiteUrl}>
-            <input {...inputProps('websiteUrl', errors.websiteUrl)} value={form.websiteUrl} onChange={(e) => set('websiteUrl', e.target.value)} placeholder="https://…" />
-          </Field>
-          <Field label="Tier" htmlFor="tier" error={errors.tier} required>
-            <select {...inputProps('tier', errors.tier)} value={form.tier} onChange={(e) => set('tier', e.target.value)}>
-              {PARTNER_TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </Field>
-          <Field label="Display order" htmlFor="display_order" error={errors.display_order}>
-            <input {...inputProps('display_order', errors.display_order)} type="number" min="0" step="1" value={form.display_order} onChange={(e) => set('display_order', e.target.value)} />
-          </Field>
-        </div>
-        <Field label="Description" htmlFor="description" error={errors.description}>
-          <textarea {...inputProps('description', errors.description)} id="description" rows={4} value={form.description} onChange={(e) => set('description', e.target.value)} />
-        </Field>
-        <Toggle id="partner-active" label="Active" checked={form.is_active} onChange={(v) => set('is_active', v)} />
-        <div className="gdg-btn-row">
-          <button type="submit" className="gdg-btn gdg-btn-secondary" disabled={saving}>{saving ? 'Saving…' : 'Save draft'}</button>
-          <button type="button" className="gdg-btn gdg-btn-primary" disabled={saving} onClick={() => persist(true)}>{saving ? 'Publishing…' : 'Publish'}</button>
-          {!isNew ? <button type="button" className="gdg-btn gdg-btn-secondary" onClick={() => setConfirm(true)}>Archive / delete</button> : null}
-        </div>
-      </form>
-      <TypedConfirm open={confirm} title="Archive partner?" body="Archive hides it publicly but keeps it editable (preferred)." expected={form.slug} confirmLabel="Archive" busy={saving}
+      <DirtyGuardBanner blocker={blocker} />
+      <Form {...methods}>
+        {/* persist(false) is created in the submit handler (not during render)
+            so the summaryRef focus path never runs at render time. */}
+        <form onSubmit={(e) => handleSubmit(persist(false), () => focusEditorErrors(summaryRef))(e)} noValidate>
+          <EditorCard
+            title={isNew ? 'New partner' : 'Edit partner'}
+            eyebrow="Partners"
+            actions={(
+              <a className="gdg-btn gdg-btn-secondary" href={publicPreview.partners()} target="_blank" rel="noreferrer">
+                Public preview
+              </a>
+            )}
+          >
+            <EditorErrors errors={rhfErrors} serverError={serverError} summaryRef={summaryRef} />
+            {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
+            <div className="editor-grid">
+              <EditorField control={control} name="name" label="Name" required>
+                {(field) => <Input {...field} />}
+              </EditorField>
+              <EditorField
+                control={control}
+                name="slug"
+                label="Slug"
+                required
+                hint={slugCheckError ?? (slugDup ? 'Slug is already in use.' : 'Auto-fills from name until edited.')}
+              >
+                {(field) => <Input {...field} onChange={(e) => { setSlugTouched(true); field.onChange(slugify(e.target.value)); }} />}
+              </EditorField>
+            </div>
+            <div className="editor-grid">
+              <EditorField
+                control={control}
+                name="logoMediaId"
+                label="Logo media"
+                plain
+                showMessage={false}
+                hint="Pick from the Media library below; the ID is stored on save."
+              >
+                {(field) => (
+                  <MediaPicker
+                    id="logoMediaId"
+                    label="Logo media ID"
+                    hint="Pick from the Media library below; the ID is stored on save."
+                    error={rhfErrors.logoMediaId?.message}
+                    required
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                  />
+                )}
+              </EditorField>
+              <EditorField control={control} name="logoAlt" label="Logo alt text" required>
+                {(field) => <Input {...field} value={field.value ?? ''} />}
+              </EditorField>
+            </div>
+            <div className="editor-grid">
+              <EditorField control={control} name="websiteUrl" label="Website (https)">
+                {(field) => <Input {...field} value={field.value ?? ''} placeholder="https://…" />}
+              </EditorField>
+              <EditorField control={control} name="tier" label="Tier" required plain>
+                {(field) => (
+                  <select id="tier" value={field.value} onChange={(e) => field.onChange(e.target.value)}>
+                    {PARTNER_TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                )}
+              </EditorField>
+              <EditorField control={control} name="display_order" label="Display order">
+                {(field) => <input type="number" min="0" step="1" {...field} />}
+              </EditorField>
+            </div>
+            <EditorField control={control} name="description" label="Description">
+              {(field) => <textarea {...field} value={field.value ?? ''} rows={4} />}
+            </EditorField>
+            <EditorField control={control} name="is_active" label="Active" plain>
+              {(field) => (
+                <Toggle id="partner-active" label="Active" checked={!!field.value} onChange={field.onChange} />
+              )}
+            </EditorField>
+            <EditorFooter
+              saving={saving}
+              isNew={isNew}
+              onPublish={() => handleSubmit(persist(true), () => focusEditorErrors(summaryRef))()}
+              onArchive={() => setConfirm(true)}
+            />
+          </EditorCard>
+        </form>
+      </Form>
+      <TypedConfirm
+        open={confirm}
+        title="Archive partner?"
+        body="Archive hides it publicly but keeps it editable (preferred)."
+        expected={values.slug}
+        confirmLabel="Archive"
+        busy={saving}
         onCancel={() => setConfirm(false)}
         onConfirm={async () => {
           setSaving(true);
           try { await partnersApi.update(id, { is_active: false }); navigate(ADMIN_ENTITY_ROUTES.partners.list); }
           catch (err) { setServerError(err?.body?.message ?? err?.message ?? 'Archive failed.'); setSaving(false); setConfirm(false); }
-        }} />
+        }}
+      />
     </section>
   );
 }

@@ -1,0 +1,335 @@
+/* Shared editor shell — window-card language (see styles/login.css).
+   Scope: .editor-* only. Ink halo focus, never the blue ring. */
+
+.editor-card {
+  background: #fff;
+  border: 1.5px solid #222;
+  border-radius: 16px;
+  box-shadow: 4px 4px 0 #111;
+  padding: 1.5rem 1.5rem 1.25rem;
+  color: #111;
+  font-family: 'Google Sans Flex', 'Google Sans', system-ui, sans-serif;
+}
+
+/* window dots like Home cta / login card */
+.editor-card-dots {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 0.6rem;
+}
+
+.editor-card-dots i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1px solid #222;
+  display: block;
+}
+
+.editor-card-dots i:nth-child(1) { background: #ef4d46; }
+.editor-card-dots i:nth-child(2) { background: #4285f4; }
+.editor-card-dots i:nth-child(3) { background: #34a853; }
+.editor-card-dots i:nth-child(4) { background: #fbbc05; }
+
+.editor-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.editor-card-head h2 {
+  margin: 0;
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  font-weight: 400;
+  color: #111;
+}
+
+.editor-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 0.5rem;
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: #fff;
+  color: #111;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid #aaa;
+}
+
+.editor-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex: none;
+}
+
+/* ---------- fields ---------- */
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 0.95rem;
+}
+
+.editor-field {
+  margin-bottom: 0.95rem;
+}
+
+.editor-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #111;
+  letter-spacing: 0.01em;
+}
+
+.editor-hint {
+  font-size: 0.8rem;
+  color: #5f6368;
+  margin: 0;
+}
+
+.editor-error {
+  font-size: 0.82rem;
+  color: #a50e0e;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* 44px targets + ink halo (not the blue ring). Applies to native elements
+   and shadcn Input/Select triggers alike — selectors match the DOM. */
+.editor-field input:not([type='checkbox']):not([type='radio']),
+.editor-field textarea,
+.editor-field select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.72rem 0.9rem;
+  border: 1.5px solid #222;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 0.95rem;
+  color: #111;
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.editor-field textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.editor-field input:hover:not(:disabled),
+.editor-field textarea:hover:not(:disabled),
+.editor-field select:hover:not(:disabled) {
+  background: #fafafa;
+}
+
+.editor-field input:focus,
+.editor-field textarea:focus,
+.editor-field select:focus {
+  outline: none;
+  border-color: #111;
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.12);
+}
+
+.editor-field [aria-invalid='true'] {
+  border-color: #ea4335;
+}
+
+.editor-field [aria-invalid='true']:focus {
+  box-shadow: 0 0 0 3px rgba(234, 67, 53, 0.12);
+}
+
+/* ---------- validation + server banner ---------- */
+
+.editor-errors {
+  border: 1.5px solid #ea4335;
+  background: #fce8e6;
+  color: #a50e0e;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+  line-height: 1.45;
+}
+
+.editor-errors h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+
+.editor-errors ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.editor-errors a {
+  color: #a50e0e;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.editor-errors-server {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+}
+
+/* ---------- sticky footer ---------- */
+
+.editor-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  padding: 0.9rem 0 0.25rem;
+  background: #fff;
+  border-top: 1.5px solid #222;
+}
+
+.editor-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.editor-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 44px;
+  padding: 12px 22px;
+  border: 1.5px solid #111;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.editor-btn-secondary {
+  background: #fff;
+  color: #111;
+}
+
+.editor-btn-secondary:hover:not(:disabled) {
+  background: #f6f6f6;
+  transform: translateY(-2px);
+}
+
+.editor-btn-primary {
+  background: #ffc400;
+  color: #111;
+}
+
+.editor-btn-primary:hover:not(:disabled) {
+  background: #f7b92b;
+  transform: translateY(-2px);
+}
+
+.editor-btn-danger {
+  background: #fff;
+  color: #a50e0e;
+  border-color: #ea4335;
+}
+
+.editor-btn-danger:hover:not(:disabled) {
+  background: #fce8e6;
+  transform: translateY(-2px);
+}
+
+.editor-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.editor-btn:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.editor-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(17, 17, 17, 0.2);
+  border-top-color: #111;
+  animation: editor-spin 0.7s linear infinite;
+}
+
+/* ---------- dirty guard ---------- */
+
+.editor-dirty {
+  border: 1.5px solid #222;
+  background: #fff;
+  color: #111;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.editor-dirty h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+}
+
+.editor-dirty p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+/* focus-visible: 2px #111, 3px offset. Fields carry the ink halo instead. */
+.editor-card :focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 3px;
+}
+
+.editor-field input:focus-visible,
+.editor-field textarea:focus-visible,
+.editor-field select:focus-visible {
+  outline: none;
+}
+
+@keyframes editor-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 640px) {
+  .editor-card {
+    box-shadow: none;
+    padding: 1.25rem 1rem 1rem;
+  }
+
+  .editor-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editor-btn,
+  .editor-field input,
+  .editor-field textarea,
+  .editor-field select {
+    transition: none;
+  }
+
+  .editor-btn:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .editor-spinner {
+    animation: none;
+  }
+}

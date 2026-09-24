@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { authClient } from '../../lib/auth-client';
 import { formatWhen } from '../../api/admin-invites.js';
 import { timeAgo, useAdminList, useDebouncedValue } from '../../admin/editorial.js';
-import { AdminListPage, EmptyState, StatusPill } from '../../components/admin/shared.jsx';
+import { DataTable, DataTableColumnHeader } from '../../components/admin/data-table.jsx';
+import { EmptyState, StatusPill } from '../../components/admin/shared.jsx';
 
 /**
  * User accounts & access — backed entirely by Better Auth's admin plugin
@@ -20,10 +21,18 @@ import { AdminListPage, EmptyState, StatusPill } from '../../components/admin/sh
  *
  * Roles come from backend config (config/auth.ts): adminRoles = ["admin"],
  * defaultRole = "user".
+ *
+ * Row actions stay list-level (Make admin / Ban / Delete confirms live in
+ * this page's dialog): no user detail route exists, so there is no Manage
+ * pill to delegate to. See the Status section of docs/admin-data-table.md.
  */
 
 /** Server-side cap on list-users (plugin `limit` param). */
 const LIST_LIMIT = 50;
+
+/* 44px action targets on the shared link-button language (DataTable owns the brutal wrapper). */
+const ROW_BUTTON_CLASS = 'admin-link-btn inline-flex min-h-[44px] items-center';
+const ROW_BUTTON_DANGER_CLASS = 'admin-link-btn admin-link-btn-danger inline-flex min-h-[44px] items-center';
 
 /**
  * better-auth's client resolves — it does not throw — on HTTP errors:
@@ -173,8 +182,52 @@ function UserActionConfirm({ target, busy, error, onCancel, onConfirm }) {
   );
 }
 
+/* Shared column defs: email · role · status · joined. The name column (needs
+   the self-row marker) and the actions column (needs the confirm/unban
+   closures) are appended in-component. */
+const baseColumns = [
+  {
+    accessorKey: 'email',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
+    cell: ({ row }) => row.original.email ?? '—',
+  },
+  {
+    id: 'role',
+    accessorFn: (user) => user.role ?? 'user',
+    header: 'Role',
+    enableSorting: false,
+    cell: ({ row }) => <StatusPill status={row.original.role ?? 'user'} />,
+  },
+  {
+    id: 'status',
+    header: 'Status',
+    enableSorting: false,
+    cell: ({ row }) => {
+      const user = row.original;
+      const banned = isBanned(user);
+      return (
+        <span title={banned ? (user.banReason ?? 'Banned') : undefined}>
+          <StatusPill
+            status={
+              banned ? 'banned' : user.emailVerified ? 'verified' : 'unverified'
+            }
+          />
+        </span>
+      );
+    },
+  },
+  {
+    id: 'joined',
+    accessorFn: (user) => user.createdAt ?? '',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Joined" />,
+    cell: ({ row }) => (
+      <span title={formatWhen(row.original.createdAt)}>{timeAgo(row.original.createdAt)}</span>
+    ),
+  },
+];
+
 export default function AdminUsers() {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const q = params.get('q') ?? '';
   const debounced = useDebouncedValue(q);
   const { data: session } = authClient.useSession();
@@ -224,14 +277,14 @@ export default function AdminUsers() {
   }, [users, debounced]);
 
   /** Never open an action against your own row. */
-  const openConfirm = (user, action) => {
+  const openConfirm = useCallback((user, action) => {
     if (!user || user.id === myId) return;
     setPageActionError(null);
     setActionError(null);
     setTarget({ user, action });
-  };
+  }, [myId]);
 
-  const handleUnban = async (user) => {
+  const handleUnban = useCallback(async (user) => {
     if (!user || user.id === myId) return;
     setPageActionError(null);
     setUnbanningId(user.id);
@@ -243,6 +296,76 @@ export default function AdminUsers() {
     } finally {
       setUnbanningId(null);
     }
+  }, [myId, retry]);
+
+  const columns = useMemo(() => [
+    {
+      id: 'name',
+      accessorFn: (user) => user.name ?? user.email ?? '',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+      cell: ({ row }) => (
+        <span>
+          {row.original.name || '—'}
+          {row.original.id === myId ? <span className="admin-muted"> (you)</span> : null}
+        </span>
+      ),
+    },
+    ...baseColumns,
+    {
+      id: 'actions',
+      header: 'Actions',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const user = row.original;
+        const self = user.id === myId;
+        const banned = isBanned(user);
+        const role = user.role ?? 'user';
+        if (self) {
+          return (
+            <span className="admin-muted" title="You can't change your own account here.">
+              —
+            </span>
+          );
+        }
+        return (
+          <span className="admin-row-actions">
+            {role !== 'admin' ? (
+              <button type="button" className={ROW_BUTTON_CLASS} onClick={() => openConfirm(user, 'promote')}>
+                Make admin
+              </button>
+            ) : (
+              <button type="button" className={ROW_BUTTON_DANGER_CLASS} onClick={() => openConfirm(user, 'demote')}>
+                Make user
+              </button>
+            )}
+            {banned ? (
+              <button
+                type="button"
+                className={ROW_BUTTON_CLASS}
+                onClick={() => handleUnban(user)}
+                disabled={unbanningId === user.id}
+              >
+                {unbanningId === user.id ? 'Unbanning…' : 'Unban'}
+              </button>
+            ) : (
+              <button type="button" className={ROW_BUTTON_DANGER_CLASS} onClick={() => openConfirm(user, 'ban')}>
+                Ban
+              </button>
+            )}
+            <button type="button" className={ROW_BUTTON_DANGER_CLASS} onClick={() => openConfirm(user, 'remove')}>
+              Delete
+            </button>
+          </span>
+        );
+      },
+    },
+  ], [myId, openConfirm, handleUnban, unbanningId]);
+
+  const setQuery = (value) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set('q', value);
+    else next.delete('q');
+    setParams(next, { replace: true });
   };
 
   const handleConfirm = async () => {
@@ -303,15 +426,20 @@ export default function AdminUsers() {
         </p>
       ) : null}
 
-      <AdminListPage
+      <DataTable
+        columns={columns}
+        data={rows}
         loading={loading}
         loadingLabel="Loading accounts…"
         error={error}
         requestId={requestId}
         onRetry={retry}
-        errorContext="load accounts"
-        isEmpty={rows.length === 0}
-        empty={
+        searchColumnId="name"
+        searchPlaceholder="Search name, email, or role…"
+        searchValue={q}
+        onSearchChange={setQuery}
+        pageSizeOptions={[20, 10]}
+        renderEmptyState={
           users.length === 0 ? (
             <EmptyState
               title="No accounts yet"
@@ -324,106 +452,7 @@ export default function AdminUsers() {
             />
           )
         }
-      >
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th scope="col">Name</th>
-                <th scope="col">Email</th>
-                <th scope="col">Role</th>
-                <th scope="col">Status</th>
-                <th scope="col">Joined</th>
-                <th scope="col">
-                  <span className="admin-visually-hidden">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((user) => {
-                const self = user.id === myId;
-                const banned = isBanned(user);
-                const role = user.role ?? 'user';
-                return (
-                  <tr key={user.id}>
-                    <td>
-                      {user.name || '—'}
-                      {self ? <span className="admin-muted"> (you)</span> : null}
-                    </td>
-                    <td>{user.email ?? '—'}</td>
-                    <td>
-                      <StatusPill status={role} />
-                    </td>
-                    <td title={banned ? (user.banReason ?? 'Banned') : undefined}>
-                      <StatusPill
-                        status={
-                          banned ? 'banned' : user.emailVerified ? 'verified' : 'unverified'
-                        }
-                      />
-                    </td>
-                    <td title={formatWhen(user.createdAt)}>{timeAgo(user.createdAt)}</td>
-                    <td>
-                      {self ? (
-                        <span
-                          className="admin-muted"
-                          title="You can't change your own account here."
-                        >
-                          —
-                        </span>
-                      ) : (
-                        <span className="admin-row-actions">
-                          {role !== 'admin' ? (
-                            <button
-                              type="button"
-                              className="admin-link-btn"
-                              onClick={() => openConfirm(user, 'promote')}
-                            >
-                              Make admin
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="admin-link-btn admin-link-btn-danger"
-                              onClick={() => openConfirm(user, 'demote')}
-                            >
-                              Make user
-                            </button>
-                          )}
-                          {banned ? (
-                            <button
-                              type="button"
-                              className="admin-link-btn"
-                              onClick={() => handleUnban(user)}
-                              disabled={unbanningId === user.id}
-                            >
-                              {unbanningId === user.id ? 'Unbanning…' : 'Unban'}
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="admin-link-btn admin-link-btn-danger"
-                              onClick={() => openConfirm(user, 'ban')}
-                            >
-                              Ban
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            className="admin-link-btn admin-link-btn-danger"
-                            onClick={() => openConfirm(user, 'remove')}
-                          >
-                            Delete
-                          </button>
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </AdminListPage>
+      />
 
       <UserActionConfirm
         target={target}

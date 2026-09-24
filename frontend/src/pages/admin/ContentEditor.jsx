@@ -1,8 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { contentApi, getId } from '../../api/resources.js';
-import { ADMIN_ENTITY_ROUTES, CONTENT_KEYS, useDirtyGuard, validateContent } from '../../admin/editorial.js';
-import { ErrorState, Field, FormSummary, LoadingSkeleton, focusSummary, inputProps, Toggle } from '../../components/admin/shared.jsx';
+import { ADMIN_ENTITY_ROUTES, CONTENT_KEYS, useDirtyGuard } from '../../admin/editorial.js';
+import {
+  contentEditorSchema,
+  DirtyGuardBanner,
+  EditorCard,
+  EditorErrors,
+  EditorField,
+  EditorFooter,
+  focusEditorErrors,
+  useEditorForm,
+} from '../../components/admin/form-shell.jsx';
+import { ErrorState, LoadingSkeleton, Toggle } from '../../components/admin/shared.jsx';
+import { Form } from '../../components/ui/form';
+import { Input } from '../../components/ui/input';
 import MediaPicker from '../../components/admin/MediaPicker.jsx';
 import { authClient } from '../../lib/auth-client';
 
@@ -22,12 +34,19 @@ function toForm(item = {}) {
   };
 }
 
+/** Public preview target per section (best-effort mapping — sections render on public routes). */
+const SECTION_PREVIEW = { hero: '/', about: '/about', community: '/', cta: '/', footer: '/' };
+
 export default function ContentEditor() {
   const { sectionKey } = useParams();
   const summaryRef = useRef(null);
   const { data: session } = authClient.useSession();
   const validKey = CONTENT_KEYS.includes(sectionKey);
-  const [form, setForm] = useState(EMPTY);
+  const methods = useEditorForm({ schema: contentEditorSchema, defaultValues: EMPTY });
+  const {
+    control, reset, watch, handleSubmit,
+    formState: { errors: rhfErrors },
+  } = methods;
   const [original, setOriginal] = useState(EMPTY);
   const [rowId, setRowId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -36,22 +55,22 @@ export default function ContentEditor() {
   // Load retry that preserves form state — bumps the fetch effect below
   // instead of window.location.reload(), which would wipe unsaved edits.
   const [loadRetry, setLoadRetry] = useState(0);
-  const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
 
-  const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(original), [form, original]);
+  const values = watch();
+  const dirty = useMemo(() => JSON.stringify(values) !== JSON.stringify(original), [values, original]);
   const blocker = useDirtyGuard(dirty && !saving);
 
   useEffect(() => {
-    if (!validKey) { setLoading(false); return; }
+    if (!validKey) { setLoading(false); return undefined; }
     let alive = true;
     contentApi.getBySection(sectionKey)
       .then((item) => {
         if (!alive) return;
         const next = toForm(item);
-        setForm(next); setOriginal(next); setRowId(getId(item));
+        reset(next); setOriginal(next); setRowId(getId(item));
         setLoading(false);
       })
       .catch((err) => {
@@ -61,7 +80,7 @@ export default function ContentEditor() {
         setLoading(false);
       });
     return () => { alive = false; };
-  }, [sectionKey, validKey, loadRetry]);
+  }, [sectionKey, validKey, loadRetry, reset]);
 
   if (!validKey) {
     return <section aria-label="Content editor"><h1>Unknown section</h1><p>Valid keys: {CONTENT_KEYS.join(', ')}.</p><Link to={ADMIN_ENTITY_ROUTES.content.list}>Back</Link></section>;
@@ -77,26 +96,23 @@ export default function ContentEditor() {
   };
   if (loadError) return <section aria-label="Content editor"><h1>{sectionKey}</h1><ErrorState error={loadError} onRetry={retryLoad} context="load this section" /></section>;
 
-  const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
-
-  const persist = async (publish = false) => {
-    const next = publish ? { ...form, status: 'published', is_active: true } : form;
-    const gate = { ...validateContent(next) };
-    setErrors(gate);
-    if (Object.keys(gate).length) { focusSummary(summaryRef); return; }
+  const persist = (publish) => async (next) => {
+    // Client validation runs through the zod schema (same UX-level policy as
+    // validateContent: button URL shape) on every submit, exactly like today.
+    const effective = publish ? { ...next, status: 'published', is_active: true } : next;
     setSaving(true); setServerError(null);
     try {
       // Backend CreateSiteContentSchema is camelCase (sectionKey, isActive,
       // updatedBy) — snake_case keys would be silently stripped by Zod.
       const payload = {
-        title: next.title,
-        subtitle: next.subtitle || null,
-        body: next.body || null,
-        mediaId: next.mediaId || null,
-        buttonText: next.buttonText || null,
-        buttonUrl: next.buttonUrl || null,
-        isActive: !!next.is_active,
-        status: next.status,
+        title: effective.title,
+        subtitle: effective.subtitle || null,
+        body: effective.body || null,
+        mediaId: effective.mediaId || null,
+        buttonText: effective.buttonText || null,
+        buttonUrl: effective.buttonUrl || null,
+        isActive: !!effective.is_active,
+        status: effective.status,
         sectionKey,
         updatedBy: session?.user?.id ?? '',
       };
@@ -104,8 +120,8 @@ export default function ContentEditor() {
       if (rowId) saved = await contentApi.update(rowId, payload);
       else if (notFound) saved = await contentApi.create({ ...payload, status: publish ? 'published' : 'draft' });
       else saved = await contentApi.updateBySection(sectionKey, payload);
-      const fresh = toForm(saved ?? next);
-      setForm(fresh); setOriginal(fresh);
+      const fresh = toForm(saved ?? effective);
+      reset(fresh); setOriginal(fresh);
       if (getId(saved)) setRowId(getId(saved));
       setNotFound(false);
       setToast(publish ? 'Published.' : 'Saved as draft.');
@@ -119,53 +135,75 @@ export default function ContentEditor() {
       <div className="admin-page-head">
         <div>
           <h1>{sectionKey}</h1>
-          <p className="admin-muted">sectionKey immutable · {notFound ? 'no row yet — saving creates it' : `row ${rowId ?? ''}`} {form.updated_at ? `· last edited ${form.updated_at}${form.updated_by ? ` by ${form.updated_by}` : ''}` : ''}</p>
+          <p className="admin-muted">sectionKey immutable · {notFound ? 'no row yet — saving creates it' : `row ${rowId ?? ''}`} {values.updated_at ? `· last edited ${values.updated_at}${values.updated_by ? ` by ${values.updated_by}` : ''}` : ''}</p>
         </div>
         <Link className="gdg-btn gdg-btn-secondary" to={ADMIN_ENTITY_ROUTES.content.list}>Back to sections</Link>
       </div>
-      {blocker?.state === 'blocked' ? (
-        <div className="admin-summary" role="alert"><h3>Unsaved changes</h3>
-          <div className="gdg-btn-row">
-            <button type="button" className="gdg-btn gdg-btn-secondary" onClick={() => blocker.reset()}>Stay</button>
-            <button type="button" className="gdg-btn gdg-btn-primary admin-danger" onClick={() => blocker.proceed()}>Discard</button>
-          </div>
-        </div>
-      ) : null}
-      <FormSummary errors={errors} summaryRef={summaryRef} />
-      {serverError ? <div className="admin-summary" role="alert"><p>{serverError}</p></div> : null}
-      {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
-      <form className="admin-form" onSubmit={(e) => { e.preventDefault(); persist(false); }} noValidate>
-        <Field label="Title" htmlFor="title" error={errors.title}>
-          <input {...inputProps('title', errors.title)} value={form.title} onChange={(e) => set('title', e.target.value)} />
-        </Field>
-        <Field label="Subtitle" htmlFor="subtitle" error={errors.subtitle}>
-          <input {...inputProps('subtitle', errors.subtitle)} value={form.subtitle} onChange={(e) => set('subtitle', e.target.value)} />
-        </Field>
-        <Field label="Body (markdown)" htmlFor="body" error={errors.body}>
-          <textarea {...inputProps('body', errors.body)} id="body" rows={8} value={form.body} onChange={(e) => set('body', e.target.value)} />
-        </Field>
-        <MediaPicker
-          id="mediaId"
-          label="Media ID"
-          hint="Search and select from the Media library below."
-          error={errors.mediaId}
-          value={form.mediaId}
-          onChange={(v) => set('mediaId', v)}
-        />
-        <div className="admin-form-grid">
-          <Field label="Button text" htmlFor="buttonText" error={errors.buttonText}>
-            <input {...inputProps('buttonText', errors.buttonText)} value={form.buttonText} onChange={(e) => set('buttonText', e.target.value)} />
-          </Field>
-          <Field label="Button URL" htmlFor="buttonUrl" error={errors.buttonUrl}>
-            <input {...inputProps('buttonUrl', errors.buttonUrl)} value={form.buttonUrl} onChange={(e) => set('buttonUrl', e.target.value)} placeholder="https://…" />
-          </Field>
-        </div>
-        <Toggle id="content-active" label="Active" checked={form.is_active} onChange={(v) => set('is_active', v)} />
-        <div className="gdg-btn-row">
-          <button type="submit" className="gdg-btn gdg-btn-secondary" disabled={saving}>{saving ? 'Saving…' : 'Save draft'}</button>
-          <button type="button" className="gdg-btn gdg-btn-primary" disabled={saving} onClick={() => persist(true)}>{saving ? 'Publishing…' : 'Publish'}</button>
-        </div>
-      </form>
+      <DirtyGuardBanner blocker={blocker} />
+      <Form {...methods}>
+        {/* persist(false) is created in the submit handler (not during render)
+            so the summaryRef focus path never runs at render time. */}
+        <form onSubmit={(e) => handleSubmit(persist(false), () => focusEditorErrors(summaryRef))(e)} noValidate>
+          <EditorCard
+            title={`Edit ${sectionKey}`}
+            eyebrow="Content"
+            actions={(
+              <a className="gdg-btn gdg-btn-secondary" href={SECTION_PREVIEW[sectionKey] ?? '/'} target="_blank" rel="noreferrer">
+                Public preview
+              </a>
+            )}
+          >
+            <EditorErrors errors={rhfErrors} serverError={serverError} summaryRef={summaryRef} />
+            {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
+            <EditorField control={control} name="title" label="Title">
+              {(field) => <Input {...field} value={field.value ?? ''} />}
+            </EditorField>
+            <EditorField control={control} name="subtitle" label="Subtitle">
+              {(field) => <Input {...field} value={field.value ?? ''} />}
+            </EditorField>
+            <EditorField control={control} name="body" label="Body (markdown)">
+              {(field) => <textarea {...field} value={field.value ?? ''} rows={8} />}
+            </EditorField>
+            <EditorField
+              control={control}
+              name="mediaId"
+              label="Media"
+              plain
+              showMessage={false}
+              hint="Search and select from the Media library below."
+            >
+              {(field) => (
+                <MediaPicker
+                  id="mediaId"
+                  label="Media ID"
+                  hint="Search and select from the Media library below."
+                  error={rhfErrors.mediaId?.message}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                />
+              )}
+            </EditorField>
+            <div className="editor-grid">
+              <EditorField control={control} name="buttonText" label="Button text">
+                {(field) => <Input {...field} value={field.value ?? ''} />}
+              </EditorField>
+              <EditorField control={control} name="buttonUrl" label="Button URL">
+                {(field) => <Input {...field} value={field.value ?? ''} placeholder="https://…" />}
+              </EditorField>
+            </div>
+            <EditorField control={control} name="is_active" label="Active" plain>
+              {(field) => (
+                <Toggle id="content-active" label="Active" checked={!!field.value} onChange={field.onChange} />
+              )}
+            </EditorField>
+            <EditorFooter
+              saving={saving}
+              isNew={false}
+              onPublish={() => handleSubmit(persist(true), () => focusEditorErrors(summaryRef))()}
+            />
+          </EditorCard>
+        </form>
+      </Form>
     </section>
   );
 }

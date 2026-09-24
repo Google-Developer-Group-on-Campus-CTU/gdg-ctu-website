@@ -1,10 +1,70 @@
-import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { contentApi } from '../../api/resources.js';
 import { ADMIN_ENTITY_ROUTES, CONTENT_KEYS } from '../../admin/editorial.js';
-import { useAdminList } from '../../admin/editorial.js';
-import { EmptyState, ErrorState, LoadingSkeleton, StatusPill } from '../../components/admin/shared.jsx';
+import { useAdminList, useDebouncedValue } from '../../admin/editorial.js';
+import { DataTable, DataTableColumnHeader } from '../../components/admin/data-table.jsx';
+import { EmptyState, StatusPill } from '../../components/admin/shared.jsx';
+
+/* 44px row-action targets — pill outline, no extra card borders (DataTable owns the brutal wrapper). */
+const ACTION_LINK_CLASS =
+  'inline-flex min-h-[44px] items-center rounded-full border border-border bg-card px-4 text-sm font-medium hover:bg-muted';
+
+/* Static column defs: sectionKey link · title · status · manage. Rows are
+   fixed CONTENT_KEYS entries (some may not exist on the backend yet). */
+const columns = [
+  {
+    accessorKey: 'key',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Section" />,
+    cell: ({ row }) => (
+      <Link
+        to={ADMIN_ENTITY_ROUTES.content.detail(row.original.key)}
+        className="font-medium underline-offset-4 hover:underline"
+      >
+        {row.original.key}
+      </Link>
+    ),
+  },
+  {
+    id: 'title',
+    accessorFn: (entry) => entry.row?.title ?? '',
+    header: 'Title',
+    enableSorting: false,
+    cell: ({ row }) => (
+      row.original.row?.title ?? <span className="admin-muted">— not created —</span>
+    ),
+  },
+  {
+    id: 'status',
+    header: 'Status',
+    enableSorting: false,
+    cell: ({ row }) => (
+      row.original.row
+        ? <StatusPill status={row.original.row.status} active={row.original.row.is_active} />
+        : <span className="admin-muted">missing</span>
+    ),
+  },
+  {
+    id: 'actions',
+    header: 'Actions',
+    enableSorting: false,
+    cell: ({ row }) => {
+      // The detail editor creates the row on first save — Manage opens it
+      // whether or not the backend row exists yet.
+      const detail = ADMIN_ENTITY_ROUTES.content.detail(row.original.key);
+      return (
+        <Link to={detail} className={ACTION_LINK_CLASS} aria-label={`Manage ${row.original.key} section`}>
+          Manage
+        </Link>
+      );
+    },
+  },
+];
 
 export default function AdminContent() {
+  const [params, setParams] = useSearchParams();
+  const q = params.get('q') ?? '';
+  const debounced = useDebouncedValue(q);
   const { data, loading, error, requestId, retry } = useAdminList(
     () => contentApi.list().catch((e) => {
       if (e?.status === 404) return [];
@@ -12,7 +72,24 @@ export default function AdminContent() {
     }),
     'content',
   );
-  const byKey = new Map((data ?? []).map((c) => [c.section_key ?? c.sectionKey, c]));
+
+  const entries = useMemo(() => {
+    const byKey = new Map((data ?? []).map((c) => [c.section_key ?? c.sectionKey, c]));
+    const term = debounced.trim().toLowerCase();
+    return CONTENT_KEYS
+      .map((key) => ({ key, row: byKey.get(key) }))
+      .filter((entry) => {
+        if (!term) return true;
+        return [entry.key, entry.row?.title].filter(Boolean).join(' ').toLowerCase().includes(term);
+      });
+  }, [data, debounced]);
+
+  const setQuery = (value) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set('q', value);
+    else next.delete('q');
+    setParams(next, { replace: true });
+  };
 
   return (
     <section aria-label="Site content">
@@ -22,30 +99,27 @@ export default function AdminContent() {
           <p className="admin-muted">Fixed keys only — no custom keys in V1: {CONTENT_KEYS.join(', ')}.</p>
         </div>
       </div>
-      {loading ? <LoadingSkeleton label="Loading content…" /> : null}
-      {!loading && error ? <ErrorState error={error} requestId={requestId} onRetry={retry} context="load content" /> : null}
-      {!loading && !error && (data ?? []).length === 0 ? (
-        <EmptyState title="No content rows yet" hint="The backend returns one row per section key. Open a section to create its row." />
-      ) : null}
-      {!loading && !error ? (
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead><tr><th scope="col">Section</th><th scope="col">Title</th><th scope="col">Status</th></tr></thead>
-            <tbody>
-              {CONTENT_KEYS.map((key) => {
-                const row = byKey.get(key);
-                return (
-                  <tr key={key}>
-                    <td><Link to={ADMIN_ENTITY_ROUTES.content.detail(key)}>{key}</Link></td>
-                    <td>{row?.title ?? <span className="admin-muted">— not created —</span>}</td>
-                    <td>{row ? <StatusPill status={row.status} active={row.is_active} /> : <span className="admin-muted">missing</span>}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
+
+      <DataTable
+        columns={columns}
+        data={entries}
+        loading={loading}
+        loadingLabel="Loading content…"
+        error={error}
+        requestId={requestId}
+        onRetry={retry}
+        searchColumnId="key"
+        searchPlaceholder="Search sections…"
+        searchValue={q}
+        onSearchChange={setQuery}
+        pageSizeOptions={[20, 10]}
+        renderEmptyState={
+          <EmptyState
+            title={q ? `No sections match “${q}”.` : 'No content rows yet'}
+            hint="The backend returns one row per section key. Open a section to create its row."
+          />
+        }
+      />
     </section>
   );
 }
