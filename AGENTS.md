@@ -10,17 +10,17 @@ Two separate npm projects, no workspace. Run commands from the touched side only
 
 ## Env (never commit `.env`)
 
-- Backend: `copy example.env .env`. Frontend: `copy .env.example .env`. Keys: backend `PORT,NODE_ENV,DB_URL,FR_ORIGIN,CLOUDINARY_URL,CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY`; frontend only `VITE_API_URL`.
+- Backend: `copy example.env .env`. Frontend: `copy .env.example .env`. Keys: backend `PORT,NODE_ENV,DB_URL,FR_ORIGIN,CLOUDINARY_URL,BETTER_AUTH_SECRET,BETTER_AUTH_URL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,ADMIN_USER_IDS`; frontend only `VITE_API_URL`.
 - Frontend auth is Better Auth (`frontend/src/lib/auth-client.ts`) pointed at `VITE_API_URL` — session is an HTTP-only cookie, no frontend auth keys. Missing `VITE_API_URL` = admin shows "disabled", public pages still work.
 - Restart after any env change: backend `.env` and any `VITE_*` change require stopping + `npm run dev` (Vite bakes `VITE_*` at startup).
 
 ## API contract gotchas
 
-- Base path: all backend routes mount at `/GDGoC-CTU-Main/v0.0.1` (`backend/src/server.ts:31`). `VITE_API_URL` must include it, e.g. `http://localhost:3000/GDGoC-CTU-Main/v0.0.1`.
+- Base path: all backend routes mount at `/GDGoC-CTU-Main/v0.0.1` (`backend/src/server.ts:43`). `VITE_API_URL` must include it, e.g. `http://localhost:3000/GDGoC-CTU-Main/v0.0.1`.
 - Auth: 401 = not signed in, 403 = signed in but not active admin. Writes go through `requireAuth` / protected router (`backend/src/modules/index.ts`); public reads live under `/public/*` + `/health`.
-- CORS: `FR_ORIGIN` must exactly match the frontend origin, no trailing `/` (local: `http://localhost:5173`). Mismatch = browser CORS block; fix + restart backend.
+- CORS: `FR_ORIGIN` is a comma-separated allowlist of frontend origins (local: `http://localhost:5173`); each entry is trimmed and trailing `/` stripped, and in development any `localhost`/`127.0.0.1` loopback port is allowed. Origin missing from the list = browser CORS block; fix + restart backend.
 - Frontend calls: use `apiFetch(path, opts)` from `frontend/src/api/client.js` — base is `VITE_API_URL`, always `credentials: 'include'` (the Better Auth session cookie rides along; no Authorization header). Throws with `error.status`/`error.body` on non-OK.
-- Boot is all-or-nothing: `connectDB → Cloudinary → listen`, any failure exits (`server.ts:34-48`). Missing/wrong `DB_URL`/`CLOUDINARY_URL` = server won't start.
+- Boot is all-or-nothing: `connectDB → Cloudinary → listen`, any failure exits (`server.ts:45-59`). Missing/wrong `DB_URL`/`CLOUDINARY_URL` = server won't start; missing `BETTER_AUTH_SECRET`/`BETTER_AUTH_URL` also exits at boot.
 
 ## Code layout
 
@@ -30,7 +30,7 @@ Two separate npm projects, no workspace. Run commands from the touched side only
 ## DB / deploy
 
 - Schema change: edit `src/modules/**/models/*.ts` → `npm run db:generate` → `npm run db:migrate` (prod DB once).
-- Deploy order is backend-first: Render (`rootDir backend`, build `npm install && npm run build`, start `npm start`, health `/GDGoC-CTU-Main/v0.0.1/admins`) → set Vercel `VITE_API_URL=<backend-url>/GDGoC-CTU-Main/v0.0.1` (root `vercel.json` builds `frontend/dist`) → set Render `FR_ORIGIN=<vercel-url>` + redeploy.
+- Deploy order is backend-first: Render (`rootDir backend`, build `npm install && npm run build`, start `npm start`, health `/` — also `/health` and `/GDGoC-CTU-Main/v0.0.1/health` answer the same liveness JSON) → set Vercel `VITE_API_URL=<backend-url>/GDGoC-CTU-Main/v0.0.1` (root `vercel.json` builds `frontend/dist`) → set Render `FR_ORIGIN=<vercel-url>` + redeploy.
 
 ## Workflow
 

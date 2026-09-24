@@ -7,8 +7,9 @@ Order matters: **backend first** (its URL is needed for `FR_ORIGIN` and `VITE_AP
 
 - `backend/.env` filled with production values — set these in the host dashboard, never commit the file:
   `PORT` (injected by host — just reference it), `NODE_ENV=production`,
-  `FR_ORIGIN=https://<frontend-url>` (exact match, no trailing slash),
-  `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` (same Clerk app as the frontend),
+  `FR_ORIGIN=https://<frontend-url>` (one origin, or several comma-separated — each is trimmed and any trailing `/` stripped),
+  `BETTER_AUTH_SECRET` (generate: `openssl rand -base64 32`), `BETTER_AUTH_URL=https://<backend-url>` (backend origin, no trailing `/`),
+  optional `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` (enables "Sign in with Google"), optional `ADMIN_USER_IDS` (comma-separated bootstrap admin user IDs),
   `DB_URL` (Neon Postgres), `CLOUDINARY_URL`.
 - Run DB migrations against the production database once: `npm run db:migrate` from `backend/`
   (needs `DB_URL` set; or use the host's one-off job / release command feature).
@@ -22,11 +23,11 @@ Order matters: **backend first** (its URL is needed for `FR_ORIGIN` and `VITE_AP
 | Build Command | `npm install && npm run build` (`tsc` → `dist/`) |
 | Start Command | `npm start` (`node dist/server.js`) |
 | Node version | 20 LTS |
-| Health Check Path | `/GDGoC-CTU-Main/v0.0.1/admins` (public route) |
+| Health Check Path | `/` (public liveness — Render's default probe; `/health` and `/GDGoC-CTU-Main/v0.0.1/health` return the same JSON) |
 
 - Add all env vars from step 0 in the Render dashboard. `PORT` is injected automatically.
-- API base path is `/GDGoC-CTU-Main/v0.0.1`; `/admins` is public, everything else requires Clerk auth.
-- CORS allows exactly one origin (`FR_ORIGIN`) with credentials — must equal the Vercel URL.
+- API base path is `/GDGoC-CTU-Main/v0.0.1`; liveness (`/`, `/health`) and reads under `/public/*` are open, everything else (including `/admins`) requires an active-admin Better Auth session (`401`/`403` otherwise).
+- CORS allows only the origin(s) listed in `FR_ORIGIN` (comma-separated allowlist) with credentials — must include the Vercel URL.
 - Note: Winston writes to `logs/`; Render's filesystem is ephemeral, so logs don't persist across deploys.
 
 ## 2. Frontend → Vercel
@@ -53,7 +54,7 @@ Order matters: **backend first** (its URL is needed for `FR_ORIGIN` and `VITE_AP
 ## 4. Verify end-to-end
 
 - [ ] Frontend loads; all public pages render with images.
-- [ ] `GET <backend>/GDGoC-CTU-Main/v0.0.1/admins` returns data (proves DB + API).
+- [ ] `GET <backend>/` (or `/health`) returns `{"status":"ok"}` (proves the server is alive); a public read like `GET <backend>/GDGoC-CTU-Main/v0.0.1/public/events` returns data (proves DB + API).
 - [ ] No CORS errors in browser console on API calls.
 - [ ] `/admin/login` shows the GDG-CTU sign-in form; sign-in reaches the admin dashboard.
 - [ ] Authenticated admin request (e.g. list events) succeeds.

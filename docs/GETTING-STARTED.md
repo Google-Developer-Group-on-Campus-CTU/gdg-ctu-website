@@ -57,11 +57,14 @@ The **backend** is the part that stores data (events, team members, photos info)
    | `PORT` | `3000` (the "door number" the server listens on — any free number works, `3000` is the usual) |
    | `NODE_ENV` | `development` (means "I'm coding on my own computer") |
    | `DB_URL` | Your database address — see "Free accounts" below (Neon). It looks like `postgresql://user:password@host/dbname` |
-   | `FR_ORIGIN` | `http://localhost:5173` (the address of your website while coding — must match exactly, no `/` at the end) |
-   | `PASSWORD_LENGTH` | `8` (minimum password length) |
+   | `FR_ORIGIN` | `http://localhost:5173` (the address of your website while coding — one origin, or several separated by commas; trailing `/` are trimmed automatically) |
    | `CLOUDINARY_URL` | Your image-service login — from Cloudinary, looks like `cloudinary://key:secret@name` |
-   | `CLERK_PUBLISHABLE_KEY` | Starts with `pk_test_...` — from your Clerk app |
-   | `CLERK_SECRET_KEY` | Starts with `sk_test_...` — from the SAME Clerk app |
+   | `BETTER_AUTH_SECRET` | A random secret that signs login session cookies — generate one with `openssl rand -base64 32` (or any long random string) |
+   | `BETTER_AUTH_URL` | `http://localhost:3000` (the backend's own address — no trailing `/`) |
+   | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Optional — leave blank for local coding; fill both (from Google Cloud Console) to enable "Sign in with Google" |
+   | `ADMIN_USER_IDS` | Optional — comma-separated user IDs treated as admins (see the note below) |
+
+   > **First signup becomes the admin:** when the `user` table is empty, the very first account you create (in Step 5) is automatically promoted to admin. For any later officer, either give them the admin role in the database or add their user ID to `ADMIN_USER_IDS` and restart the backend.
 
 4. Set up the database tables once (only after `DB_URL` is filled in):
 
@@ -86,8 +89,8 @@ The **backend** is the part that stores data (events, team members, photos info)
 All of these have free plans that are enough for learning:
 
 - **Neon (database — where all text/data is stored):** sign up at [neon.tech](https://neon.tech), create a project, copy the connection string into `DB_URL`. (Drizzle ORM — the tool our code uses to talk to the database — works with this automatically.)
-- **Clerk (login service — handles sign-in so we never store passwords):** sign up at [clerk.com](https://clerk.com), create an application, copy the **Publishable key** and **Secret key** into the backend `.env`. (The frontend no longer needs a Clerk key — sign-in goes through the backend.)
 - **Cloudinary (image hosting):** sign up at [cloudinary.com](https://cloudinary.com/), copy your `CLOUDINARY_URL` (found in your Cloudinary dashboard) into the backend `.env`.
+- **Google Cloud Console (optional — only for "Sign in with Google"):** login itself needs no account — Better Auth runs inside the backend and stores passwords safely there. If you want the Google button too, create OAuth credentials at [console.cloud.google.com](https://console.cloud.google.com), set the redirect URI to `<BETTER_AUTH_URL>/GDGoC-CTU-Main/v0.0.1/api/auth/callback/google`, and copy the client ID/secret into the backend `.env`.
 - Later, for publishing: **Render** (runs the backend online) at [render.com](https://render.com) and **Vercel** (runs the website online) at [vercel.com](https://vercel.com). You don't need these to code locally. Full publish steps: `docs/deployment-plan.md`.
 
 ## Step 4: Set up the frontend (the website)
@@ -121,9 +124,9 @@ Success looks like a line saying `Local: http://localhost:5173/` — open that a
 ## Step 5: Check that everything works
 
 1. **Frontend loads:** open `http://localhost:5173` — you should see the GDG-CTU site (Home page).
-2. **Backend answers:** open `http://localhost:3000/GDGoC-CTU-Main/v0.0.1/admins` in your browser (change `3000` to your `PORT`). Seeing data or `[]` means the server + database work. Seeing "connection refused" means the backend isn't running or the port is wrong.
+2. **Backend answers:** open `http://localhost:3000/health` in your browser (change `3000` to your `PORT`). Seeing `"status":"ok"` in the JSON reply means the server works (`GET /` and `GET http://localhost:3000/GDGoC-CTU-Main/v0.0.1/health` answer the same). Seeing "connection refused" means the backend isn't running or the port is wrong.
 3. **Login page shows:** open `http://localhost:5173/admin/login` — you should see the GDG-CTU sign-in form (email + password, or continue with Google).
-4. **No red CORS errors:** press F12 in the browser → Console tab → click around the site. A "blocked by CORS policy" message means backend `FR_ORIGIN` doesn't exactly match your frontend address — fix it, restart the backend (`Ctrl+C`, then `npm run dev` again).
+4. **No red CORS errors:** press F12 in the browser → Console tab → click around the site. A "blocked by CORS policy" message means the frontend address isn't in the backend's `FR_ORIGIN` allowlist (one origin, or several separated by commas) — fix it, restart the backend (`Ctrl+C`, then `npm run dev` again).
 
 ## If something goes wrong
 
