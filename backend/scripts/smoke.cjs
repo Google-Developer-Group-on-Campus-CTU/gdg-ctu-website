@@ -5,6 +5,8 @@
 // Offline defaults only apply when a variable is UNSET — a local
 // backend/.env (loaded by dotenv during the import) wins.
 process.env.NODE_ENV ||= "production"; // console-only logger, no logs/ writes
+process.env.PORT ||= "3000"; // required by EnvSchema; unused by smoke
+process.env.DB_URL ||= "postgresql://localhost:5432/offline-smoke"; // schema-valid URL; never connected
 process.env.FR_ORIGIN ||= "http://localhost:5173";
 process.env.BETTER_AUTH_SECRET ||= "offline-smoke-secret-not-for-production";
 process.env.BETTER_AUTH_URL ||= "http://localhost:3000";
