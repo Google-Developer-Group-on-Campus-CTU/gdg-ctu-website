@@ -452,6 +452,7 @@ h2:nth-of-type(2) {
     transform: rotateY(180deg);
     border-radius: 20px;
     overflow: hidden;
+    -webkit-overflow-scrolling: touch;
 }
 
 .track-back-list {
@@ -812,6 +813,79 @@ h2:nth-of-type(2) {
     border-top: 1px solid #1a1a1a;
 }
 
+.filter-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin: 50px 0;
+}
+
+.filter-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    padding: 0 50px;
+    border-radius: 999px;
+    border: 2px solid #1a1a1a;
+    font-family: 'Google Sans Flex', sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    cursor: pointer;
+    color: #1a1a1a;
+    background: #fff;
+    opacity: 0.55;
+    transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.filter-tab:hover {
+    opacity: 0.85;
+}
+
+.filter-tab.active {
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.filter-red    { background: #EA4335; color: #1a1a1a; }
+.filter-yellow { background: #FBBC05; color: #1a1a1a; }
+.filter-green  { background: #34A853; color: #1a1a1a; }
+.filter-blue   { background: #4285F4; color: #1a1a1a; }
+
+.event-containers {
+    position: relative;
+    width: 360px; 
+    height: 360px;
+    margin: -40px -20px; 
+}
+
+.event-containers .rectangle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    height: 80%;
+    z-index: 1;
+}
+
+.event-containers .subtract {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70%;
+    height: 70%;
+    z-index: 2;
+}
+
+.event-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+}
+
 @media (max-width: 1024px) {
     h1 { font-size: 56px; }
 
@@ -831,6 +905,10 @@ h2:nth-of-type(2) {
     .carousel-wrapper::before,
     .carousel-wrapper::after {
         width: 40px;
+    }
+
+    .carousel-empty-state p {
+        margin-left: 30px;
     }
 
     .box-event { width: 80%; padding: 30px; }
