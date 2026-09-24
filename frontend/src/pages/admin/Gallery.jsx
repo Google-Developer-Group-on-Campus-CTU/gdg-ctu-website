@@ -12,7 +12,9 @@ export default function AdminGallery() {
     if (e?.status === 404) return [];
     throw e;
   }), 'albums');
-  const items = useAdminList(() => albumItemsApi.list().catch(() => []), 'album-items');
+  // No `.catch(() => [])`: a failed items list must surface via `items.error`
+  // instead of rendering photo counts off an empty array.
+  const items = useAdminList(() => albumItemsApi.list(), 'album-items');
 
   const counts = useMemo(() => {
     const map = {};
@@ -32,7 +34,7 @@ export default function AdminGallery() {
   }, [albums.data, debounced]);
 
   const loading = albums.loading || items.loading;
-  const error = albums.error;
+  const error = albums.error ?? items.error;
 
   return (
     <section aria-label="Gallery albums">

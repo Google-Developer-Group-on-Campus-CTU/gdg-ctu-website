@@ -755,6 +755,23 @@
   background: #4fce62;
 }
 
+.page-officers .gdg-card-meta {
+  opacity: 0.85;
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+.page-officers .gdg-card-desc {
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+  margin: 0;
+}
+
+.page-officers .gdg-muted {
+  color: #777;
+}
+
 /* Fluid type + gutters for 480/768 safety */
 @media (max-width: 768px) {
   .page-officers .team-hero { height: 340px; }

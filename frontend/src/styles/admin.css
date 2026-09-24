@@ -648,6 +648,81 @@
   color: var(--text);
 }
 
+.admin-sidebar-strong {
+  display: block;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.admin-sidebar-link {
+  color: var(--gdg-blue);
+  font-weight: 600;
+}
+
+.gdg-confirm-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.gdg-dialog-actions {
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
+.gdg-toggle-label {
+  font-weight: 500;
+}
+
+.gdg-status-muted {
+  margin-bottom: 0.75rem;
+}
+
+.gdg-code-muted {
+  background: var(--gdg-surface-muted, #f1f3f4);
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+}
+
+.gdg-media-placeholder {
+  height: 140px;
+  background: var(--gdg-surface-muted, #f1f3f4);
+}
+
+.gdg-ellipsis {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gdg-muted-sm {
+  font-size: 0.8rem;
+  margin: 0.2rem 0;
+}
+
+.gdg-selected-wrap {
+  margin: 0.35rem 0;
+}
+
+.gdg-btn-row-sm {
+  margin-top: 0.5rem;
+  gap: 0.5rem;
+}
+
+.gdg-btn-sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.admin-media-card.is-selected {
+  outline: 2px solid var(--gdg-blue);
+  outline-offset: -1px;
+}
+
+.gdg-spacer-sm {
+  height: 1rem;
+}
+
 .admin-drawer-backdrop { display: none; }
 
 :focus-visible {

@@ -37,7 +37,7 @@ export function toArray(payload) {
 }
 
 export function getId(item) {
-  return item?.id ?? item?._id ?? item?.uuid ?? null;
+  return item?.id ?? item?._id ?? item?.uuid ?? item?.slug ?? null;
 }
 
 export function getUpdatedAt(item) {
@@ -45,21 +45,34 @@ export function getUpdatedAt(item) {
 }
 
 export function getStatus(item) {
-  return (item?.status ?? (item?.is_active === false ? 'archived' : 'draft')).toLowerCase();
+  const raw = item?.status;
+  if (typeof raw === 'string' && raw.trim()) return raw.trim().toLowerCase();
+  if (item?.is_active === false) return 'archived';
+  if (item?.is_active === true) return 'published';
+  return 'draft';
+}
+
+function unwrapOne(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload ?? null;
+  for (const key of ['data', 'item', 'result', 'teamMember', 'event', 'partner', 'content', 'media', 'album', 'siteContent']) {
+    const value = payload[key];
+    if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+  }
+  return payload;
 }
 
 function resource(base) {
   return {
     list: (params) => apiFetch(`${base}${qs(params)}`).then(toArray),
-    get: (id) => apiFetch(`${base}/${encodeURIComponent(id)}`),
-    getBySlug: (slug) => apiFetch(`${base}/slug/${encodeURIComponent(slug)}`),
+    get: (id) => apiFetch(`${base}/${encodeURIComponent(id)}`).then(unwrapOne),
+    getBySlug: (slug) => apiFetch(`${base}/slug/${encodeURIComponent(slug)}`).then(unwrapOne),
     create: (body) =>
-      apiFetch(base, { method: 'POST', body: JSON.stringify(body) }),
+      apiFetch(base, { method: 'POST', body: JSON.stringify(body) }).then(unwrapOne),
     update: (id, body) =>
       apiFetch(`${base}/${encodeURIComponent(id)}`, {
         method: 'PATCH',
         body: JSON.stringify(body),
-      }),
+      }).then(unwrapOne),
     remove: (id) =>
       apiFetch(`${base}/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   };
@@ -78,7 +91,7 @@ export const albumItemsApi = resource('/media-collection-items');
  * `{ success, siteContent }`, so each method unwraps to the row itself —
  * callers (ContentEditor) get the id/fields directly instead of the envelope.
  */
-const unwrapContent = (payload) => payload?.siteContent ?? payload;
+const unwrapContent = (payload) => payload?.siteContent ?? unwrapOne(payload);
 
 export const contentApi = {
   ...resource('/site-content'),
@@ -97,9 +110,12 @@ export const contentApi = {
    * sectionKey fallback when the editor has no row id yet: resolve the key
    * through the read-only GET /section/:sectionKey, then PATCH by UUID
    * (PATCH /:id is the only writable path — :id is validateUuid-checked).
+   * One AbortSignal is shared by both legs: aborting cancels the resolving
+   * GET, and a signal aborted mid-lookup makes the PATCH fail immediately
+   * instead of firing after the caller went away.
    */
-  updateBySection: async (key, body) => {
-    const row = await apiFetch(`/site-content/section/${encodeURIComponent(key)}`).then(unwrapContent);
+  updateBySection: async (key, body, { signal } = {}) => {
+    const row = await apiFetch(`/site-content/section/${encodeURIComponent(key)}`, { signal }).then(unwrapContent);
     const id = getId(row);
     if (!id) {
       const err = new Error(`No site content row for section "${key}"`);
@@ -110,40 +126,26 @@ export const contentApi = {
     return apiFetch(`/site-content/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
+      signal,
     }).then(unwrapContent);
   },
 };
 export const mediaApi = {
   ...resource('/media'),
-  /** Multipart upload (apiFetch is JSON-only, so this uses raw fetch). */
-  upload: async (file, altText) => {
+  /**
+   * Multipart upload through apiFetch (inherits the 15s timeout and
+   * `error.status`/`error.body` parsing). No Content-Type is set here — the
+   * browser appends the multipart boundary itself for FormData bodies.
+   */
+  upload: (file, altText) => {
     const form = new FormData();
     form.append('file', file);
     if (altText) form.append('alt_text', altText);
-    // Empty headers object: multipart must not set Content-Type (the browser
-    // needs to append the boundary itself).
-    const headers = {};
-    const response = await fetch(`${API_BASE_URL}/media`, {
-      method: 'POST',
-      credentials: 'include',
-      headers,
-      body: form,
-    });
-    if (!response.ok) {
-      const error = new Error(`Upload failed: ${response.status} ${response.statusText}`);
-      error.status = response.status;
-      try {
-        error.body = await response.json();
-      } catch {
-        error.body = await response.text().catch(() => null);
-      }
-      throw error;
-    }
-    return response.json();
+    return apiFetch('/media', { method: 'POST', body: form }).then(unwrapOne);
   },
 };
 
-/** Public GETs for preview links (spec §5). Backend ships these after the V1 backend pass; they 404 until then. */
+/** Public preview links for the published site — wired to frontend routes. */
 export const publicPreview = {
   events: (scope = 'upcoming') => `/events?scope=${encodeURIComponent(scope)}`,
   eventSlug: (slug) => `/events/${encodeURIComponent(slug)}`,

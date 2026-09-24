@@ -28,11 +28,15 @@ export default function PartnerDetail() {
   const [original, setOriginal] = useState(EMPTY);
   const [loading, setLoading] = useState(!isNew);
   const [error, setError] = useState(null);
+  // Load retry that preserves form state — bumps the fetch effect below
+  // instead of window.location.reload(), which would wipe unsaved edits.
+  const [loadRetry, setLoadRetry] = useState(0);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
   const [slugDup, setSlugDup] = useState(false);
+  const [slugCheckError, setSlugCheckError] = useState(null);
   const [confirm, setConfirm] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -48,7 +52,7 @@ export default function PartnerDetail() {
       setForm(next); setOriginal(next); setLoading(false);
     }).catch((err) => { if (!alive) return; setError(err); setLoading(false); });
     return () => { alive = false; };
-  }, [id, isNew]);
+  }, [id, isNew, loadRetry]);
 
   const set = (key, value) => {
     setForm((f) => {
@@ -59,19 +63,35 @@ export default function PartnerDetail() {
   };
 
   useEffect(() => {
-    if (!form.slug) { setSlugDup(false); return; }
+    if (!form.slug) { setSlugDup(false); setSlugCheckError(null); return; }
     let alive = true;
+    setSlugCheckError(null);
     const t = setTimeout(() => {
       checkSlugUnique(partnersApi, form.slug, isNew ? null : getId(original) ?? id)
-        .then((unique) => { if (alive) setSlugDup(!unique); }).catch(() => {});
+        .then((unique) => { if (alive) { setSlugDup(!unique); setSlugCheckError(null); } })
+        .catch((err) => {
+          if (!alive) return;
+          if (err?.status === 404) { setSlugDup(false); setSlugCheckError(null); return; }
+          // 500/timeout/network: unverifiable — block save with the error.
+          setSlugDup(false);
+          setSlugCheckError(err?.body?.message ?? err?.message ?? 'Could not verify slug uniqueness.');
+        });
     }, 400);
     return () => { alive = false; clearTimeout(t); };
   }, [form.slug, id, isNew, original]);
 
   if (!isNew && loading) return <section aria-label="Partner editor"><h1>Partner</h1><LoadingSkeleton label="Loading partner…" /></section>;
-  if (!isNew && error) return <section aria-label="Partner editor"><h1>Partner</h1><ErrorState error={error} onRetry={() => window.location.reload()} context="load this partner" /></section>;
+  // Retry clears the error + shows the loader from the click handler (not the
+  // fetch effect) and bumps `loadRetry` — the form state above is untouched.
+  const retryLoad = () => {
+    setError(null);
+    setLoading(true);
+    setLoadRetry((n) => n + 1);
+  };
+  if (!isNew && error) return <section aria-label="Partner editor"><h1>Partner</h1><ErrorState error={error} onRetry={retryLoad} context="load this partner" /></section>;
 
   const persist = async (publish = false) => {
+    if (slugCheckError) { setErrors({ slug: slugCheckError }); focusSummary(summaryRef); return; }
     const next = publish ? { ...form, status: 'published', is_active: true } : form;
     const gate = publish ? { ...validatePartner(next), ...(slugDup ? { slug: 'Slug is already in use.' } : {}) } : {};
     setErrors(gate);
@@ -114,8 +134,8 @@ export default function PartnerDetail() {
           <Field label="Name" htmlFor="name" error={errors.name} required>
             <input {...inputProps('name', errors.name)} value={form.name} onChange={(e) => set('name', e.target.value)} />
           </Field>
-          <Field label="Slug" htmlFor="slug" error={errors.slug ?? (slugDup ? 'Slug is already in use.' : null)} required>
-            <input {...inputProps('slug', errors.slug || slugDup)} value={form.slug} onChange={(e) => { setSlugTouched(true); set('slug', slugify(e.target.value)); }} />
+          <Field label="Slug" htmlFor="slug" error={errors.slug ?? slugCheckError ?? (slugDup ? 'Slug is already in use.' : null)} required>
+            <input {...inputProps('slug', errors.slug || slugCheckError || slugDup)} value={form.slug} onChange={(e) => { setSlugTouched(true); set('slug', slugify(e.target.value)); }} />
           </Field>
         </div>
         <div className="admin-form-grid">

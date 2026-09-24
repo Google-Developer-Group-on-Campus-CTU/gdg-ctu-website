@@ -1,5 +1,6 @@
 import { createAuthClient } from 'better-auth/react';
 import { adminClient } from 'better-auth/client/plugins';
+import { API_BASE_URL as apiBaseUrl } from '../api/client.js';
 
 /**
  * Better Auth client for the whole frontend.
@@ -17,8 +18,12 @@ import { adminClient } from 'better-auth/client/plugins';
  *   `credentials: 'include'`, no bearer tokens are attached anywhere.
  * - `adminClient()` mirrors the backend admin plugin so role helpers
  *   (`authClient.admin.*`) are available on the client.
+ *
+ * - When VITE_API_URL is missing, `baseURL` stays `undefined` (disabled
+ *   state) so no auth call ever fires at the frontend origin — the admin UI
+ *   renders <AdminDisabled/> instead (see ProtectedRoute).
  */
-const apiBaseUrl = import.meta.env.VITE_API_URL;
+export const isAuthConfigured = Boolean(apiBaseUrl);
 
 export const authClient = createAuthClient({
   baseURL: apiBaseUrl ? `${apiBaseUrl.replace(/\/+$/, '')}/api/auth` : undefined,

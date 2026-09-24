@@ -19,7 +19,7 @@ import { apiFetch } from './client.js';
  * `${origin}/admin/register?token=${token}`.
  */
 export function buildInviteLink(token) {
-  return `${window.location.origin}/admin/register?token=${token}`;
+  return `${window.location.origin}/admin/register?token=${encodeURIComponent(token)}`;
 }
 
 /** Status badge derived from usedAt / expiresAt. */

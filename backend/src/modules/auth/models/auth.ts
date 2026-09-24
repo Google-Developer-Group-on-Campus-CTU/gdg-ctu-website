@@ -1,5 +1,13 @@
-import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import {
+      boolean,
+      check,
+      index,
+      integer,
+      pgTable,
+      text,
+      timestamp,
+} from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
 
 /**
  * Better Auth core tables (user / session / account / verification) plus the
@@ -13,6 +21,12 @@ import { relations } from "drizzle-orm";
  *
  * Reconciled against `@better-auth/cli generate` output (auth-schema.generated)
  * — column-for-column identical: nullability, `$onUpdate`, index names.
+ *
+ * Deliberate drift: `admin_bootstrap` (singleton row, see below) backs the
+ * first-admin bootstrap in config/auth.ts — the claim INSERT decides exactly
+ * one winner across instances with no cap on later role='admin' rows, so
+ * invite redeem and the admin CRUD paths stay unlimited. ADMIN_USER_IDS
+ * remains the canonical way to grant/revoke admin access.
  */
 export const user = pgTable("user", {
       id: text("id").primaryKey(),
@@ -31,6 +45,27 @@ export const user = pgTable("user", {
       banReason: text("ban_reason"),
       banExpires: timestamp("ban_expires"),
 });
+
+/**
+ * First-admin bootstrap singleton: at most one row may ever exist
+ * (`CHECK (id = 1)` on the single allowed PK value). The signup that wins
+ * `INSERT ... ON CONFLICT DO NOTHING` on id=1 becomes the bootstrap admin;
+ * losers stay normal users. `claimedBy` stays NULL at claim time (the user
+ * row is INSERTed by Better Auth after the hook returns) — it is backfilled
+ * opportunistically, never read for auth decisions.
+ */
+export const adminBootstrap = pgTable(
+      "admin_bootstrap",
+      {
+            id: integer("id").primaryKey(),
+            claimedAt: timestamp("claimed_at", { withTimezone: true })
+                  .defaultNow(),
+            claimedBy: text("claimed_by").references(() => user.id),
+      },
+      (table) => [
+            check("admin_bootstrap_singleton_chk", sql`${table.id} = 1`),
+      ],
+);
 
 export const session = pgTable(
       "session",

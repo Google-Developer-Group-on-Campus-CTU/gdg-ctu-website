@@ -8,25 +8,22 @@ export default function AuthBrandPanel() {
   return (
     <aside className="login-brand" aria-label="About the GDG-CTU admin">
       <img
-        className="brand-deco"
+        className="brand-deco brand-deco-star"
         src="/layout-assets/home/star-huge.png"
         alt=""
         aria-hidden="true"
-        style={{ top: '14%', right: '6%', width: '120px', transform: 'rotate(14deg)' }}
       />
       <img
-        className="brand-deco"
+        className="brand-deco brand-deco-globe"
         src="/layout-assets/home/globe-huge.png"
         alt=""
         aria-hidden="true"
-        style={{ bottom: '12%', right: '-12px', width: '160px', transform: 'rotate(18deg)', opacity: 0.12 }}
       />
       <img
-        className="brand-deco"
+        className="brand-deco brand-deco-heart"
         src="/layout-assets/home/heart-huge.png"
         alt=""
         aria-hidden="true"
-        style={{ bottom: '26%', left: '-14px', width: '110px', transform: 'rotate(-18deg)', opacity: 0.1 }}
       />
 
       <div className="login-brand-top">

@@ -31,6 +31,25 @@ export const UpdateMediaSchema = CreateMediaSchema.partial().refine(
       "At least one field is required",
 );
 
+// Full DB-record input (client-facing CreateMediaSchema omits the
+// Cloudinary columns the server fills in after upload). Built on the INSERT
+// schema — not the select schema — so nullable-column optionality matches
+// `NewMediaRecord` and every existing `createMediaRecord(...)` call site
+// stays assignable. Zod-inferred and validated at the service entry in
+// createMediaService — alter tables here, not in `as any` casts.
+export const MediaRecordSchema = createInsertSchema(media).omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+});
+export type CreateMediaInput = z.infer<typeof MediaRecordSchema>;
+
+// Update payload: validated non-media fields plus the Cloudinary columns a
+// file-swap refreshes (both optional — file-only updates send `{}` plus the
+// new asset columns).
+export type UpdateMediaInput = UpdateMediaDTO &
+      Partial<CreateMediaInput>;
+
 // Direct-to-Cloudinary signed upload (bulk path): the client sends this as
 // JSON, receives signed params, and POSTs the file bytes straight to
 // Cloudinary — bytes never transit this serverless function (dodges the

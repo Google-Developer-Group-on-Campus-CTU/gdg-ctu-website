@@ -12,6 +12,59 @@ export function LoadingSkeleton({ rows = 6, label = 'Loading…' }) {
   );
 }
 
+/* Public feed skeleton — same loading concept, gdg grid language. Unified with LoadingSkeleton via shared tokens. */
+export function FeedSkeleton({ count = 3, label = 'Loading…' }) {
+  return (
+    <div className="gdg-grid" role="status" aria-live="polite" aria-label={label}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="gdg-card" aria-hidden="true">
+          <div className="gdg-skeleton gdg-skeleton-photo" />
+          <div className="gdg-skeleton gdg-skeleton-line" />
+          <div className="gdg-skeleton gdg-skeleton-line short" />
+        </div>
+      ))}
+      <span className="gdg-visually-hidden">{label}</span>
+    </div>
+  );
+}
+
+export function hideImage(e) {
+  e.currentTarget.style.display = 'none';
+}
+
+export function friendlyFeedError(error) {
+  if (!error) return 'Could not load this section.';
+  if (error.status === 404) return 'This content is not published yet.';
+  if (error.status >= 500) return 'The content service is temporarily unavailable. Please retry.';
+  return error?.body?.message ?? error?.message ?? 'Could not load this section.';
+}
+
+/* Public feed error — uses gdg-feed-error (resolved vs .feed-error). */
+export function FeedError({ message = 'Could not load this section.', onRetry }) {
+  return (
+    <div className="gdg-feed-error" role="alert">
+      <p>{message}</p>
+      {onRetry ? (
+        <button type="button" className="gdg-btn gdg-btn-secondary" onClick={onRetry}>
+          Retry
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+export function StripHead({ badge, title, to, linkLabel = 'View all' }) {
+  return (
+    <div className="gdg-strip-head">
+      <div>
+        {badge ? <span className="gdg-badge">{badge}</span> : null}
+        <h2>{title}</h2>
+      </div>
+      {to ? <Link to={to} className="gdg-btn gdg-btn-secondary">{linkLabel}</Link> : null}
+    </div>
+  );
+}
+
 export function EmptyState({ title, hint, actionLabel, actionTo, docsHref }) {
   return (
     <div className="admin-empty">
@@ -57,7 +110,14 @@ export function ErrorState({ error, requestId, onRetry, context = 'load this con
 }
 
 export function StatusPill({ status, active }) {
-  const normalized = String(status ?? (active === false ? 'archived' : 'draft')).toLowerCase();
+  let raw = status;
+  // tri-state: status wins if present; otherwise derive from active boolean; never mask real status as draft
+  if (typeof raw !== 'string' || !raw.trim()) {
+    if (active === false) raw = 'archived';
+    else if (active === true) raw = 'published';
+    else raw = 'draft';
+  }
+  const normalized = String(raw).trim().toLowerCase();
   return (
     <span className={`admin-pill admin-pill-${normalized}`} aria-label={`Status: ${normalized}`}>
       {normalized}
@@ -134,7 +194,7 @@ export function TypedConfirm({ open, title, body, expected, confirmLabel = 'Conf
       >
         <h3>{title}</h3>
         <p className="admin-muted">{body}</p>
-        <label htmlFor="typed-confirm" style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+        <label htmlFor="typed-confirm" className="gdg-confirm-label">
           Type <code>{expected}</code> to confirm
         </label>
         <input
@@ -144,7 +204,7 @@ export function TypedConfirm({ open, title, body, expected, confirmLabel = 'Conf
           onChange={(e) => setTyped(e.target.value)}
           autoComplete="off"
         />
-        <div className="gdg-btn-row" style={{ justifyContent: 'flex-end', marginTop: '1.25rem' }}>
+        <div className="gdg-btn-row gdg-dialog-actions">
           <button type="button" className="gdg-btn gdg-btn-secondary" onClick={onCancel} disabled={busy}>
             Cancel
           </button>
@@ -166,7 +226,7 @@ export function Toggle({ id, label, checked, onChange, hint }) {
   return (
     <div className="admin-toggle">
       <input id={id} type="checkbox" checked={!!checked} onChange={(e) => onChange(e.target.checked)} />
-      <label htmlFor={id} style={{ fontWeight: 500 }}>{label}</label>
+      <label htmlFor={id} className="gdg-toggle-label">{label}</label>
       {hint ? <p className="admin-hint">{hint}</p> : null}
     </div>
   );

@@ -250,7 +250,7 @@ function EventsList() {
         </div>
       ) : null}
       {!loading && error ? (
-        <div className="gdg-feed-error" style={{ maxWidth: 720, margin: '16px auto' }}>
+        <div className="gdg-feed-error">
           <FeedError message={friendlyFeedError(error)} onRetry={retry} />
         </div>
       ) : null}
@@ -268,7 +268,7 @@ function EventsList() {
             <div className="carousel-empty-state">
               <p>No upcoming events right now. We&apos;re cooking up something</p>
               <p>exciting for the next sprint! Follow our socials or check back soon!</p>
-              <Link to="/contact" className="register" style={{ marginTop: 30, width: 300 }}>
+              <Link to="/contact" className="register gdg-follow-btn">
                 Follow our community <span className="arrow-diagonal" aria-hidden="true">↗</span>
               </Link>
             </div>
@@ -284,17 +284,7 @@ function EventsList() {
                   {event.coverUrl ? (
                     <img src={event.coverUrl} alt={event.coverAlt} loading="lazy" onError={hideImage} />
                   ) : (
-                    <div
-                      style={{
-                        height: 176,
-                        background: '#ececec',
-                        display: 'grid',
-                        placeItems: 'center',
-                        color: '#777',
-                        fontWeight: 600,
-                      }}
-                      aria-hidden="true"
-                    >
+                    <div className="gdg-card-placeholder" aria-hidden="true">
                       {event.title.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -378,18 +368,12 @@ function EventsList() {
                   <div className="track-back">
                     <img src={track.bgBack} className="track-one-bg" alt="" aria-hidden="true" />
                     <img src={track.logo} className={track.logoClass} alt={`${track.title} logo`} />
-                    <div className="track-one-content" style={{ marginTop: 38 }}>
+                    <div className="track-one-content gdg-track-content-offset">
                       <h3 className="track-title">{track.backTitle}</h3>
                       <h3 className="track-sub-title">{track.backSubtitle}</h3>
                       <button
                         type="button"
-                        className={track.btnClass}
-                        style={{
-                          marginTop: 15,
-                          width: 200,
-                          backgroundColor: track.id === 'web-cloud' ? '#4285F4' : track.id === 'ui-ux' ? '#EA4335' : track.id === 'mobile-dev' ? '#F9AB00' : undefined,
-                          color: track.id === 'web-cloud' || track.id === 'ui-ux' ? '#fff' : undefined,
-                        }}
+                        className={`${track.btnClass} gdg-track-learn-btn gdg-track-${track.id}`}
                         disabled
                       >
                         What You&apos;ll Learn
@@ -410,12 +394,7 @@ function EventsList() {
                       </div>
                       <button
                         type="button"
-                        className={track.btnClass}
-                        style={{
-                          marginTop: 16,
-                          backgroundColor: track.id === 'web-cloud' ? '#4285F4' : track.id === 'ui-ux' ? '#EA4335' : track.id === 'mobile-dev' ? '#F9AB00' : undefined,
-                          color: track.id === 'web-cloud' || track.id === 'ui-ux' ? '#fff' : undefined,
-                        }}
+                        className={`${track.btnClass} gdg-track-back-btn gdg-track-${track.id}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setFlipState((prev) => ({ ...prev, flippedId: null }));
@@ -450,7 +429,7 @@ function EventsList() {
         <h1>built together</h1>
 
         {isEmpty && scope === 'past' ? (
-          <p className="gdg-subtitle" style={{ marginTop: 16 }}>
+          <p className="gdg-subtitle gdg-mt-md">
             No past events right now — check back soon.
           </p>
         ) : null}
@@ -466,17 +445,7 @@ function EventsList() {
                   {event.coverUrl ? (
                     <img src={event.coverUrl} alt={event.coverAlt} loading="lazy" onError={hideImage} />
                   ) : (
-                    <div
-                      style={{
-                        height: 160,
-                        background: '#ececec',
-                        display: 'grid',
-                        placeItems: 'center',
-                        color: '#777',
-                        fontWeight: 600,
-                      }}
-                      aria-hidden="true"
-                    >
+                    <div className="gdg-card-placeholder gdg-card-placeholder-sm" aria-hidden="true">
                       {event.title.charAt(0).toUpperCase()}
                     </div>
                   )}

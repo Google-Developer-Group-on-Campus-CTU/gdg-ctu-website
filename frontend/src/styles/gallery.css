@@ -32,6 +32,11 @@
   height: auto;
 }
 
+.page-gallery .gdg-desc {
+  color: #555;
+  line-height: 1.5;
+}
+
 /* ---------- hero ---------- */
 .page-gallery .hero {
   position: relative;

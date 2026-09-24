@@ -88,16 +88,18 @@ export const CreateEventSchema = BaseCreateEventSchema.superRefine(
                               path: ["registrationUrl"],
                         });
                   } else {
+                        // No Error-as-control-flow: the try guards only the
+                        // URL parse; the https rule is a plain refinement.
+                        let protocol: string | undefined;
                         try {
-                              const url = new URL(data.registrationUrl);
-                              if (url.protocol !== "https:") {
-                                    throw new Error("not-https");
-                              }
+                              protocol = new URL(data.registrationUrl).protocol;
                         } catch {
+                              protocol = undefined;
+                        }
+                        if (protocol !== "https:") {
                               ctx.addIssue({
                                     code: "custom",
-                                    message:
-                                          "Registration URL must be a valid https:// URL.",
+                                    message: "Registration URL must be a valid https:// URL.",
                                     path: ["registrationUrl"],
                               });
                         }

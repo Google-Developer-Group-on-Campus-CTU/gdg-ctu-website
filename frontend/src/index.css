@@ -13,6 +13,11 @@
   --bg: #f8f9fc;
   --card: #ffffff;
   --border: #e8eaed;
+  --gdg-surface-muted: #f1f3f4;
+  --gdg-radius-sm: 6px;
+  --gdg-radius-md: 10px;
+  --gdg-spacing-xs: 0.4rem;
+  --gdg-spacing-sm: 0.75rem;
 }
 
 * {
@@ -555,6 +560,38 @@ a {
   to {
     transform: rotate(360deg);
   }
+}
+
+.gdg-center-mt {
+  text-align: center;
+  margin-top: 14px;
+}
+
+.gdg-feed-offset {
+  margin-top: 16px;
+}
+
+.gdg-feed-offset-sm {
+  margin-top: 12px;
+}
+
+/* Alias legacy .feed-error to unified gdg-feed-error token */
+.feed-error {
+  background: #fce8e6;
+  border: 1px solid var(--gdg-red);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+}
+
+.gdg-hint-offset {
+  margin-top: -0.75rem;
+}
+
+.gdg-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 @keyframes gdg-shimmer {

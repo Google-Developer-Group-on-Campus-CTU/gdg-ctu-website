@@ -1,6 +1,7 @@
 import winston from "winston";
 import path from "path";
 import fs from "fs";
+import ENV from "../config/env.js";
 
 /*
   Central application logger.
@@ -20,7 +21,7 @@ import fs from "fs";
     persistence plus a colorized console transport.
 */
 
-const isProduction = process.env.NODE_ENV === "production";
+const isProduction = ENV.NODE_ENV === "production";
 
 // Dev-only: ensure the logs directory exists for the file transports.
 // Skipped in production, which writes to stdout and creates nothing.
@@ -48,7 +49,7 @@ const consoleFormat = winston.format.combine(
 );
 
 const logger = winston.createLogger({
-      level: process.env.LOG_LEVEL || "info",
+      level: ENV.LOG_LEVEL,
 
       transports: isProduction
             ? [

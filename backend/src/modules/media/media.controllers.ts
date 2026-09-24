@@ -15,19 +15,34 @@ import {
       updateMediaService,
       deleteMediaService,
 } from "./media.services.js";
-import { CreateMediaSchema, UpdateMediaSchema, SignUploadSchema } from "./media.validations.js";
+import { CreateMediaSchema, UpdateMediaSchema, SignUploadSchema, CreateMediaInput, UpdateMediaInput } from "./media.validations.js";
+import { getUserIdFromRequest } from "../auth/auth.utils.js";
 import {
       uploadMedia,
       deleteMediaCloudinaryService,
       signDirectUpload,
 } from "../../config/cloudinary/cloudinary.services.js";
-import { rollbackCloudinaryUpload } from "../../config/cloudinary/utils/cloudinary-rollback-helper.js";
+import {
+      rollbackCloudinaryUpload,
+      isCloudinaryDisabledError,
+} from "../../config/cloudinary/utils/cloudinary-rollback-helper.js";
 import logger from "../../utils/logger.js";
 
 export const createMedia = async (req: Request, res: Response) => {
       try {
-            // Validate non‑file fields (uploadedBy, altText)
-            const data = validateBody(CreateMediaSchema, req.body);
+            // The session is the actor — a client-supplied `uploadedBy` is
+            // never trusted (spoofing it would attribute uploads to anyone).
+            const userId = getUserIdFromRequest(req);
+            if (!userId) {
+                  throw new AppError(401, "Unauthorized: missing user ID");
+            }
+
+            // Validate non‑file fields (altText); strip any `uploadedBy`.
+            const { uploadedBy: _ignoredUploadedBy, ...rest } = req.body ?? {};
+            const data = validateBody(
+                  CreateMediaSchema.omit({ uploadedBy: true }),
+                  rest,
+            );
 
             const file = (req as any).file;
             if (!file) {
@@ -36,31 +51,42 @@ export const createMedia = async (req: Request, res: Response) => {
                         .json({ success: false, message: "File is required" });
             }
 
-            const uploadResult = await uploadMedia(file.buffer, {
-                  folder: "media",
-                  resourceType: "auto",
-            });
+            let trackedUpload: UploadApiResponse | null = null;
+            try {
+                  trackedUpload = await uploadMedia(file.buffer, {
+                        folder: "media",
+                        resourceType: "auto",
+                  });
 
-            const mediaData = {
-                  uploadedBy: data.uploadedBy,
-                  altText: data.altText ?? null,
-                  cloudinaryAssetId: uploadResult.asset_id,
-                  publicId: uploadResult.public_id,
-                  secureUrl: uploadResult.secure_url,
-                  resourceType: uploadResult.resource_type,
-                  format: uploadResult.format,
-                  width: uploadResult.width,
-                  height: uploadResult.height,
-                  bytes: uploadResult.bytes,
-                  originalFilename: uploadResult.original_filename,
-            };
+                  const mediaData: CreateMediaInput = {
+                        uploadedBy: userId,
+                        altText: data.altText ?? null,
+                        cloudinaryAssetId: trackedUpload.asset_id,
+                        publicId: trackedUpload.public_id,
+                        secureUrl: trackedUpload.secure_url,
+                        resourceType: trackedUpload.resource_type,
+                        format: trackedUpload.format ?? null,
+                        width: trackedUpload.width ?? null,
+                        height: trackedUpload.height ?? null,
+                        bytes: trackedUpload.bytes ?? null,
+                        originalFilename:
+                              trackedUpload.original_filename ?? null,
+                  };
 
-            const media = await createMediaService(mediaData as any);
-            return res.status(201).json({
-                  success: true,
-                  message: "Media created successfully",
-                  media,
-            });
+                  const media = await createMediaService(mediaData);
+                  return res.status(201).json({
+                        success: true,
+                        message: "Media created successfully",
+                        media,
+                  });
+            } catch (createError) {
+                  // Roll back the Cloudinary upload when the DB insert fails
+                  // (same pattern as updateMedia) — no orphaned assets.
+                  if (trackedUpload) {
+                        await rollbackCloudinaryUpload(trackedUpload);
+                  }
+                  throw createError;
+            }
       } catch (error) {
             return handleControllerError(res, error, "Failed to create media");
       }
@@ -96,9 +122,12 @@ export const updateMedia = async (req: Request, res: Response) => {
             const hasBody = Boolean(
                   req.body && Object.keys(req.body).length > 0,
             );
-            const data = hasBody
+            // File-only updates parse an empty partial through Zod instead
+            // of casting — the non-empty refine lives only on
+            // UpdateMediaSchema, so `{}` stays valid here.
+            const data: UpdateMediaInput = hasBody
                   ? validateBody(UpdateMediaSchema, req.body)
-                  : ({} as any);
+                  : CreateMediaSchema.partial().parse({});
 
             if (!hasBody && !file) {
                   throw new AppError(
@@ -113,7 +142,7 @@ export const updateMedia = async (req: Request, res: Response) => {
 
             let uploadResult: UploadApiResponse | null = null;
             try {
-                  let cloudinaryUpdate: Record<string, unknown> = {};
+                  let cloudinaryUpdate: Partial<CreateMediaInput> = {};
                   if (file) {
                         uploadResult = await uploadMedia(file.buffer, {
                               folder: "media",
@@ -124,18 +153,19 @@ export const updateMedia = async (req: Request, res: Response) => {
                               publicId: uploadResult.public_id,
                               secureUrl: uploadResult.secure_url,
                               resourceType: uploadResult.resource_type,
-                              format: uploadResult.format,
-                              width: uploadResult.width,
-                              height: uploadResult.height,
-                              bytes: uploadResult.bytes,
-                              originalFilename: uploadResult.original_filename,
+                              format: uploadResult.format ?? null,
+                              width: uploadResult.width ?? null,
+                              height: uploadResult.height ?? null,
+                              bytes: uploadResult.bytes ?? null,
+                              originalFilename:
+                                    uploadResult.original_filename ?? null,
                         };
                   }
 
                   const media = await updateMediaService(id, {
                         ...data,
                         ...cloudinaryUpdate,
-                  } as any);
+                  });
 
                   // Best-effort cleanup of the replaced Cloudinary asset.
                   if (file && existing.publicId) {
@@ -148,15 +178,7 @@ export const updateMedia = async (req: Request, res: Response) => {
                                           | "raw",
                               );
                         } catch (cleanupError: any) {
-                              if (
-                                    (cleanupError instanceof AppError &&
-                                          cleanupError.statusCode === 503) ||
-                                    (typeof cleanupError?.message ===
-                                          "string" &&
-                                          cleanupError.message.includes(
-                                                "not configured",
-                                          ))
-                              ) {
+                              if (isCloudinaryDisabledError(cleanupError)) {
                                     logger.warn(
                                           "Cloudinary disabled - skipping old media asset cleanup",
                                     );

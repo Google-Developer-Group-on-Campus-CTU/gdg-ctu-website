@@ -60,21 +60,15 @@ function OfficersSkeleton({ count = 8 }) {
 }
 
 function OfficerCard({ member, onSelect }) {
-  const [imgSrc, setImgSrc] = useState(member.photoUrl || FALLBACK_PHOTO);
-  const [imgError, setImgError] = useState(false);
-
-  // eslint-disable-next-line react/set-state-in-effect -- sync fallback when CMS photo changes
-  useEffect(() => {
-    setImgSrc(member.photoUrl || FALLBACK_PHOTO);
-    setImgError(false);
-  }, [member.photoUrl]);
+  // `imgSrc` is derived during render — no effect-sync. The parent keys each
+  // card by photo URL too, so a CMS photo swap remounts the card and resets
+  // the error flag without a setState-in-effect cycle.
+  const [imgFailed, setImgFailed] = useState(false);
+  const imgSrc = imgFailed ? FALLBACK_PHOTO : (member.photoUrl || FALLBACK_PHOTO);
 
   const handleError = useCallback(() => {
-    if (!imgError) {
-      setImgError(true);
-      setImgSrc(FALLBACK_PHOTO);
-    }
-  }, [imgError]);
+    setImgFailed(true);
+  }, []);
 
   const meta = [member.program, member.yearSection].filter(Boolean).join(' · ');
   const desc = member.bio || '';
@@ -97,6 +91,7 @@ function OfficerCard({ member, onSelect }) {
     >
       {imgSrc ? (
         <img
+          key={member.photoUrl}
           className="card-photo"
           src={imgSrc}
           alt={member.photoAlt || member.name}
@@ -111,8 +106,8 @@ function OfficerCard({ member, onSelect }) {
       <div className="card-info">
         <h4 className="card-name">{member.name}</h4>
         <p className="card-role">{member.role || 'Team Member'}</p>
-        {meta ? <p className="card-role" style={{ opacity: 0.85, marginTop: 2, fontSize: 11 }}>{meta}</p> : null}
-        {desc ? <p className="card-role" style={{ opacity: 0, height: 0, overflow: 'hidden', margin: 0 }}>{desc}</p> : null}
+        {meta ? <p className="card-role gdg-card-meta">{meta}</p> : null}
+        {desc ? <p className="card-role gdg-card-desc">{desc}</p> : null}
         {(member.linkedin || member.github || member.website) && (
           <div className="card-links">
             {member.github ? <a href={member.github} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>GitHub</a> : null}
@@ -126,14 +121,11 @@ function OfficerCard({ member, onSelect }) {
 }
 
 function OfficerModal({ member, onClose }) {
+  // Fresh mount per selection (parent keys by member id) — no reset effect
+  // needed when the selection changes.
   const [photoFailed, setPhotoFailed] = useState(false);
   const src = member?.photoUrl || FALLBACK_PHOTO;
   const showPhoto = src && !photoFailed;
-
-  // eslint-disable-next-line react/set-state-in-effect -- reset modal photo when selection changes
-  useEffect(() => {
-    setPhotoFailed(false);
-  }, [member]);
 
   useEffect(() => {
     function onKey(e) {
@@ -185,7 +177,7 @@ function OfficerModal({ member, onClose }) {
                 {member.github ? <a href={member.github} target="_blank" rel="noreferrer">GitHub</a> : null}
                 {member.linkedin ? <a href={member.linkedin} target="_blank" rel="noreferrer">LinkedIn</a> : null}
                 {member.website ? <a href={member.website} target="_blank" rel="noreferrer">Website</a> : null}
-                {!member.github && !member.linkedin && !member.website ? <span style={{ color: '#777' }}>—</span> : null}
+                {!member.github && !member.linkedin && !member.website ? <span className="gdg-muted">—</span> : null}
               </span>
             </div>
           </div>
@@ -255,7 +247,7 @@ export default function Officers() {
               </div>
               <div className="team-grid">
                 {members.map((m) => (
-                  <OfficerCard key={m.id || m.name} member={m} onSelect={setSelected} />
+                  <OfficerCard key={`${m.id || m.name}-${m.photoUrl}`} member={m} onSelect={setSelected} />
                 ))}
               </div>
             </section>
@@ -263,7 +255,7 @@ export default function Officers() {
         </div>
       ) : null}
 
-      {selected ? <OfficerModal member={selected} onClose={() => setSelected(null)} /> : null}
+      {selected ? <OfficerModal key={selected.id || selected.name} member={selected} onClose={() => setSelected(null)} /> : null}
 
       <section className="more-role" aria-label="More than a role">
         <div className="role-line" aria-hidden="true" />

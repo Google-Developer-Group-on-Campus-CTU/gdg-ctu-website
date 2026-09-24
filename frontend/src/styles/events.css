@@ -758,6 +758,50 @@
 }
 .page-events .gdg-skeleton { /* keep FeedSkeleton visible inside scoped page */ }
 
+.page-events .gdg-follow-btn {
+  margin-top: 30px;
+  width: 300px;
+}
+
+.page-events .gdg-card-placeholder {
+  height: 176px;
+  background: var(--gdg-surface-muted, #ececec);
+  display: grid;
+  place-items: center;
+  color: #777;
+  font-weight: 600;
+}
+
+.page-events .gdg-card-placeholder-sm {
+  height: 160px;
+  background: var(--gdg-surface-muted, #ececec);
+  display: grid;
+  place-items: center;
+  color: #777;
+  font-weight: 600;
+}
+
+.page-events .gdg-track-learn-btn,
+.page-events .gdg-track-back-btn {
+  margin-top: var(--gdg-spacing-sm, 0.75rem);
+}
+
+.page-events .gdg-track-learn-btn {
+  width: 200px;
+}
+
+.page-events .gdg-track-web-cloud { background-color: #4285F4; color: #fff; }
+.page-events .gdg-track-ui-ux { background-color: #EA4335; color: #fff; }
+.page-events .gdg-track-mobile-dev { background-color: #F9AB00; }
+
+.page-events .gdg-track-content-offset {
+  margin-top: 38px;
+}
+
+.page-events .gdg-mt-md {
+  margin-top: 16px;
+}
+
 /* compact detail view keeps global gdg-container but scoped */
 .page-events--detail {
   padding: 2rem 1.25rem;

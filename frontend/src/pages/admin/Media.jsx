@@ -33,9 +33,11 @@ export default function AdminMedia() {
 
   const computeUsedIn = async () => {
     try {
+      // No `.catch(() => [])` here: a failed list must surface as an error —
+      // only a 200 with an empty array may render as "used in 0".
       const [events, team, content, items] = await Promise.all([
-        eventsApi.list().catch(() => []), teamApi.list().catch(() => []),
-        contentApi.list().catch(() => []), albumItemsApi.list().catch(() => []),
+        eventsApi.list(), teamApi.list(),
+        contentApi.list(), albumItemsApi.list(),
       ]);
       const counts = {};
       const bump = (id) => {
@@ -55,7 +57,9 @@ export default function AdminMedia() {
         if (typeof c === 'number') counts[String(getId(m))] = c;
       }
       setUsedIn(counts);
-    } catch { /* best-effort */ }
+    } catch (err) {
+      setServerError(err?.body?.message ?? err?.message ?? 'Could not load media usage counts.');
+    }
   };
 
   useEffect(() => {
@@ -135,7 +139,7 @@ export default function AdminMedia() {
         </div>
       </form>
 
-      <div style={{ height: '1rem' }} />
+      <div className="gdg-spacer-sm" />
       {media.loading ? <LoadingSkeleton label="Loading media…" /> : null}
       {!media.loading && media.error ? <ErrorState error={media.error} requestId={media.requestId} onRetry={media.retry} context="load media" /> : null}
       {!media.loading && !media.error && rows.length === 0 ? (
@@ -147,7 +151,7 @@ export default function AdminMedia() {
             const id = getId(m);
             return (
               <article key={id} className="admin-media-card">
-                {thumbOf(m) ? <img src={thumbOf(m)} alt={m.alt_text ?? m.altText ?? ''} loading="lazy" /> : <div style={{ height: 140, background: '#f1f3f4' }} />}
+                {thumbOf(m) ? <img src={thumbOf(m)} alt={m.alt_text ?? m.altText ?? ''} loading="lazy" /> : <div className="gdg-media-placeholder" />}
                 <div className="admin-media-card-body">
                   <strong title={m.filename ?? ''}>{m.filename ?? m.originalName ?? id}</strong>
                   <p className="admin-muted">

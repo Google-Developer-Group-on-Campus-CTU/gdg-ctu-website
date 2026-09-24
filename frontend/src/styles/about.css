@@ -57,6 +57,51 @@
   max-width: 100%;
 }
 
+.page-about .ab-deco {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+  height: auto;
+  max-width: 100%;
+}
+
+.page-about .ab-deco-star {
+  top: 80px;
+  left: 180px;
+  width: clamp(48px, 6vw, 70px);
+  height: clamp(48px, 6vw, 70px);
+}
+
+.page-about .ab-deco-arrow {
+  top: 70px;
+  right: 180px;
+  left: auto;
+  width: clamp(48px, 6vw, 70px);
+  height: clamp(48px, 6vw, 70px);
+  transform: rotate(20deg);
+}
+
+.page-about .ab-deco-globe {
+  bottom: 40px;
+  left: 200px;
+  top: auto;
+  width: clamp(48px, 6vw, 70px);
+  height: clamp(48px, 6vw, 70px);
+  transform: rotate(15deg);
+}
+
+.page-about .ab-deco-heart {
+  bottom: 40px;
+  right: 180px;
+  left: auto;
+  top: auto;
+  width: clamp(48px, 6vw, 70px);
+  height: clamp(48px, 6vw, 70px);
+  transform: rotate(-20deg);
+}
+
 /* ---------- ABOUT HERO ---------- */
 .page-about .ab-hero {
   position: relative;
@@ -433,9 +478,10 @@
 
 .page-about .small-green-btn:hover { transform: translateY(-2px); }
 
-/* feed states */
+/* feed states — unified gdg-feed-error (alias .feed-error for compat) */
 .page-about .feed-skeleton,
 .page-about .feed-error,
+.page-about .gdg-feed-error,
 .page-about .feed-empty {
   width: min(900px, calc(100% - 32px));
   margin: 14px auto;
@@ -447,7 +493,12 @@
   overflow-wrap: anywhere;
 }
 
-.page-about .feed-error { background: #fce8e6; border-color: #ea4335; }
+.page-about .feed-error,
+.page-about .gdg-feed-error { background: #fce8e6; border-color: #ea4335; }
+
+.page-about .gdg-feed-offset {
+  margin-top: 14px;
+}
 .page-about .feed-empty { color: #555; font-size: 14px; }
 
 .page-about .btn-row {

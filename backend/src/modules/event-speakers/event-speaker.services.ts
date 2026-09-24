@@ -1,11 +1,7 @@
 import { AppError } from "../../utils/http.js";
 import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
 import { getMediaById } from "../media/models/media.queries.js";
-import { createMediaService } from "../media/media.services.js";
-import {
-      uploadMedia,
-} from "../../config/cloudinary/cloudinary.services.js";
-import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper.js";
+import { recordUpload } from "../media/media.uploads.js";
 import {
       rollbackCloudinaryUpload,
       CloudinaryUploadResult,
@@ -93,16 +89,15 @@ export const createEventSpeakerService = async (
                   }
                   await assertAdminExists(upload.uploadedBy);
 
-                  uploadResult = await uploadMedia(upload.file, {
-                        folder: DEFAULT_SPEAKER_MEDIA_FOLDER,
-                        resourceType: "image",
+                  const recorded = await recordUpload({
+                        file: upload.file,
+                        meta: {
+                              folder: DEFAULT_SPEAKER_MEDIA_FOLDER,
+                              uploadedBy: upload.uploadedBy,
+                        },
                   });
-                  const mediaData = createMediaRecord(
-                        uploadResult,
-                        upload.uploadedBy,
-                  );
-                  const mediaRecord = await createMediaService(mediaData);
-                  profileMediaId = mediaRecord.id;
+                  uploadResult = recorded.uploadResult;
+                  profileMediaId = recorded.mediaId;
             }
 
             await validateEventSpeakerReferences({
@@ -228,16 +223,15 @@ export const updateEventSpeakerService = async (
                   }
                   await assertAdminExists(upload.uploadedBy);
 
-                  uploadResult = await uploadMedia(upload.file, {
-                        folder: DEFAULT_SPEAKER_MEDIA_FOLDER,
-                        resourceType: "image",
+                  const recorded = await recordUpload({
+                        file: upload.file,
+                        meta: {
+                              folder: DEFAULT_SPEAKER_MEDIA_FOLDER,
+                              uploadedBy: upload.uploadedBy,
+                        },
                   });
-                  const mediaData = createMediaRecord(
-                        uploadResult,
-                        upload.uploadedBy,
-                  );
-                  const mediaRecord = await createMediaService(mediaData);
-                  newProfileMediaId = mediaRecord.id;
+                  uploadResult = recorded.uploadResult;
+                  newProfileMediaId = recorded.mediaId;
             }
 
             await validateEventSpeakerReferences(

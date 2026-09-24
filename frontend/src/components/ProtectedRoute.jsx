@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate, Outlet } from 'react-router-dom';
 import { authClient } from '../lib/auth-client';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+import { API_BASE_URL } from '../api/client.js';
 
 /** If the session check stays pending this long, show an error card instead of an endless loader. */
 const SESSION_LOAD_TIMEOUT_MS = 8000;
@@ -43,7 +43,7 @@ function SessionLoading() {
   );
 }
 
-function SessionLoadTimedOut() {
+function SessionLoadTimedOut({ onRetry }) {
   return (
     <div className="gdg-container">
       <section className="gdg-section">
@@ -53,11 +53,11 @@ function SessionLoadTimedOut() {
           The backend did not answer within {SESSION_LOAD_TIMEOUT_MS / 1000}{' '}
           seconds. Check that it is running, then try again.
         </p>
-        <p style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <p className="gdg-btn-row">
           <button
             type="button"
             className="gdg-btn gdg-btn-primary"
-            onClick={() => window.location.reload()}
+            onClick={onRetry}
           >
             Retry
           </button>
@@ -71,19 +71,24 @@ function SessionLoadTimedOut() {
 function ProtectedAdminRoutes() {
   const { data: session, isPending } = authClient.useSession();
   const [timedOut, setTimedOut] = useState(false);
-
-  // React-endorsed render-time adjustment: once the check settles, forget any
-  // previous timeout so a later refetch gets a full grace period again.
-  if (!isPending && timedOut) setTimedOut(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    if (!isPending) return undefined;
+    if (!isPending) {
+      // The check settled — forget any previous timeout so a later refetch
+      // gets a full grace period again.
+      setTimedOut(false);
+      return undefined;
+    }
     const timer = setTimeout(() => setTimedOut(true), SESSION_LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [isPending]);
+  }, [isPending, retryCount]);
 
   if (isPending) {
-    if (timedOut) return <SessionLoadTimedOut />;
+    // Retry re-arms the grace timer without a full page reload (no form
+    // state lives here, but a reload would also drop the pending session
+    // check and scroll position for nothing).
+    if (timedOut) return <SessionLoadTimedOut onRetry={() => setRetryCount((n) => n + 1)} />;
     return <SessionLoading />;
   }
   // A real Better Auth session always carries `user`. Once the check has

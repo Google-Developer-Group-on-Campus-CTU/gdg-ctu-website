@@ -86,11 +86,16 @@ export default function AlbumDetail() {
   const [pickerId, setPickerId] = useState('');
   const [loading, setLoading] = useState(!isNew);
   const [error, setError] = useState(null);
+  // Load retry that preserves form state — bumps the fetch effect below
+  // instead of window.location.reload(), which would wipe unsaved edits.
+  const [loadRetry, setLoadRetry] = useState(0);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
   const [slugDup, setSlugDup] = useState(false);
+  const [slugCheckError, setSlugCheckError] = useState(null);
+  const [mediaError, setMediaError] = useState(null);
   const [confirm, setConfirm] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -102,8 +107,10 @@ export default function AlbumDetail() {
   useEffect(() => {
     let alive = true;
     mediaApi.list({ limit: 100 }).then((rows) => {
-      if (alive) setMedia(Array.isArray(rows) ? rows : []);
-    }).catch(() => {});
+      if (alive) { setMedia(Array.isArray(rows) ? rows : []); setMediaError(null); }
+    }).catch((err) => {
+      if (alive) setMediaError(err);
+    });
     if (isNew) return () => { alive = false; };
     Promise.all([
       albumsApi.get(id),
@@ -125,7 +132,7 @@ export default function AlbumDetail() {
       setError(err); setLoading(false);
     });
     return () => { alive = false; };
-  }, [id, isNew]);
+  }, [id, isNew, loadRetry]);
 
   const set = (key, value) => {
     setForm((f) => {
@@ -136,19 +143,35 @@ export default function AlbumDetail() {
   };
 
   useEffect(() => {
-    if (!form.slug) { setSlugDup(false); return; }
+    if (!form.slug) { setSlugDup(false); setSlugCheckError(null); return; }
     let alive = true;
+    setSlugCheckError(null);
     const t = setTimeout(() => {
       checkSlugUnique(albumsApi, form.slug, isNew ? null : getId(original) ?? id)
-        .then((unique) => { if (alive) setSlugDup(!unique); }).catch(() => {});
+        .then((unique) => { if (alive) { setSlugDup(!unique); setSlugCheckError(null); } })
+        .catch((err) => {
+          if (!alive) return;
+          if (err?.status === 404) { setSlugDup(false); setSlugCheckError(null); return; }
+          // 500/timeout/network: unverifiable — block save with the error.
+          setSlugDup(false);
+          setSlugCheckError(err?.body?.message ?? err?.message ?? 'Could not verify slug uniqueness.');
+        });
     }, 400);
     return () => { alive = false; clearTimeout(t); };
   }, [form.slug, id, isNew, original]);
 
   if (!isNew && loading) return <section aria-label="Album editor"><h1>Album</h1><LoadingSkeleton label="Loading album…" /></section>;
-  if (!isNew && error) return <section aria-label="Album editor"><h1>Album</h1><ErrorState error={error} onRetry={() => window.location.reload()} context="load this album" /></section>;
+  // Retry clears the error + shows the loader from the click handler (not the
+  // fetch effect) and bumps `loadRetry` — the form state above is untouched.
+  const retryLoad = () => {
+    setError(null);
+    setLoading(true);
+    setLoadRetry((n) => n + 1);
+  };
+  if (!isNew && error) return <section aria-label="Album editor"><h1>Album</h1><ErrorState error={error} onRetry={retryLoad} context="load this album" /></section>;
 
   const persist = async (publish = false) => {
+    if (slugCheckError) { setErrors({ slug: slugCheckError }); focusSummary(summaryRef); setTab('content'); return; }
     const next = publish ? { ...form, is_active: true } : form;
     // `name` (mapped from title) must be non-empty on every save, not just publish.
     const gate = {
@@ -318,8 +341,8 @@ export default function AlbumDetail() {
             <Field label="Title" htmlFor="title" error={errors.title} required>
               <input {...inputProps('title', errors.title)} value={form.title} onChange={(e) => set('title', e.target.value)} />
             </Field>
-            <Field label="Slug" htmlFor="slug" error={errors.slug ?? (slugDup ? 'Slug is already in use.' : null)} required>
-              <input {...inputProps('slug', errors.slug || slugDup)} value={form.slug} onChange={(e) => { setSlugTouched(true); set('slug', slugify(e.target.value)); }} />
+            <Field label="Slug" htmlFor="slug" error={errors.slug ?? slugCheckError ?? (slugDup ? 'Slug is already in use.' : null)} required>
+              <input {...inputProps('slug', errors.slug || slugCheckError || slugDup)} value={form.slug} onChange={(e) => { setSlugTouched(true); set('slug', slugify(e.target.value)); }} />
             </Field>
           </div>
           <div className="admin-form-grid">
@@ -350,6 +373,11 @@ export default function AlbumDetail() {
           {isNew ? <p className="admin-muted">Save the album first, then add photos.</p> : (
             <>
               <div className="admin-toolbar">
+                {mediaError ? (
+                  <p role="alert" className="admin-muted">
+                    Media library failed to load: {mediaError?.body?.message ?? mediaError?.message ?? 'request failed'}.
+                  </p>
+                ) : null}
                 <label className="admin-visually-hidden" htmlFor="photo-picker">Add photo from Media</label>
                 <select id="photo-picker" value={pickerId} onChange={(e) => setPickerId(e.target.value)}>
                   <option value="">Pick from Media…</option>

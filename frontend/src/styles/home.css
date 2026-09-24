@@ -149,6 +149,45 @@
   height: auto;
 }
 
+.page-home .hero-deco {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  object-fit: contain;
+  max-width: 100%;
+  height: auto;
+}
+
+/* hero section decor — responsive positions replacing inline absolute px */
+.page-home .hero-deco-star-hero { top: 250px; left: 14%; width: clamp(60px, 8vw, 100px); height: clamp(60px, 8vw, 100px); }
+.page-home .hero-deco-arrow-hero { top: 110px; right: 6%; width: clamp(60px, 8vw, 100px); height: clamp(60px, 8vw, 100px); transform: rotate(20deg); }
+.page-home .hero-deco-globe-hero { top: 480px; left: 18%; width: clamp(60px, 8vw, 100px); height: clamp(60px, 8vw, 100px); transform: rotate(20deg); }
+.page-home .hero-deco-heart-hero { top: 430px; right: 6%; width: clamp(60px, 8vw, 100px); height: clamp(60px, 8vw, 100px); transform: rotate(-30deg); }
+
+/* team strip decor */
+.page-home .hero-deco-heart-team { top: 8%; left: 22%; width: clamp(60px, 8vw, 100px); height: clamp(60px, 8vw, 100px); z-index: 1; }
+.page-home .hero-deco-star-team { top: 19%; right: 2px; width: clamp(90px, 12vw, 170px); height: auto; transform: rotate(20deg); z-index: 1; }
+.page-home .hero-deco-arrow-team { top: 40%; left: -6%; width: clamp(180px, 30vw, 450px); height: auto; transform: rotate(25deg); z-index: -1; }
+.page-home .hero-deco-globe-team { top: 60%; right: -2%; width: clamp(140px, 20vw, 290px); height: auto; transform: rotate(20deg); z-index: 1; }
+
+/* events strip decor */
+.page-home .hero-deco-globe-events { top: 10%; left: 35%; width: clamp(40px, 5vw, 60px); height: clamp(40px, 5vw, 60px); z-index: -1; }
+.page-home .hero-deco-heart-events { top: 9%; right: 15%; width: clamp(90px, 12vw, 140px); height: auto; transform: rotate(-45deg); z-index: -1; }
+.page-home .hero-deco-star-events { width: clamp(90px, 12vw, 140px); height: auto; transform: rotate(45deg); z-index: -1; top: 20%; left: 2%; }
+.page-home .hero-deco-arrow-events { top: 71%; width: clamp(90px, 12vw, 140px); height: auto; z-index: -1; left: 2%; }
+
+/* partners strip decor */
+.page-home .hero-deco-arrow-partners { top: 10%; left: 36%; width: 60px; height: 70px; transform: rotate(180deg); z-index: -1; }
+.page-home .hero-deco-globe-partners { top: 15%; right: 15%; width: clamp(120px, 14vw, 190px); height: auto; transform: rotate(18deg); z-index: -1; }
+.page-home .hero-deco-heart-partners { right: 12%; margin-top: 220px; width: clamp(80px, 10vw, 120px); height: auto; transform: rotate(35deg); z-index: -1; }
+.page-home .hero-deco-star-partners { top: 73%; width: clamp(80px, 10vw, 120px); height: auto; z-index: -1; left: 2%; }
+
+/* gallery strip decor */
+.page-home .hero-deco-heart-gallery { top: 16%; left: 10%; width: clamp(100px, 12vw, 150px); height: clamp(100px, 12vw, 150px); transform: rotate(-30deg); z-index: -1; }
+.page-home .hero-deco-arrow-gallery { top: 18%; right: 15%; width: clamp(120px, 14vw, 180px); height: auto; transform: rotate(-195deg); z-index: -1; }
+.page-home .hero-deco-star-gallery { top: 66%; left: 10%; width: clamp(90px, 12vw, 130px); height: auto; transform: rotate(65deg); z-index: -1; }
+.page-home .hero-deco-globe-gallery { left: 75%; top: 65%; width: clamp(100px, 12vw, 140px); height: auto; z-index: -1; transform: rotate(20deg); }
+
 /* stats */
 .page-home .stats {
   display: grid;

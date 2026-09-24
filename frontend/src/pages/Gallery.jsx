@@ -45,7 +45,7 @@ function AlbumDetail({ slug }) {
           {!loading && !error && data ? (
             <>
               <h2>{data.title}</h2>
-              {data.description ? <p style={{ color: '#555', lineHeight: 1.5 }}>{data.description}</p> : null}
+              {data.description ? <p className="gdg-desc">{data.description}</p> : null}
               <div className="album-detail-meta">
                 {data.date ? <span>{formatDate(data.date)}</span> : null}
                 <span>{data.items.length} Photos</span>

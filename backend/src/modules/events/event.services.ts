@@ -1,9 +1,7 @@
 import { AppError } from "../../utils/http.js";
 import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
 import { getAdminByIdService } from "../admins/admin.services.js";
-import { createMediaService } from "../media/media.services.js";
-import { uploadMedia } from "../../config/cloudinary/cloudinary.services.js";
-import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper.js";
+import { recordUpload } from "../media/media.uploads.js";
 import { EventStatus } from "./models/event.js";
 import {
       countEvents,
@@ -72,16 +70,15 @@ export const createEventService = async (data: CreateEventDataWithImageDTO) => {
       try {
             // If an image file is provided, upload to Cloudinary and create a media record
             if (data.file && data.uploadedBy) {
-                  const uploadResult = await uploadMedia(data.file, {
-                        folder: DEFAULT_EVENT_MEDIA_FOLDER,
-                        resourceType: "image",
+                  const recorded = await recordUpload({
+                        file: data.file,
+                        meta: {
+                              folder: DEFAULT_EVENT_MEDIA_FOLDER,
+                              uploadedBy: data.uploadedBy,
+                        },
                   });
-                  const mediaData = createMediaRecord(
-                        uploadResult,
-                        data.uploadedBy,
-                  );
-                  const mediaRecord = await createMediaService(mediaData);
-                  coverMediaId = mediaRecord.id;
+                  uploadResult = recorded.uploadResult;
+                  coverMediaId = recorded.mediaId;
             }
 
             const eventData: NewEventRecord = {
@@ -177,16 +174,15 @@ export const updateEventService = async (data: UpdateEventDataWithImageDTO) => {
 
             // If a new image file is supplied, upload it and create a new media record.
             if (data.file && data.uploadedBy) {
-                  const uploadResult = await uploadMedia(data.file, {
-                        folder: DEFAULT_EVENT_MEDIA_FOLDER,
-                        resourceType: "image",
+                  const recorded = await recordUpload({
+                        file: data.file,
+                        meta: {
+                              folder: DEFAULT_EVENT_MEDIA_FOLDER,
+                              uploadedBy: data.uploadedBy,
+                        },
                   });
-                  const mediaData = createMediaRecord(
-                        uploadResult,
-                        data.uploadedBy,
-                  );
-                  const newMedia = await createMediaService(mediaData);
-                  newCoverMediaId = newMedia.id;
+                  uploadResult = recorded.uploadResult;
+                  newCoverMediaId = recorded.mediaId;
             }
 
             // Prepare the update payload, including possibly new coverMediaId
@@ -216,17 +212,14 @@ export const updateEventService = async (data: UpdateEventDataWithImageDTO) => {
 
             logger.error("Failed to update event data", {
                   message: error.message,
-                  stack: error.message,
+                  stack: error.stack,
             });
 
             if (error instanceof AppError) {
                   throw error;
             }
 
-            throw new AppError(
-                  401,
-                  "An Error has Occured: Failed to update team member data",
-            );
+            throw new AppError(500, "Failed to update event");
       }
 };
 
@@ -237,6 +230,6 @@ export const deleteEventService = async (id: string) => {
             throw new AppError(404, "Event not found");
       }
 
-      deleteEvent(id);
+      await deleteEvent(id);
       await cleanupReplacedMedia(event.coverMediaId, null);
 };
