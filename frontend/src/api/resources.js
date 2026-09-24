@@ -147,9 +147,9 @@ export const mediaApi = {
 export const publicPreview = {
   events: (scope = 'upcoming') => `/events?scope=${encodeURIComponent(scope)}`,
   eventSlug: (slug) => `/events/${encodeURIComponent(slug)}`,
-  team: () => '/officers',
-  partners: () => '/#partners',
-  albumSlug: (slug) => `/gallery#${encodeURIComponent(slug)}`,
+  team: () => '/team',
+  partners: () => '/partners',
+  albumSlug: (slug) => `/gallery/${encodeURIComponent(slug)}`,
 };
 
 export { API_BASE_URL };

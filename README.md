@@ -22,7 +22,7 @@ A public club website (home, about, team, events, gallery, partners, contact) wh
 | Area | Tools |
 |---|---|
 | Frontend (what visitors see) | React 19, React Router 7, Vite 8, Better Auth React (sign-in form) |
-| Backend (the server that stores data) | Node + Express 5, TypeScript, Drizzle ORM (tool that talks to the database) + Postgres (Neon), Clerk Express (checks logins), Cloudinary (image storage), Zod (checks that incoming data has the right shape), Winston (writes server logs) |
+| Backend (the server that stores data) | Node + Express 5, TypeScript, Drizzle ORM (tool that talks to the database) + Postgres (Neon), Better Auth (checks logins — HTTP-only session cookie), Cloudinary (image storage), Zod (checks that incoming data has the right shape), Winston (writes server logs) |
 | Hosting (where it runs online) | Backend on Render, frontend on Vercel; database on Neon, images on Cloudinary |
 
 ## Prerequisites
@@ -33,7 +33,7 @@ You need these installed before starting (all free):
 - **npm** (comes with Node.js — it installs project libraries)
 - **Git** — [download](https://git-scm.com/downloads)
 
-You will also need free accounts later (explained in Getting Started): Clerk, Neon (database), Cloudinary (images), Render (backend hosting), Vercel (frontend hosting).
+You will also need free accounts later (explained in Getting Started): Neon (database), Cloudinary (images), Render (backend hosting), Vercel (frontend hosting). Login itself needs no account — Better Auth runs inside the backend — but a Google Cloud Console project is optional if you want "Sign in with Google".
 
 Check your setup:
 
@@ -70,7 +70,7 @@ npm run dev
 Then open:
 
 - Frontend (website): `http://localhost:5173` (Vite's default address — check your terminal if different)
-- Backend check: `http://localhost:<PORT>/GDGoC-CTU-Main/v0.0.1/admins` (replace `<PORT>` with the `PORT` value in your backend `.env`, e.g. `3000`). If you see data (or `[]`), the backend works.
+- Backend check: `http://localhost:<PORT>/health` (replace `<PORT>` with the `PORT` value in your backend `.env`, e.g. `3000`). If you see `"status":"ok"` in the JSON reply, the backend works. (`GET /` and `GET /GDGoC-CTU-Main/v0.0.1/health` answer the same — pick whichever your host probes.)
 
 > New to all this? Follow [`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md) instead — it explains every step including how to fill in the `.env` files.
 
@@ -111,10 +111,12 @@ Never commit real `.env` files — they hold secrets like passwords and keys.
 | `PORT` | Which door number the server listens on (e.g. `3000`) |
 | `NODE_ENV` | `development` on your computer, `production` when live online |
 | `DB_URL` | Connection address for the Postgres database (from Neon) |
-| `FR_ORIGIN` | The exact frontend address allowed to call the backend (e.g. `http://localhost:5173`, no trailing `/`) |
-| `PASSWORD_LENGTH` | Minimum password length the server enforces |
+| `FR_ORIGIN` | Frontend address(es) allowed to call the backend — one origin, or several separated by commas (e.g. `http://localhost:5173`); trailing slashes are trimmed automatically |
 | `CLOUDINARY_URL` | Login address for image uploads (from Cloudinary) |
-| `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | Login-service keys (both from the same Clerk app as the frontend) |
+| `BETTER_AUTH_SECRET` | Secret that signs/encrypts login session cookies — generate once with `openssl rand -base64 32` |
+| `BETTER_AUTH_URL` | Public backend address, e.g. `http://localhost:3000` (no path, or the full `/GDGoC-CTU-Main/v0.0.1/api/auth` path) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Optional — from Google Cloud Console; "Sign in with Google" stays hidden until both are set |
+| `ADMIN_USER_IDS` | Optional — comma-separated Better Auth user IDs treated as admins (bootstrap for later officers) |
 
 **Frontend** (`frontend/.env.example` → copy to `frontend/.env`):
 
@@ -148,7 +150,7 @@ Never commit real `.env` files — they hold secrets like passwords and keys.
 1. Visitors browse public pages freely; editing anything needs an admin sign-in.
 2. Not logged in = error `401`; logged in but not an active admin = error `403`.
 3. Every backend URL starts with `/GDGoC-CTU-Main/v0.0.1` (the versioned base path).
-4. The backend only answers the one frontend address in `FR_ORIGIN` (this is CORS — a browser safety rule), and the frontend must point `VITE_API_URL` at the backend.
+4. The backend only answers the frontend address(es) listed in `FR_ORIGIN` — a comma-separated allowlist (this is CORS — a browser safety rule), and the frontend must point `VITE_API_URL` at the backend.
 5. Data lives in Postgres via Drizzle (reads go straight to the database), images in Cloudinary (5 MB max); pages find things by `slug` (URL-friendly name) and `site_content` keys, and items have a `status` (e.g. draft/published).
 
 ## Docs links
@@ -172,9 +174,9 @@ We'd love your help! Please read [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) 
 
 ## Troubleshooting (5 common errors)
 
-1. **`401 Unauthorized` from the API** — you're not logged in (or the login token is missing/expired). Sign in through `/admin/login` and retry.
+1. **`401 Unauthorized` from the API** — you're not signed in (or the Better Auth session cookie is missing/expired — sessions last 7 days). Sign in through `/admin/login` and retry.
 2. **`403 Forbidden` after logging in** — your account isn't an active admin. Ask an officer to activate your account.
-3. **CORS error in the browser console** (`blocked by CORS policy`) — backend `FR_ORIGIN` doesn't exactly match the frontend URL (no trailing `/`). Fix `.env` and restart the backend.
+3. **CORS error in the browser console** (`blocked by CORS policy`) — the frontend origin isn't in the backend's `FR_ORIGIN` allowlist (one origin, or several separated by commas; trailing `/` are trimmed). Fix `.env` and restart the backend.
 4. **Blank page / API calls fail after editing `.env`** — frontend env vars starting with `VITE_` are baked in at startup: restart `npm run dev` and check `VITE_API_URL` includes `/GDGoC-CTU-Main/v0.0.1`.
 5. **Backend won't start / DB errors** — `DB_URL` (or `CLOUDINARY_URL`) is missing or wrong. Compare with `backend/example.env`, check for typos/extra spaces, then run `npm run db:migrate` once the database address is correct.
 

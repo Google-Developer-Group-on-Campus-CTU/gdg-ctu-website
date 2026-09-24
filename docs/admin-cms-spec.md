@@ -11,12 +11,12 @@
 
 ## 2. Current State (recon 2026-09-10)
 
-- **Frontend (`frontend/src`):** Public pages (`/, /about, /officers, /gallery, /events, /contact`) are hardcoded, zero `apiFetch` use. Admin (`/admin, /admin/events, /admin/team, /admin/gallery`) are stubs. Reusable: `api/client.js apiFetch`, `components/ProtectedRoute.jsx`, Clerk `pages/admin/Login.jsx`.
-- **Backend (`backend/src`, base `/GDGoC-CTU-Main/v0.0.1`):** Full CRUD exists for 13 groups; all except `/admins` behind Clerk `requireAuth`. No public GETs. No `/upcoming|/past`. No `/health` (deployment-plan uses `GET /admins` as probe).
-- **Auth:** Clerk (`ClerkProvider` + `clerkMiddleware` + `getAuth(req).userId`). `admins = { id: Clerk string PK, email, isActive }` — no passwords. `isActive` not yet enforced → V1 enforces with 403.
+- **Frontend (`frontend/src`):** Public pages (`/, /about, /officers, /gallery, /events, /contact`) are hardcoded, zero `apiFetch` use. Admin (`/admin, /admin/events, /admin/team, /admin/gallery`) are stubs. Reusable: `api/client.js apiFetch` (session cookie via `credentials: 'include'`), `components/ProtectedRoute.jsx`, Better Auth sign-in `pages/admin/Login.jsx`.
+- **Backend (`backend/src`, base `/GDGoC-CTU-Main/v0.0.1`):** Full CRUD exists for 13 groups; all behind Better Auth `requireAuth` on the protected router (including `/admins`). Public reads live under `/public/*` (`?scope=upcoming|past|featured|recent` supported); liveness probes answer at `GET /`, `GET /health`, `GET /GDGoC-CTU-Main/v0.0.1/health`.
+- **Auth:** Better Auth (email/password + optional Google) — backend keeps scrypt-hashed passwords in `account.password`, browser keeps only an HTTP-only session cookie sent via `credentials: 'include'` (no auth provider in the frontend, no bearer tokens). Server verifies the cookie in `requireAuth` (401 anon, 403 banned/non-admin, 503 lookup failure). Boot requires `BETTER_AUTH_SECRET` + `BETTER_AUTH_URL`; `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` optional (Google button hidden until both set); `ADMIN_USER_IDS` bootstrap — plus the first signup on an empty `user` table becomes admin. Old `admins` table gone — an admin is a `user` row with `role = "admin"`: `admins = { id: Better Auth user id, email, role, isActive }`, where `isActive` folds to `!banned` and is enforced (`isActive=false` ⇒ 403 "Account deactivated — contact tech/web officer").
 - **Drift — must-fix before ship:**
-  1. `GET /auth/auth/sync` double prefix (mounted at `/auth` + route `/auth/sync`).
-  2. `site-content updatedBy` validation says `z.uuid`, actual is Clerk string.
+  1. `GET /auth/auth/sync` double prefix — fixed (the old sync endpoint is removed; Better Auth sessions need no user sync).
+  2. `site-content updatedBy` validation said `z.uuid` vs actual opaque user id — fixed (validator now accepts any non-empty user-id string).
   3. No public GET routers (contradicts arch §19).
   4. Status: canonical V1 = lowercase `draft/published/archived/cancelled` (Q1=a).
   5. `team_members`: dept trio → nullable + new `roleTitle*` max 80 (Q3=b, Q12).
@@ -33,7 +33,7 @@
 ## 4. Screens
 
 ### 4.1 Login — `/admin/login`
-- Clerk `<SignIn routing=path>`. Anon `/admin/*` → sign-in + return-to. Failure: `AdminDisabled` when publishable key missing.
+- Better Auth form: sign-up/sign-in with email + password, plus Google social only when `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are set. Anon `/admin/*` → sign-in + return-to (`ProtectedRoute`). Failure: `AdminDisabled` when `VITE_API_URL` missing.
 
 ### 4.2 Dashboard — `/admin` (MVP slice Q10=a)
 - V1 only: Drafts needing publish + Recent edits (who/when). Deferred: upcoming rollup, missing-alt scan.
@@ -81,7 +81,7 @@ Reuse protected CRUD as-is:
 - `POST (+multer)/GET /media`, `/:id` CRUD
 
 **New in V1 (Q4, Q6, R4):**
-- `GET /public/team` → active only, safe fields (no Clerk IDs, no emails), slug lookup.
+- `GET /public/team` → active only, safe fields (no user IDs, no emails), slug lookup.
 - `GET /public/events?scope=upcoming|past|featured|recent`, `GET /public/events/slug/:slug` (published only). Cutoff: `endAt < now` = past, else upcoming. Featured: `is_featured=true + published`, max 3. Recent (Home): upcoming-first up to 3, backfill past (Q24=b).
 - `GET /public/partners` (+ active only, order by `tier, display_order`).
 - `GET /public/team?featured=true` (Home carousel: `is_featured` max 8–10, Q23=b).
@@ -103,9 +103,9 @@ Reuse protected CRUD as-is:
 
 ## 7. Security / Ops
 
-- Client gate = UX only; every mutation verified server-side (`clerkMiddleware + getAuth`). `401` anon, `403` inactive with tech-officer message.
+- Client gate = UX only; every mutation verified server-side (Better Auth cookie session via `requireAuth` — no bearer tokens). `401` anon, `403` banned/inactive with tech-officer message.
 - Uploads: `limits { fileSize 5MB, files 1–5 }`, multer `fileFilter`, sanitize names, store via Cloudinary, map `400/413/429`.
-- Audit: `created_by/updated_by (Clerk id), created_at/updated_at, published_at`. Header shows `Last edited by X · time`.
+- Audit: `created_by/updated_by (Better Auth user id), created_at/updated_at, published_at`. Header shows `Last edited by X · time`.
 - CORS: single exact `FR_ORIGIN`, `VITE_API_URL=<backend>/GDGoC-CTU-Main/v0.0.1`. SPA fallback `vercel.json` rewrite.
 
 ## 8. Out of Scope (V1)
