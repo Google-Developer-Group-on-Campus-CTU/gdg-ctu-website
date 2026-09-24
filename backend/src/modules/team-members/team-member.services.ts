@@ -1,6 +1,6 @@
 import { AppError } from "../../utils/http.js";
 import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
-import { createMediaService } from "../media/media.services.js";
+import { recordUpload } from "../media/media.uploads.js";
 import {
       NewTeamMemberRecord,
       insertTeamMember,
@@ -15,11 +15,6 @@ import {
       updateTeamMember,
 } from "./models/team-member.queries.js";
 import { UpdateTeamMemberDTO, TeamMember } from "./team-member.validations.js";
-import {
-      uploadMedia,
-      deleteMediaCloudinaryService,
-} from "../../config/cloudinary/cloudinary.services.js";
-import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper.js";
 import {
       createMemberTermService,
       getMemberTermByMemberAndTermService,
@@ -80,24 +75,25 @@ export const createTeamMemberService = async (
 
       let uploadResult: CloudinaryUploadResult | null = null;
       try {
-            // Upload the profile image to cloudinary
-            uploadResult = await uploadMedia(data.file, {
-                  folder: DEFAULT_MEMBER_MEDIA_FOLDER,
-                  resourceType: "image",
+            // Upload the profile image to cloudinary + normalize for DB storage
+            const recorded = await recordUpload({
+                  file: data.file,
+                  meta: {
+                        folder: DEFAULT_MEMBER_MEDIA_FOLDER,
+                        uploadedBy: data.uploadedBy,
+                  },
             });
-            // Normalize the data for Database meta data storing
-            const mediaData = createMediaRecord(uploadResult, data.uploadedBy);
-            const userProfileImage = await createMediaService(mediaData);
+            uploadResult = recorded.uploadResult;
 
             const teamMember = await insertTeamMember(
                   data.memberData,
-                  userProfileImage.id,
+                  recorded.mediaId,
             );
 
             await createMemberTermService({
                   ...termData,
                   memberId: teamMember.id,
-                  profileMediaId: userProfileImage.id,
+                  profileMediaId: recorded.mediaId,
             });
 
             return teamMember;
@@ -206,16 +202,15 @@ export const updateTeamMemberService = async (
 
             // If a new file is supplied, upload it and create a new media record.
             if (data.file && data.uploadedBy) {
-                  uploadResult = await uploadMedia(data.file, {
-                        folder: DEFAULT_MEMBER_MEDIA_FOLDER,
-                        resourceType: "image",
+                  const recorded = await recordUpload({
+                        file: data.file,
+                        meta: {
+                              folder: DEFAULT_MEMBER_MEDIA_FOLDER,
+                              uploadedBy: data.uploadedBy,
+                        },
                   });
-                  const mediaData = createMediaRecord(
-                        uploadResult,
-                        data.uploadedBy,
-                  );
-                  const newMedia = await createMediaService(mediaData);
-                  newMediaId = newMedia.id;
+                  uploadResult = recorded.uploadResult;
+                  newMediaId = recorded.mediaId;
             }
 
             // Prepare member updates – may be undefined (image‑only or term‑only updates)

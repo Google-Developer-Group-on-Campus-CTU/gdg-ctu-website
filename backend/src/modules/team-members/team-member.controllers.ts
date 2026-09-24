@@ -17,8 +17,12 @@ import {
       getActiveTeamMembersByTermService,
       updateTeamMemberService,
 } from "./team-member.services.js";
-import { UpdateTeamMemberDTO } from "./team-member.validations.js";
-import { NewTeamMemberRecord } from "./models/team-member.queries.js";
+import {
+      CreateTeamMemberSchema,
+      UpdateTeamMemberDTO,
+      UpdateTeamMemberSchema,
+} from "./team-member.validations.js";
+import { parseJsonField } from "../../utils/multiPartPayloadHelper.js";
 import logger from "../../utils/logger.js";
 
 export const createTeamMemberWithImage = async (
@@ -35,20 +39,23 @@ export const createTeamMemberWithImage = async (
             if (!memberJson) {
                   throw new AppError(400, "`member` JSON payload missing");
             }
-            const memberData: NewTeamMemberRecord = JSON.parse(memberJson);
+            const memberData = validateBody(
+                  CreateTeamMemberSchema,
+                  parseJsonField(memberJson, "member"),
+            );
 
-            const termId = String(req.body.termId);
             if (!req.body.termId) {
                   throw new AppError(400, "termId missing");
             }
+            const termId = String(req.body.termId);
 
-            const role = String(req.body.role);
             if (!req.body.role) {
                   throw new AppError(
                         400,
                         "Cannot Proceed: Member Role is missing",
                   );
             }
+            const role = String(req.body.role);
 
             const userId = getUserIdFromRequest(req);
             if (!userId) {
@@ -162,9 +169,6 @@ export const listTeamMembersByTerm = async (req: Request, res: Response) => {
 export const updateTeamMember = async (req: Request, res: Response) => {
       try {
             const memberId = validateUuid(req.params.id);
-            if (!memberId) {
-                  throw new AppError(401, "Member ID missing");
-            }
 
             // Optional new profile image
             const file = (req as any).file?.buffer;
@@ -186,7 +190,10 @@ export const updateTeamMember = async (req: Request, res: Response) => {
             const memberJson = req.body.member;
             let memberData: UpdateTeamMemberDTO | undefined;
             if (memberJson) {
-                  memberData = JSON.parse(memberJson) as UpdateTeamMemberDTO;
+                  memberData = validateBody(
+                        UpdateTeamMemberSchema,
+                        parseJsonField(memberJson, "member"),
+                  );
             }
 
             const userId = getUserIdFromRequest(req);
@@ -221,9 +228,6 @@ export const updateTeamMember = async (req: Request, res: Response) => {
 export const removeTeamMember = async (req: Request, res: Response) => {
       try {
             const memberId = validateUuid(req.params.id);
-            if (!memberId) {
-                  throw new AppError(404, "Missing member ID");
-            }
 
             await deleteTeamMemberService(memberId);
             return res.status(200).json({

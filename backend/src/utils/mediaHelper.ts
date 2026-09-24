@@ -1,6 +1,5 @@
 import { deleteMediaService } from "../modules/media/media.services.js";
 import { mediaHasReferences } from "../modules/media/models/media.queries.js";
-import { AppError } from "./http.js";
 import logger from "./logger.js";
 
 /**
@@ -44,7 +43,8 @@ export const cleanupReplacedMedia = async (
             // Execute the deletion from Cloudinary first, then the database
             await deleteMediaService(oldMediaId);
       } catch (error: any) {
-            // Log the error for observability in production environments
+            // Best-effort GC: a failed orphan cleanup must never fail the
+            // request that triggered it — log and swallow.
             logger.error(
                   `[cleanupReplacedMedia] Failed to delete orphaned media ${oldMediaId}:`,
                   {
@@ -52,9 +52,6 @@ export const cleanupReplacedMedia = async (
                         stack: error?.stack,
                   },
             );
-            throw new AppError(
-                  500,
-                  `[cleanupReplacedMedia] Failed to delete orphaned media ${oldMediaId}:`,
-            );
+            return;
       }
 };

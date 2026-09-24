@@ -2,12 +2,8 @@
 // contract route prefixes are mounted. No network, no DB — `src/app.ts`
 // is side-effect-free at import (Phase 3), so this runs anywhere.
 //
-// Offline defaults only apply when a variable is UNSET — a local
-// backend/.env (loaded by dotenv during the import) wins.
-process.env.NODE_ENV ||= "production"; // console-only logger, no logs/ writes
-process.env.FR_ORIGIN ||= "http://localhost:5173";
-process.env.BETTER_AUTH_SECRET ||= "offline-smoke-secret-not-for-production";
-process.env.BETTER_AUTH_URL ||= "http://localhost:3000";
+// Offline defaults (shared helper) only apply when a variable is UNSET.
+require("./offline-env.cjs");
 
 const fail = (msg) => {
       console.error(`SMOKE FAIL: ${msg}`);

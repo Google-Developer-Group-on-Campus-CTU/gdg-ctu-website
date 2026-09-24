@@ -13,14 +13,14 @@ export default function AdminDashboard() {
   const [retryCount, setRetryCount] = useState(0);
   const [drafts, setDrafts] = useState([]);
   const [recent, setRecent] = useState([]);
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
   const authed = !!session?.user;
 
   useEffect(() => {
-    // Never fire the six protected endpoints without a live session — an
-    // unauthenticated mount used to spray a batch of 401s (× StrictMode
-    // remounts) that nothing redirected away.
-    if (!authed) return undefined;
+    // Wait for the session check before deciding: firing the six protected
+    // endpoints while `isPending` sprayed 401s (× StrictMode remounts) that
+    // nothing redirected away. Unauthenticated mounts still never fetch.
+    if (isPending || !authed) return undefined;
     let alive = true;
     const rid = `dash-${Date.now().toString(36)}`;
     setLoading(true);
@@ -42,13 +42,18 @@ export default function AdminDashboard() {
           if (e?.status === 404) return [];
           throw e;
         }),
-        mediaApi.list({ limit: 20 }).then(toArray).catch(() => []),
+        mediaApi.list({ limit: 20 }).then(toArray).catch((e) => {
+          if (e?.status === 404) return [];
+          throw e;
+        }),
       ]);
+      // Any non-404 list failure surfaces the error state — never render an
+      // empty dashboard off a failed request (404 = module not shipped = empty).
+      const failed = settled.find((r) => r.status === 'rejected' && r.reason?.status !== 404);
+      if (failed) throw failed.reason;
       const [events, team, partners, albums, content] = settled.map((r) =>
         r.status === 'fulfilled' ? r.value : [],
       );
-      const failed = settled.find((r) => r.status === 'rejected' && r.reason?.status !== 404);
-      if (failed && events.length === 0 && team.length === 0) throw failed.reason;
       const tagged = [
         ...events.map((i) => ({ kind: 'events', item: i })),
         ...team.map((i) => ({ kind: 'team', item: i })),
@@ -74,7 +79,18 @@ export default function AdminDashboard() {
     return () => {
       alive = false;
     };
-  }, [authed, retryCount]);
+  }, [authed, isPending, retryCount]);
+
+  // Session check still running: show the loader (not a blank null) so the
+  // guard above has a settled verdict before we fetch or redirect.
+  if (isPending) {
+    return (
+      <section aria-label="Dashboard">
+        <h1>Dashboard</h1>
+        <LoadingSkeleton label="Checking your session…" />
+      </section>
+    );
+  }
 
   // Unauthenticated: render nothing (a guard above redirects to login).
   if (!authed) return null;

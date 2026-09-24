@@ -1,4 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "_note": "INERT — this file is ignored in production. The Vercel project uses the REPO ROOT as its Root Directory, so only the root vercel.json applies (API rewrite for /GDGoC-CTU-Main/v0.0.1/* BEFORE the /(.*) SPA fallback). This file exists solely so a standalone frontend-directory preview still serves /index.html for deep links.",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

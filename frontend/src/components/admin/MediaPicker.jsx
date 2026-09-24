@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { getId, mediaApi } from '../../api/resources.js';
 import { pickImage, safeSrc } from '../../api/public.js';
 import { ADMIN_ENTITY_ROUTES } from '../../admin/editorial.js';
-import { hideImage } from '../FeedStates.jsx';
+import { hideImage } from './shared.jsx';
 import { ErrorState, Field, LoadingSkeleton, inputProps } from './shared.jsx';
 
 function shortId(id) {
@@ -95,10 +95,10 @@ export default function MediaPicker({ id, label, hint, error, required, value = 
           Upload new media
         </Link>
       </div>
-      <p className="admin-muted" role="status" aria-live="polite" style={{ marginBottom: '0.75rem' }}>
+      <p className="admin-muted gdg-status-muted" role="status" aria-live="polite">
         {selectedText ? (
           <>
-            Selected: <code title={selectedText} style={{ background: '#f1f3f4', padding: '0.1rem 0.35rem', borderRadius: '6px' }}>{shortId(selectedText)}</code>{' '}
+            Selected: <code title={selectedText} className="gdg-code-muted">{shortId(selectedText)}</code>{' '}
             <button type="button" className="admin-link-btn" onClick={() => copyId(selectedText)}>
               {copiedId === selectedText ? 'Copied ✓' : 'Copy ID'}
             </button>{' '}
@@ -129,23 +129,22 @@ export default function MediaPicker({ id, label, hint, error, required, value = 
             return (
               <article
                 key={mediaId}
-                className="admin-media-card"
-                style={selected ? { outline: '2px solid var(--gdg-blue)', outlineOffset: '-1px' } : undefined}
+                className={`admin-media-card${selected ? ' is-selected' : ''}`}
               >
                 {src ? (
                   <img src={src} alt={alt} loading="lazy" onError={hideImage} />
                 ) : (
-                  <div style={{ height: 140, background: '#f1f3f4' }} aria-hidden="true" />
+                  <div className="gdg-media-placeholder" aria-hidden="true" />
                 )}
                 <div className="admin-media-card-body">
-                  <strong title={name} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</strong>
-                  <p className="admin-muted" style={{ fontSize: '0.8rem', margin: '0.2rem 0' }}>{alt ? `alt: ${alt}` : 'No alt text'}</p>
-                  {selected ? <p style={{ margin: '0.35rem 0' }}><span className="gdg-tag gdg-tag-green">Selected</span></p> : null}
-                  <div className="gdg-btn-row" style={{ marginTop: '0.5rem', gap: '0.5rem' }}>
-                    <button type="button" className={selected ? 'gdg-btn gdg-btn-secondary' : 'gdg-btn gdg-btn-primary'} aria-pressed={selected} disabled={!mediaId} onClick={() => select(mediaId)} style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}>
+                  <strong title={name} className="gdg-ellipsis">{name}</strong>
+                  <p className="admin-muted gdg-muted-sm">{alt ? `alt: ${alt}` : 'No alt text'}</p>
+                  {selected ? <p className="gdg-selected-wrap"><span className="gdg-tag gdg-tag-green">Selected</span></p> : null}
+                  <div className="gdg-btn-row gdg-btn-row-sm">
+                    <button type="button" className={selected ? 'gdg-btn gdg-btn-secondary gdg-btn-sm' : 'gdg-btn gdg-btn-primary gdg-btn-sm'} aria-pressed={selected} disabled={!mediaId} onClick={() => select(mediaId)}>
                       {selected ? 'Clear' : 'Select'}
                     </button>
-                    <button type="button" className="gdg-btn gdg-btn-secondary" disabled={!mediaId} onClick={() => copyId(mediaId)} style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}>
+                    <button type="button" className="gdg-btn gdg-btn-secondary gdg-btn-sm" disabled={!mediaId} onClick={() => copyId(mediaId)}>
                       {copiedId === mediaId ? 'Copied ✓' : 'Copy ID'}
                     </button>
                   </div>

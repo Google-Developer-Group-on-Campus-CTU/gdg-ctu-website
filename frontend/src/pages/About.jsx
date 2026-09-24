@@ -92,32 +92,28 @@ export default function About() {
     <div className="page-about">
       <section className="ab-hero">
         <img
-          className="hero-picture"
+          className="hero-picture ab-deco ab-deco-star"
           src="/layout-assets/home/star-no-bg.png"
           alt=""
           aria-hidden="true"
-          style={{ top: '80px', left: '180px', width: '70px', height: '70px' }}
         />
         <img
-          className="hero-picture"
+          className="hero-picture ab-deco ab-deco-arrow"
           src="/layout-assets/home/arrow-no-bg.png"
           alt=""
           aria-hidden="true"
-          style={{ top: '70px', right: '180px', left: 'auto', width: '70px', height: '70px', transform: 'rotate(20deg)' }}
         />
         <img
-          className="hero-picture"
+          className="hero-picture ab-deco ab-deco-globe"
           src="/layout-assets/home/globe-no-bg.png"
           alt=""
           aria-hidden="true"
-          style={{ bottom: '40px', left: '200px', top: 'auto', width: '70px', height: '70px', transform: 'rotate(15deg)' }}
         />
         <img
-          className="hero-picture"
+          className="hero-picture ab-deco ab-deco-heart"
           src="/layout-assets/home/heart-no-bg.png"
           alt=""
           aria-hidden="true"
-          style={{ bottom: '40px', right: '180px', left: 'auto', top: 'auto', width: '70px', height: '70px', transform: 'rotate(-20deg)' }}
         />
 
         <div className="ab-hero-content">
@@ -152,7 +148,7 @@ export default function About() {
             </div>
           ) : null}
           {!about.loading && about.error ? (
-            <div className="feed-error" role="alert" style={{ marginTop: '14px' }}>
+            <div className="gdg-feed-error gdg-feed-offset" role="alert">
               <p>{friendlyFeedError(about.error)}</p>
               <button type="button" className="btn-secondary" onClick={about.retry}>
                 Retry
@@ -174,7 +170,7 @@ export default function About() {
           </div>
         ) : null}
         {!community.loading && community.error ? (
-          <div className="feed-error" role="alert">
+          <div className="gdg-feed-error" role="alert">
             <p>{friendlyFeedError(community.error)}</p>
             <button type="button" className="btn-secondary" onClick={community.retry}>
               Retry
@@ -273,7 +269,7 @@ export default function About() {
           </div>
         ) : null}
         {!partners.loading && partners.error ? (
-          <div className="feed-error" role="alert">
+          <div className="gdg-feed-error" role="alert">
             <p>{friendlyFeedError(partners.error)} Showing legacy partners.</p>
             <button type="button" className="btn-secondary" onClick={partners.retry}>
               Retry

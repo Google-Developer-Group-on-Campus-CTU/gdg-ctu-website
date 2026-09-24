@@ -12,19 +12,36 @@ import {
       mediaHasReferences,
       updateMedia,
 } from "./models/media.queries.js";
-import { UpdateMediaDTO } from "./media.validations.js";
+import { isCloudinaryDisabledError } from "../../config/cloudinary/utils/cloudinary-rollback-helper.js";
+import { MediaRecordSchema, CreateMediaInput, UpdateMediaInput } from "./media.validations.js";
 import logger from "../../utils/logger.js";
 import { NewMediaRecord } from "./models/media.queries.js";
 
-export const createMediaService = async (data: any) => {
-      if (!(await getAdminById(data.uploadedBy))) {
+export const createMediaService = async (data: CreateMediaInput) => {
+      // Service-boundary validation: callers pass DB-shaped records (never
+      // `any`), Zod enforces the column contract before any I/O.
+      const valid = MediaRecordSchema.parse(data);
+      if (!(await getAdminById(valid.uploadedBy))) {
             throw new AppError(
                   400,
                   "uploadedBy must reference an existing admin",
             );
       }
 
-      return insertMedia(data);
+      const record: NewMediaRecord = {
+            uploadedBy: valid.uploadedBy,
+            altText: valid.altText ?? null,
+            cloudinaryAssetId: valid.cloudinaryAssetId,
+            publicId: valid.publicId,
+            secureUrl: valid.secureUrl,
+            resourceType: valid.resourceType,
+            format: valid.format ?? null,
+            width: valid.width ?? null,
+            height: valid.height ?? null,
+            bytes: valid.bytes ?? null,
+            originalFilename: valid.originalFilename ?? null,
+      };
+      return insertMedia(record);
 };
 
 /**
@@ -60,7 +77,7 @@ export const getMediaByIdService = async (id: string) => {
       return media;
 };
 
-export const updateMediaService = async (id: string, data: UpdateMediaDTO) => {
+export const updateMediaService = async (id: string, data: UpdateMediaInput) => {
       const media = await getMediaById(id);
 
       if (!media) {
@@ -90,26 +107,31 @@ export const deleteMediaService = async (id: string) => {
             );
       }
 
-      // Delete from Cloudinary using publicId and resourceType.
-      // Tolerate Cloudinary being disabled (503) so DB cleanup still proceeds.
+      // Orphan order: delete the DB row FIRST. A DB failure then skips the
+      // cloud delete (nothing orphaned); a cloud failure afterwards only
+      // leaks a Cloudinary asset, which is logged — never thrown — so the
+      // delete request still succeeds.
+      await deleteMedia(id);
+
       try {
             await deleteMediaCloudinaryService(
                   media.publicId,
                   media.resourceType as "image" | "video" | "raw",
             );
       } catch (error: any) {
-            if (
-                  (error instanceof AppError && error.statusCode === 503) ||
-                  (typeof error?.message === "string" &&
-                        error.message.includes("not configured"))
-            ) {
+            if (isCloudinaryDisabledError(error)) {
                   logger.warn(
-                        "Cloudinary disabled - skipping Cloudinary delete, removing DB record only",
+                        "Cloudinary disabled - skipping Cloudinary delete, DB record already removed",
                   );
             } else {
-                  throw error;
+                  logger.error(
+                        "Cloudinary delete failed after DB delete - orphaned cloud asset",
+                        {
+                              publicId: media.publicId,
+                              message: error?.message ?? String(error),
+                              stack: error?.stack,
+                        },
+                  );
             }
       }
-
-      await deleteMedia(id);
 };

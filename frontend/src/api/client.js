@@ -24,15 +24,40 @@ const REQUEST_TIMEOUT_MS = 15000;
  * the 15s timeout.
  */
 export async function apiFetch(path, options = {}) {
-  const { headers, ...rest } = options;
+  // Never relative-fetch: without VITE_API_URL the request would hit the
+  // frontend origin and fail confusingly. Throw so admin UI can disable
+  // itself via API_BASE_URL instead of firing doomed requests.
+  if (!API_BASE_URL) {
+    const error = new Error(
+      'API is not configured — set VITE_API_URL in frontend/.env (e.g. http://localhost:3000/GDGoC-CTU-Main/v0.0.1) and restart the dev server.',
+    );
+    error.status = 503;
+    throw error;
+  }
+  const { headers, body, signal: externalSignal, ...rest } = options;
 
-  const mergedHeaders = {
-    'Content-Type': 'application/json',
-    ...headers,
-  };
+  // Content-Type only when a body is present (GET/DELETE send none), and never
+  // for FormData — the browser must append the multipart boundary itself.
+  const mergedHeaders = { ...headers };
+  if (
+    body != null &&
+    !(body instanceof FormData) &&
+    mergedHeaders['Content-Type'] == null
+  ) {
+    mergedHeaders['Content-Type'] = 'application/json';
+  }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  // Share an optional caller signal with the timeout controller so aborting
+  // from the caller cancels the request too (and is not misreported as a 504).
+  let externallyAborted = false;
+  const onExternalAbort = () => {
+    externallyAborted = true;
+    controller.abort();
+  };
+  if (externalSignal?.aborted) onExternalAbort();
+  else externalSignal?.addEventListener('abort', onExternalAbort, { once: true });
 
   let response;
   try {
@@ -40,10 +65,17 @@ export async function apiFetch(path, options = {}) {
       credentials: 'include',
       headers: mergedHeaders,
       ...rest,
+      body,
       signal: controller.signal,
     });
   } catch (err) {
     if (err?.name === 'AbortError') {
+      if (externallyAborted) {
+        const error = new Error(`API request aborted: ${path}`);
+        error.name = 'AbortError';
+        error.aborted = true;
+        throw error;
+      }
       const error = new Error(
         `API request timed out after ${REQUEST_TIMEOUT_MS}ms: ${path}`,
       );
@@ -54,6 +86,7 @@ export async function apiFetch(path, options = {}) {
     throw err;
   } finally {
     clearTimeout(timeoutId);
+    externalSignal?.removeEventListener('abort', onExternalAbort);
   }
 
   if (!response.ok) {

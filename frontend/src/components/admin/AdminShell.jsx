@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { authClient } from '../../lib/auth-client';
 import { ADMIN_ENTITY_ROUTES, adminNewTargetFor } from '../../admin/editorial.js';
 import '../../styles/admin.css';
@@ -69,14 +69,15 @@ export default function AdminShell() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [params, setParams] = useSearchParams();
   const location = useLocation();
-  const { data: session } = authClient.useSession();
   const query = params.get('q') ?? '';
 
   useEffect(() => {
     setDrawerOpen(false);
   }, [location.pathname]);
 
-  if (!session?.user) return <Navigate to="/admin/login" replace />;
+  // No session guard here — <ProtectedRoute> above this shell already
+  // redirects unauthenticated visits to /admin/login. A second useSession +
+  // <Navigate> here double-subscribed and could flash-redirect on refetch.
 
   const nav = (
     <nav aria-label="Admin primary" className="admin-nav">
@@ -105,10 +106,10 @@ export default function AdminShell() {
         </Link>
         {nav}
         <div className="admin-sidebar-note">
-          <strong style={{ display: 'block', color: 'var(--text)', marginBottom: '0.25rem' }}>CMS writes. Site reads.</strong>
+          <strong className="admin-sidebar-strong">CMS writes. Site reads.</strong>
           Public pages pull from the same content API.
           <br />
-          <Link to="/" style={{ color: 'var(--gdg-blue)', fontWeight: 600 }}>← View public site</Link>
+          <Link to="/" className="admin-sidebar-link">← View public site</Link>
         </div>
       </aside>
 

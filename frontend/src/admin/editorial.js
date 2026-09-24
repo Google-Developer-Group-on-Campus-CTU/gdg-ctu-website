@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { useFeed } from '../api/feed.js';
 
@@ -64,18 +64,19 @@ export function isAnyUrl(value) {
   }
 }
 
-/** Inline async uniqueness check: 404 => unique; 200 with a different id => duplicate. */
+/**
+ * Inline async uniqueness check. Resolves `true` (unique) when nothing owns the
+ * slug or the only hit is the current row, `false` when another id owns it.
+ * Every lookup error propagates — including 404 (no row ⇒ unique): callers
+ * catch 404 as unique and must surface/block save on 500/timeout/network
+ * failures instead of swallowing them.
+ */
 export async function checkSlugUnique(api, slug, currentId = null) {
   if (!slug || isReservedSlug(slug)) return false;
-  try {
-    const found = await api.getBySlug(slug);
-    const foundId = found?.id ?? found?._id;
-    if (currentId && foundId && String(foundId) === String(currentId)) return true;
-    return false;
-  } catch (err) {
-    if (err?.status === 404) return true;
-    throw err;
-  }
+  const found = await api.getBySlug(slug);
+  const foundId = found?.id ?? found?._id;
+  if (currentId && foundId && String(foundId) === String(currentId)) return true;
+  return false;
 }
 
 function required(value) {
@@ -176,11 +177,11 @@ export function timeAgo(value) {
 
 export function useDebouncedValue(value, delay = 250) {
   const [debounced, setDebounced] = useState(value);
-  const timer = useRef(null);
   useEffect(() => {
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(timer.current);
+    // Timer is effect-local: the cleanup clears it on value/delay change AND
+    // on unmount, so no setState fires after the component is gone.
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
   }, [value, delay]);
   return debounced;
 }
@@ -210,7 +211,12 @@ export function adminItemLabel(item, fallback = 'Untitled') {
 
 export function adminDetailPathFor(kind, item) {
   const entry = ADMIN_ENTITY_ROUTES[kind];
-  if (!entry?.detail) return '/admin';
+  if (!entry?.detail) {
+    // Programming error, not a user state — log loudly instead of silently
+    // landing on /admin. The fallback keeps the UI navigable in production.
+    console.warn(`[admin] adminDetailPathFor: unknown kind "${kind}" — falling back to /admin.`);
+    return '/admin';
+  }
   if (kind === 'content') return entry.detail(item?.section_key ?? item?.sectionKey);
   return entry.detail(item?.id ?? item?._id ?? item?.uuid ?? item?.slug);
 }
@@ -219,5 +225,9 @@ export function adminDetailPathFor(kind, item) {
 export function adminNewTargetFor(pathname = '') {
   const entries = Object.values(ADMIN_ENTITY_ROUTES).sort((a, b) => b.list.length - a.list.length);
   const match = entries.find((e) => pathname === e.list || pathname.startsWith(`${e.list}/`));
-  return match?.new ?? ADMIN_ENTITY_ROUTES.events.new;
+  if (!match) {
+    console.warn(`[admin] adminNewTargetFor: no section matches "${pathname}" — falling back to the events composer.`);
+    return ADMIN_ENTITY_ROUTES.events.new;
+  }
+  return match.new;
 }

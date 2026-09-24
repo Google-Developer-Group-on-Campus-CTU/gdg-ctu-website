@@ -14,6 +14,11 @@
 const { spawn } = require("node:child_process");
 const path = require("node:path");
 
+// drizzle.config.ts imports src/config/env at load, which throws without a
+// backend/.env (e.g. CI). `generate` never connects — it only diffs schema
+// files — so offline defaults suffice. Inherits into the spawned child.
+require("./offline-env.cjs");
+
 const kitBin = path.join(__dirname, "..", "node_modules", "drizzle-kit", "bin.cjs");
 const tsSpecifiers = path.join(__dirname, "resolve-ts-specifiers.cjs");
 const PROMPT_RE = /created or renamed from another (table|column|schema)/;

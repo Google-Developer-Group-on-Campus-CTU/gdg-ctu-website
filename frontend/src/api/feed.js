@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * Shared feed primitives (single source of truth).
@@ -21,17 +21,29 @@ export function useFeed(loader, { depsKey = '', initialData = null, withRequestI
   const [requestId, setRequestId] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const retry = useCallback(() => setRetryCount((n) => n + 1), []);
+  // `loader`/`initialData`/`withRequestId` are inline values at every call
+  // site — listing them as effect deps would refetch on each render. They
+  // ride in refs (synced by the dep-less effect below, which always runs
+  // before the fetch effect) while `depsKey` + `retryCount` stay the
+  // intentional dep list.
+  const loaderRef = useRef(null);
+  const optsRef = useRef(null);
+  useEffect(() => {
+    loaderRef.current = loader;
+    optsRef.current = { initialData, withRequestId };
+  });
 
   useEffect(() => {
     let alive = true;
+    const { initialData: initial } = optsRef.current;
     setLoading(true);
     setError(null);
-    if (withRequestId) setRequestId(`${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`);
+    setRequestId(`${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`);
     Promise.resolve()
-      .then(loader)
+      .then(() => loaderRef.current())
       .then((result) => {
         if (alive) {
-          setData(result ?? initialData);
+          setData(result ?? initial);
           setLoading(false);
         }
       })
@@ -46,7 +58,6 @@ export function useFeed(loader, { depsKey = '', initialData = null, withRequestI
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [depsKey, retryCount]);
 
   return { data, loading, error, requestId, retry };

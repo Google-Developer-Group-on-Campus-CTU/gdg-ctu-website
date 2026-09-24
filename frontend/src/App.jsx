@@ -1,4 +1,4 @@
-import { Navigate, Outlet, RouterProvider, createBrowserRouter } from 'react-router-dom';
+import { Link, Navigate, Outlet, RouterProvider, createBrowserRouter, useRouteError } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -39,6 +39,44 @@ function PublicLayout() {
   );
 }
 
+/** Rendered when a route throws (loaders aside, this is mostly a safety net). */
+function RouteError() {
+  const err = useRouteError();
+  const message = err?.statusText ?? err?.message ?? 'Something went wrong.';
+  return (
+    <div className="gdg-container">
+      <section className="gdg-section" role="alert">
+        <span className="gdg-badge">GDG-CTU</span>
+        <h2>Something went wrong</h2>
+        <p className="gdg-subtitle">{message}</p>
+        <p className="gdg-btn-row">
+          <Link className="gdg-btn gdg-btn-primary" to="/">Back home</Link>
+          <Link to="/contact">Contact us</Link>
+        </p>
+      </section>
+    </div>
+  );
+}
+
+/** Catch-all for unknown URLs — deep links to retired pages land here. */
+function NotFound() {
+  return (
+    <div className="gdg-container">
+      <section className="gdg-section" role="status">
+        <span className="gdg-badge">404</span>
+        <h2>Page not found</h2>
+        <p className="gdg-subtitle">
+          That address doesn&apos;t match anything on this site. Check the URL
+          or head back home.
+        </p>
+        <p>
+          <Link className="gdg-btn gdg-btn-primary" to="/">Back home</Link>
+        </p>
+      </section>
+    </div>
+  );
+}
+
 // Page elements keyed by the canonical ADMIN_ENTITY_ROUTES entity. The route
 // PATHS themselves live only in src/admin/editorial.js — this table binds
 // elements to those paths (one route definition, no path copies).
@@ -71,10 +109,14 @@ const adminEntityRoutes = Object.entries(ADMIN_ENTITY_ROUTES).flatMap(([key, ent
 const router = createBrowserRouter([
   {
     element: <PublicLayout />,
+    errorElement: <RouteError />,
     children: [
       { path: '/', element: <Home /> },
       { path: '/about', element: <About /> },
       { path: '/team', element: <Officers /> },
+      // Deep-link parity with /events/:slug and /gallery/:slug: member slugs
+      // render the roster (Officers ignores the param) instead of 404ing.
+      { path: '/team/:slug', element: <Officers /> },
       { path: '/officers', element: <Navigate to="/team" replace /> },
       { path: '/partners', element: <Partners /> },
       { path: '/gallery', element: <Gallery /> },
@@ -82,12 +124,14 @@ const router = createBrowserRouter([
       { path: '/events', element: <Events /> },
       { path: '/events/:slug', element: <Events /> },
       { path: '/contact', element: <Contact /> },
+      { path: '*', element: <NotFound /> },
     ],
   },
   { path: '/admin/login', element: <AdminLogin /> },
   { path: '/admin/register', element: <AdminRegister /> },
   {
     element: <ProtectedRoute />,
+    errorElement: <RouteError />,
     children: [
       {
         element: <AdminShell />,
@@ -97,6 +141,7 @@ const router = createBrowserRouter([
           { path: '/admin/invites', element: <AdminInvites /> },
           { path: '/admin/users', element: <AdminUsers /> },
           { path: '/admin/settings', element: <AdminSettings /> },
+          { path: '/admin/*', element: <NotFound /> },
         ],
       },
     ],

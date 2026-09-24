@@ -1,13 +1,15 @@
 import { Express } from "express";
+import type { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import { AUTH_BASE_PATH } from "../config/env.js";
 import logger from "./logger.js";
 import { livenessHandler } from "./liveness.js";
 
-// Check port validity
-export function validateServerPort(port: string | undefined): number {
-      if (!port) {
-            logger.info("Error: PORT is not defined in environment variables.");
+// Check port validity (ENV.PORT is already a Zod-coerced number; the string
+// branch covers direct/test callers).
+export function validateServerPort(port: string | number | undefined): number {
+      if (port === undefined || port === null || port === "") {
+            logger.error("Error: PORT is not defined in environment variables.");
             throw new Error("PORT is not defined in environment variables.");
       }
 
@@ -19,7 +21,7 @@ export function validateServerPort(port: string | undefined): number {
             parsedPort > 65535 ||
             !Number.isInteger(parsedPort)
       ) {
-            logger.info("Error: PORT is not a valid port number.");
+            logger.error("Error: PORT is not a valid port number.");
             throw new Error("PORT is not a valid port number.");
       }
 
@@ -29,7 +31,7 @@ export function validateServerPort(port: string | undefined): number {
 // Check Frontend Origin validity
 export function validateFrontendOrigin(frOrigin: string | undefined): string {
       if (!frOrigin) {
-            logger.info(
+            logger.error(
                   "Error: FR_ORIGIN is not defined in environment variables.",
             );
             throw new Error(
@@ -87,7 +89,7 @@ export function validateBetterAuthKeys(
 // Check if server is in production mode
 export function validateProductionMode(mode: string | undefined): boolean {
       if (!mode) {
-            logger.info(
+            logger.error(
                   "Error: NODE_ENV is not defined in environment variables.",
             );
             throw new Error(
@@ -97,6 +99,9 @@ export function validateProductionMode(mode: string | undefined): boolean {
 
       return mode === "production";
 }
+
+// Rejection marker for non-allowlisted Origins — mapped to JSON 403 below.
+export const CORS_ORIGIN_DENIED = "Origin not allowed";
 
 // Configure CORS based on frontend origin and production mode
 export function configureCors(
@@ -130,16 +135,40 @@ export function configureCors(
                         if (!isProduction && isDevLoopback(origin))
                               return callback(null, true);
                         logger.warn(`CORS: blocked origin ${origin}`);
-                        return callback(null, false);
-                  },
-                  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-                  allowedHeaders: ["Content-Type", "Authorization", "x-dev-admin-bypass"],
-                  credentials: true,
-                  optionsSuccessStatus: 204,
-            }),
-      );
+                        return callback(new Error(CORS_ORIGIN_DENIED));
+                   },
+                   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+                   allowedHeaders: ["Content-Type", "Authorization"],
+                   credentials: true,
+                   optionsSuccessStatus: 204,
+             }),
+       );
 
-      return logger.info(
+       // CORS rejections leave here as JSON 403 — never Express's default
+       // HTML error page and never a silent `false` (which answers 200 with
+       // no CORS headers). Anything else falls through to the app-level
+       // JSON error handler.
+       app.use(
+             (
+                   err: unknown,
+                   _req: Request,
+                   res: Response,
+                   next: NextFunction,
+             ) => {
+                   if (
+                         err instanceof Error &&
+                         err.message === CORS_ORIGIN_DENIED
+                   ) {
+                         return res.status(403).json({
+                               success: false,
+                               message: CORS_ORIGIN_DENIED,
+                         });
+                   }
+                   return next(err);
+             },
+       );
+
+       return logger.info(
             `CORS: [${allowlist.join(", ")}] Running in ${isProduction ? "Production" : "Development"} Mode`,
       );
 }

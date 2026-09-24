@@ -82,14 +82,54 @@ export async function requireAuth(
             (req as AuthedRequest).authSession = session;
             next();
       } catch (error) {
-            // DB / storage blip — fail closed with the historical 503.
+            // Session lookup failed. Only known transient faults (DB / network
+            // blips) keep the historical 503 fail-closed shape — coding bugs
+            // fall through to the final JSON error handler as 500 so a bug
+            // can never masquerade as an unavailable auth service.
             logger.error("requireAuth failed", {
                   message:
                         error instanceof Error ? error.message : String(error),
                   stack: error instanceof Error ? error.stack : undefined,
             });
-            res.status(503).json({
-                  error: "Authentication service unavailable",
-            });
+            if (isTransientAuthError(error)) {
+                  res.status(503).json({
+                        error: "Authentication service unavailable",
+                  });
+                  return;
+            }
+            next(error);
       }
+}
+
+/**
+ * Matches the transient faults a session-store lookup can actually raise:
+ * pool/network failures and query timeouts. Anything else (TypeError,
+ * bad config, programming error) is a 500, not a 503.
+ */
+function isTransientAuthError(error: unknown): boolean {
+      const message =
+            error instanceof Error ? error.message : String(error ?? "");
+      const code =
+            typeof error === "object" && error !== null
+                  ? String(
+                          (error as { code?: unknown }).code ?? "",
+                        ).toUpperCase()
+                  : "";
+      if (
+            code.startsWith("ETIMEDOUT") ||
+            code.startsWith("ECONN") ||
+            code === "ENOTFOUND" ||
+            code === "EAI_AGAIN" ||
+            code === "EPIPE" ||
+            code === "57P01" || // admin_shutdown
+            code === "57P03" || // cannot_connect_now
+            code === "08000" || // connection_exception
+            code === "08006" || // connection_failure
+            code.startsWith("08")
+      ) {
+            return true;
+      }
+      return /timeout|timed out|fetch failed|network|socket hang up|connection|pool|unavailable|temporar|try again|econn|enotfound/i.test(
+            message,
+      );
 }

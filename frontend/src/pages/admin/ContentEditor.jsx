@@ -33,6 +33,9 @@ export default function ContentEditor() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  // Load retry that preserves form state — bumps the fetch effect below
+  // instead of window.location.reload(), which would wipe unsaved edits.
+  const [loadRetry, setLoadRetry] = useState(0);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -58,13 +61,21 @@ export default function ContentEditor() {
         setLoading(false);
       });
     return () => { alive = false; };
-  }, [sectionKey, validKey]);
+  }, [sectionKey, validKey, loadRetry]);
 
   if (!validKey) {
     return <section aria-label="Content editor"><h1>Unknown section</h1><p>Valid keys: {CONTENT_KEYS.join(', ')}.</p><Link to={ADMIN_ENTITY_ROUTES.content.list}>Back</Link></section>;
   }
   if (loading) return <section aria-label="Content editor"><h1>{sectionKey}</h1><LoadingSkeleton label="Loading section…" /></section>;
-  if (loadError) return <section aria-label="Content editor"><h1>{sectionKey}</h1><ErrorState error={loadError} onRetry={() => window.location.reload()} context="load this section" /></section>;
+  // Retry clears the error + shows the loader from the click handler (not the
+  // fetch effect) and bumps `loadRetry` — the form state above is untouched.
+  const retryLoad = () => {
+    setLoadError(null);
+    setNotFound(false);
+    setLoading(true);
+    setLoadRetry((n) => n + 1);
+  };
+  if (loadError) return <section aria-label="Content editor"><h1>{sectionKey}</h1><ErrorState error={loadError} onRetry={retryLoad} context="load this section" /></section>;
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 

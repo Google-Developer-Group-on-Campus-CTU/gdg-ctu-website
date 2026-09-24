@@ -16,12 +16,12 @@ import {
       updatePartnerService,
 } from "./partner.services.js";
 import {
-      CreatePartnerDTO,
       UpdatePartnerDTO,
       CreatePartnerSchema,
       UpdatePartnerSchema,
 } from "./partner.validations.js";
 import { getUserIdFromRequest } from "../auth/auth.utils.js";
+import { parseJsonField } from "../../utils/multiPartPayloadHelper.js";
 
 /**
  * Create a new partner.
@@ -50,7 +50,7 @@ export const createPartner = async (req: Request, res: Response) => {
             }
 
             // 3. Shape/Type Validation
-            const partnerData: CreatePartnerDTO = JSON.parse(partnerJson);
+            const partnerData = parseJsonField(partnerJson, "partner");
             const validData = validateBody(CreatePartnerSchema, partnerData);
 
             // 4. Pass to Service Layer
@@ -137,19 +137,20 @@ export const updatePartner = async (req: Request, res: Response) => {
             }
 
             const partnerId = validateUuid(req.params.id);
-            if (!partnerId) {
-                  throw new AppError(404, "Missing partner ID");
-            }
 
             // ----- optional JSON payload -----
             const partnerJson = req.body.partner;
             let data: UpdatePartnerDTO;
             if (partnerJson) {
-                  const partnerData: UpdatePartnerDTO = JSON.parse(partnerJson);
-                  data = validateBody(UpdatePartnerSchema, partnerData);
+                  data = validateBody(
+                        UpdatePartnerSchema,
+                        parseJsonField(partnerJson, "partner"),
+                  );
             } else {
-                  // No JSON payload – use empty object; schema is partial
-                  data = {} as UpdatePartnerDTO;
+                  // No JSON payload (file-only logo swap) — parse an empty
+                  // partial through Zod instead of casting; the non-empty
+                  // refine lives only on UpdatePartnerSchema.
+                  data = CreatePartnerSchema.partial().parse({});
             }
 
             // optional new logo image

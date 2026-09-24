@@ -17,7 +17,10 @@ import {
       updateEventService,
 } from "./event.services.js";
 import { CreateEventSchema, UpdateEventSchema } from "./event.validations.js";
-import { extractMultipartPayload } from "../../utils/multiPartPayloadHelper.js";
+import {
+      extractMultipartPayload,
+      parseJsonField,
+} from "../../utils/multiPartPayloadHelper.js";
 
 export const createEvent = async (req: Request, res: Response) => {
       try {
@@ -26,20 +29,18 @@ export const createEvent = async (req: Request, res: Response) => {
                   throw new AppError(400, "Event cover image is required");
             }
 
+            // Session is guaranteed by requireAuth on the protected /events
+            // mount — no per-controller 401 here. A missing user still fails
+            // closed with one message: CreateEventSchema requires createdBy
+            // and createEventService throws 401 "Admin ID missing".
             const userId = getUserIdFromRequest(req);
-            if (file && !userId) {
-                  throw new AppError(
-                        401,
-                        "Unable to determine uploader (user ID) for image upload",
-                  );
-            }
 
             const eventJson = req.body.event;
             if (!eventJson) {
                   throw new AppError(400, "'event' JSON payload missing");
             }
 
-            const rawEventData = JSON.parse(eventJson);
+            const rawEventData = parseJsonField(eventJson, "event");
             rawEventData.createdBy = userId;
 
             const eventData = CreateEventSchema.parse(rawEventData);
@@ -89,9 +90,6 @@ export const getEvent = async (req: Request, res: Response) => {
             }
 
             const id = validateUuid(req.params.id);
-            if (!id) {
-                  throw new AppError(404, "Event ID missing");
-            }
             const event = await getEventByIdService(id);
 
             return res.status(200).json({
@@ -128,9 +126,6 @@ export const getEventBySlug = async (req: Request, res: Response) => {
 export const updateEvent = async (req: Request, res: Response) => {
       try {
             const id = validateUuid(req.params.id);
-            if (!id) {
-                  throw new AppError(404, "Event ID missing, cannot proceed");
-            }
             const file = (req as any).file?.buffer; // No file validation since media is optional upon update
 
             const eventPayload = extractMultipartPayload(req.body, "event", [
@@ -171,12 +166,6 @@ export const removeEvent = async (req: Request, res: Response) => {
             }
 
             const id = validateUuid(req.params.id);
-            if (!id) {
-                  throw new AppError(
-                        404,
-                        "Event ID to delete missing, cannot proceed",
-                  );
-            }
             await deleteEventService(id);
 
             return res.status(200).json({

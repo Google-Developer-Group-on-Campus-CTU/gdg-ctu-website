@@ -90,10 +90,54 @@ app.use(
                         message: "Payload too large: JSON body exceeds the 100kb limit.",
                   });
             }
-            // Anything else (fileFilter type errors, unexpected throws) keeps
-            // today's behaviour: Express's default error handler.
+            // Anything else (fileFilter type errors, unexpected throws) falls
+            // through to the final JSON error handler below — never Express's
+            // default HTML error page, so the API contract stays JSON.
             return next(err);
       },
 );
+
+// Final JSON error handler (registered last): guarantees every error that
+// escapes the routers — including rethrown coding bugs from requireAuth —
+// leaves as JSON, never Express's default HTML error page.
+app.use(
+      (
+            err: unknown,
+            _req: Request,
+            res: Response,
+            _next: NextFunction,
+      ) => {
+            const statusCode = getErrorStatusCode(err);
+            const message =
+                  err instanceof Error && err.message
+                        ? err.message
+                        : "Internal server error";
+            logger.error("Unhandled API error", {
+                  message,
+                  stack: err instanceof Error ? err.stack : undefined,
+            });
+            return res.status(statusCode).json({
+                  success: false,
+                  message:
+                        statusCode === 500 && isProduction
+                              ? "Internal server error"
+                              : message,
+            });
+      },
+);
+
+function getErrorStatusCode(err: unknown): number {
+      if (typeof err === "object" && err !== null) {
+            const statusCode = (err as { statusCode?: unknown }).statusCode;
+            if (typeof statusCode === "number") {
+                  return statusCode;
+            }
+            const status = (err as { status?: unknown }).status;
+            if (typeof status === "number") {
+                  return status;
+            }
+      }
+      return 500;
+}
 
 export default app;

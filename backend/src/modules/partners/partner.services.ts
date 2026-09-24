@@ -1,8 +1,6 @@
 import { AppError } from "../../utils/http.js";
 import { getPaginationMeta, Pagination } from "../../utils/pagination.js";
-import { uploadMedia } from "../../config/cloudinary/cloudinary.services.js";
-import { createMediaRecord } from "../../config/cloudinary/utils/cloudinary-media-data-helper.js";
-import { createMediaService } from "../media/media.services.js";
+import { recordUpload } from "../media/media.uploads.js";
 import { getMediaById } from "../media/models/media.queries.js";
 import { cleanupReplacedMedia } from "../../utils/mediaHelper.js";
 import {
@@ -45,13 +43,15 @@ export const createPartnerService = async (
             // If a logo image is supplied, upload to Cloudinary and create media record
             let logoMediaId = data.logoMediaId ?? undefined;
             if (file) {
-                  const uploadResult = await uploadMedia(file, {
-                        folder: DEFAULT_PARTNERS_MEDIA_FOLDER,
-                        resourceType: "image",
+                  const recorded = await recordUpload({
+                        file,
+                        meta: {
+                              folder: DEFAULT_PARTNERS_MEDIA_FOLDER,
+                              uploadedBy: userId,
+                        },
                   });
-                  const mediaData = createMediaRecord(uploadResult, userId);
-                  const mediaRecord = await createMediaService(mediaData);
-                  logoMediaId = mediaRecord.id;
+                  uploadResult = recorded.uploadResult;
+                  logoMediaId = recorded.mediaId;
             } else {
                   throw new AppError(
                         400,
@@ -149,13 +149,15 @@ export const updatePartnerService = async (
       try {
             // If a new logo image is supplied, upload it and replace the existing media
             if (file) {
-                  uploadResult = await uploadMedia(file, {
-                        folder: DEFAULT_PARTNERS_MEDIA_FOLDER,
-                        resourceType: "image",
+                  const recorded = await recordUpload({
+                        file,
+                        meta: {
+                              folder: DEFAULT_PARTNERS_MEDIA_FOLDER,
+                              uploadedBy: userId,
+                        },
                   });
-                  const mediaData = createMediaRecord(uploadResult, userId);
-                  const mediaRecord = await createMediaService(mediaData);
-                  newLogoMediaId = mediaRecord.id;
+                  uploadResult = recorded.uploadResult;
+                  newLogoMediaId = recorded.mediaId;
             }
 
             // Update partner record – logoMediaId will stay the same if no new file

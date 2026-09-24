@@ -1,8 +1,6 @@
 import { apiFetch } from './client.js';
-import { toArray } from './resources.js';
-import { qs, useFeed } from './feed.js';
-
-export { qs };
+import { toArray, getId, getStatus, getUpdatedAt, qs } from './resources.js';
+import { useFeed } from './feed.js';
 
 /**
  * Public (unauthenticated) CMS contract — spec v0.4 §5.
@@ -163,7 +161,7 @@ export function mapMember(m = {}) {
   const first = m.firstName ?? m.first_name ?? '';
   const last = m.lastName ?? m.last_name ?? '';
   return {
-    id: m.id ?? m._id ?? m.slug,
+    id: getId(m),
     slug: m.slug ?? null,
     name: m.name ?? (`${first} ${last}`.trim() || 'Unnamed member'),
     role: m.role ?? m.roleTitle ?? m.role_title ?? '',
@@ -178,12 +176,14 @@ export function mapMember(m = {}) {
     website: m.website_url ?? m.websiteUrl ?? null,
     featured: !!(m.isFeatured ?? m.is_featured),
     order: m.display_order ?? m.displayOrder ?? m.order ?? 0,
+    status: getStatus(m),
+    updatedAt: getUpdatedAt(m),
   };
 }
 
 export function mapEvent(e = {}) {
   return {
-    id: e.id ?? e._id ?? e.slug,
+    id: getId(e),
     slug: e.slug ?? null,
     title: e.title ?? '(Untitled event)',
     short: e.short_description ?? e.shortDescription ?? '',
@@ -195,15 +195,16 @@ export function mapEvent(e = {}) {
     registrationUrl: e.registrationUrl ?? e.registration_url ?? null,
     startAt: e.startAt ?? e.start_at ?? null,
     endAt: e.endAt ?? e.end_at ?? null,
-    status: e.status ?? null,
+    status: getStatus(e),
     featured: !!(e.isFeatured ?? e.is_featured),
     order: e.display_order ?? e.displayOrder ?? e.order ?? 0,
+    updatedAt: getUpdatedAt(e),
   };
 }
 
 export function mapPartner(p = {}) {
   return {
-    id: p.id ?? p._id ?? p.slug,
+    id: getId(p),
     slug: p.slug ?? null,
     name: p.name ?? 'Unnamed partner',
     logoUrl: pickImage(p),
@@ -212,13 +213,14 @@ export function mapPartner(p = {}) {
     tier: String(p.tier ?? 'community').toLowerCase(),
     description: p.description ?? '',
     order: p.display_order ?? p.displayOrder ?? p.order ?? 0,
+    status: getStatus(p),
   };
 }
 
 export function mapAlbum(a = {}) {
   const rawItems = a.items ?? a.photos ?? a.album_items ?? a.media ?? [];
   return {
-    id: a.id ?? a._id ?? a.slug,
+    id: getId(a),
     slug: a.slug ?? null,
     title: a.title ?? a.name ?? '(Untitled album)',
     coverUrl: pickImage(a),
@@ -229,6 +231,7 @@ export function mapAlbum(a = {}) {
     featured: !!(a.isFeatured ?? a.is_featured),
     photoCount: a.photo_count ?? a.photoCount ?? (Array.isArray(rawItems) ? rawItems.length : 0),
     items: Array.isArray(rawItems) ? rawItems.map(mapPhoto).sort((x, y) => x.order - y.order) : [],
+    status: getStatus(a),
   };
 }
 
@@ -238,9 +241,7 @@ export function mapPhoto(it = {}) {
   const order = it.order ?? it.display_order ?? it.displayOrder ?? 0;
   return {
     id:
-      it.id ??
-      it._id ??
-      it.uuid ??
+      getId(it) ??
       it.media_id ??
       it.mediaId ??
       media.id ??
@@ -274,6 +275,8 @@ export function mapContent(c = {}) {
     buttonText: c.buttonText ?? c.button_text ?? '',
     buttonUrl: c.buttonUrl ?? c.button_url ?? '',
     active: !!(c.is_active ?? c.isActive ?? true),
+    status: getStatus(c),
+    updatedAt: getUpdatedAt(c),
   };
 }
 
@@ -287,8 +290,8 @@ export function sortPartners(list) {
 
 /** Shared public-feed state machine — delegates to the generic useFeed (see api/feed.js). */
 export function usePublicFeed(loader, depsKey = '') {
-  const { data, loading, error, retry } = useFeed(loader, { depsKey, initialData: null });
-  return { data, loading, error, retry };
+  const { data, loading, error, requestId, retry } = useFeed(loader, { depsKey, initialData: null });
+  return { data, loading, error, requestId, retry };
 }
 
 export function formatDate(value) {

@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
-import { count } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import ENV, { AUTH_BASE_PATH } from "./env.js";
 import { db } from "./connectDB.js";
 import logger from "../utils/logger.js";
@@ -9,6 +9,7 @@ import { validateBetterAuthKeys } from "../utils/serverValidation.js";
 import {
       account,
       accountRelations,
+      adminBootstrap,
       session,
       sessionRelations,
       user,
@@ -32,6 +33,11 @@ const { secret, baseURL } = validateBetterAuthKeys(
  * once with email/password, then promote yourself via ADMIN_USER_IDS instead
  * of a dev-only request bypass (which was dropped in the Clerk → Better Auth
  * migration).
+ *
+ * Deterministic promotion path: the first-admin hook below is best-effort
+ * (empty-DB bootstrap only) — ADMIN_USER_IDS is the canonical way to grant
+ * and revoke admin access (add an ID, restart; the plugin honors it without
+ * touching the role column, and role-based admins stay unlimited).
  */
 export const adminUserIds: string[] = (ENV.ADMIN_USER_IDS ?? "")
       .split(",")
@@ -67,6 +73,13 @@ export const auth = betterAuth({
       // requireEmailVerification is on and no mail sender is configured —
       // without it the first admin would get no session.
       //
+      // Two-layer guard, bootstrap-scoped (no cap on later role='admin'
+      // rows — invite redeem and admin CRUD stay unlimited): the advisory
+      // lock serializes claimants on one instance, and the admin_bootstrap
+      // singleton row decides exactly one winner across instances via
+      // INSERT ... ON CONFLICT DO NOTHING (no count(*) race, no user-table
+      // index left to violate, so no 23505 handling needed).
+      //
       // Verified against better-auth 1.7.5 / @better-auth/core
       // (init-options.d.mts): databaseHooks.user.create.before receives the
       // pending user and may return { data } to shallow-merge overrides, or
@@ -79,16 +92,25 @@ export const auth = betterAuth({
                   create: {
                         before: async () => {
                               try {
-                                    const rows = await db
-                                          .select({ total: count() })
-                                          .from(user);
-                                    const total = rows[0]?.total ?? 0;
-                                    if (total > 0) {
-                                          // Not the first user — leave data untouched.
+                                    const winner = await db.transaction(
+                                          async (tx) => {
+                                                await tx.execute(
+                                                      sql`SELECT pg_advisory_xact_lock(727542001)`,
+                                                );
+                                                const inserted = await tx
+                                                      .insert(adminBootstrap)
+                                                      .values({ id: 1 })
+                                                      .onConflictDoNothing()
+                                                      .returning();
+                                                return inserted.length === 1;
+                                          },
+                                    );
+                                    if (!winner) {
+                                          // Bootstrap already claimed — leave data untouched.
                                           return;
                                     }
                                     logger.info(
-                                          "Empty user table — promoting first signup to admin",
+                                          "Claimed admin_bootstrap — promoting first signup to admin",
                                     );
                                     return {
                                           data: {
@@ -106,7 +128,7 @@ export const auth = betterAuth({
                                                             : String(error),
                                           },
                                     );
-                                    // Fail closed: without a reliable count the
+                                    // Fail closed: without a reliable claim the
                                     // first admin could silently stay a normal
                                     // emailVerified=false user with no way in.
                                     throw error;

@@ -100,32 +100,28 @@ function TeamStrip() {
     <section id="team" className="jh-team section-frame" aria-label="Our team">
       <div className="section-rule" />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-heart-team"
         src="/layout-assets/home/heart-no-bg.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', top: '8%', left: '300px', width: '100px', height: '100px', zIndex: 1 }}
       />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-star-team"
         src="/layout-assets/home/star-huge.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', top: '19%', right: '2px', width: '170px', height: 'auto', transform: 'rotate(20deg)', zIndex: 1 }}
       />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-arrow-team"
         src="/layout-assets/home/arrow-hugee.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', top: '40%', left: '-140px', width: '450px', height: 'auto', transform: 'rotate(25deg)', zIndex: -1 }}
       />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-globe-team"
         src="/layout-assets/home/globe-huge.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', top: '60%', right: '-40px', width: '290px', height: 'auto', transform: 'rotate(20deg)', zIndex: 1 }}
       />
 
       <div className="section-heading">
@@ -143,7 +139,7 @@ function TeamStrip() {
         </div>
       ) : null}
       {!loading && error ? (
-        <div className="feed-error" role="alert">
+        <div className="gdg-feed-error" role="alert">
           <p>{friendlyFeedError(error)}</p>
           <button type="button" className="small-blue-btn" onClick={retry}>
             Retry
@@ -221,32 +217,28 @@ function RecentEventsStrip() {
     <section id="events" className="cards-section section-frame jh-events" aria-label="Recent events">
       <div className="section-rule" />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-globe-events"
         src="/layout-assets/home/globe-no-bg.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', top: '10%', left: '420px', width: '60px', height: '60px', zIndex: -1 }}
       />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-heart-events"
         src="/layout-assets/home/heart-huge.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', top: '9%', right: '15%', width: '140px', height: 'auto', transform: 'rotate(-45deg)', zIndex: -1 }}
       />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-star-events"
         src="/layout-assets/home/star-huge.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', width: '140px', height: 'auto', transform: 'rotate(45deg)', zIndex: -1 }}
       />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-arrow-events"
         src="/layout-assets/home/arrow-hugee.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', top: '71%', width: '140px', height: 'auto', zIndex: -1 }}
       />
 
       <div className="section-heading compact">
@@ -259,7 +251,7 @@ function RecentEventsStrip() {
         </div>
       ) : null}
       {!loading && error ? (
-        <div className="feed-error" role="alert">
+        <div className="gdg-feed-error" role="alert">
           <p>{friendlyFeedError(error)}</p>
           <button type="button" className="small-blue-btn" onClick={retry}>
             Retry
@@ -315,32 +307,28 @@ function PartnersStrip() {
     <section id="partners" className="cards-section section-frame jh-partners" aria-label="Our partners">
       <div className="section-rule" />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-arrow-partners"
         src="/layout-assets/home/arrow-no-bg.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', top: '10%', left: '430px', width: '60px', height: '70px', transform: 'rotate(180deg)', zIndex: -1 }}
       />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-globe-partners"
         src="/layout-assets/home/globe-huge.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', top: '15%', right: '15%', width: '190px', height: 'auto', transform: 'rotate(18deg)', zIndex: -1 }}
       />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-heart-partners"
         src="/layout-assets/home/heart-huge.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', right: '950px', marginTop: '220px', width: '120px', height: 'auto', transform: 'rotate(35deg)', zIndex: -1 }}
       />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-star-partners"
         src="/layout-assets/home/star-huge.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', top: '73%', width: '120px', height: 'auto', zIndex: -1 }}
       />
 
       <div className="section-heading compact">
@@ -353,7 +341,7 @@ function PartnersStrip() {
         </div>
       ) : null}
       {!loading && error ? (
-        <div className="feed-error" role="alert">
+        <div className="gdg-feed-error" role="alert">
           <p>{friendlyFeedError(error)}</p>
           <button type="button" className="small-blue-btn" onClick={retry}>
             Retry
@@ -409,32 +397,28 @@ function MomentsStrip() {
     <section id="gallery" className="gallery-section section-frame jh-gallery" aria-label="Captured moments">
       <div className="section-rule" />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-heart-gallery"
         src="/layout-assets/home/heart-huge.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', top: '16%', left: '120px', width: '150px', height: '150px', transform: 'rotate(-30deg)', zIndex: -1 }}
       />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-arrow-gallery"
         src="/layout-assets/home/arrow-hugee.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', top: '18%', right: '15%', width: '180px', height: 'auto', transform: 'rotate(-195deg)', zIndex: -1 }}
       />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-star-gallery"
         src="/layout-assets/home/star-huge.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', top: '66%', left: '10%', width: '130px', height: 'auto', transform: 'rotate(65deg)', zIndex: -1 }}
       />
       <img
-        className="hero-picture"
+        className="hero-picture hero-deco-globe-gallery"
         src="/layout-assets/home/globe-huge.png"
         alt=""
         aria-hidden="true"
-        style={{ position: 'absolute', left: '75%', top: '65%', width: '140px', height: 'auto', zIndex: -1, transform: 'rotate(20deg)' }}
       />
 
       <div className="gallery-frame">
@@ -463,7 +447,7 @@ function MomentsStrip() {
           </div>
         ) : null}
         {!loading && error ? (
-          <div className="feed-error" role="alert">
+          <div className="gdg-feed-error" role="alert">
             <p>{friendlyFeedError(error)}</p>
             <button type="button" className="small-blue-btn" onClick={retry}>
               Retry
@@ -488,7 +472,7 @@ function MomentsStrip() {
             ))}
           </div>
         ) : null}
-        <div style={{ textAlign: 'center', marginTop: '14px' }}>
+        <div className="gdg-center-mt">
           <Link to="/gallery" className="small-yellow-btn">
             View gallery ↗
           </Link>
@@ -508,32 +492,28 @@ export default function Home() {
     <div className="page-home">
       <section className="jh-hero">
         <img
-          className="hero-picture"
+          className="hero-picture hero-deco-star-hero"
           src="/layout-assets/home/star-no-bg.png"
           alt=""
           aria-hidden="true"
-          style={{ top: '250px', left: '180px', width: '100px', height: '100px' }}
         />
         <img
-          className="hero-picture"
+          className="hero-picture hero-deco-arrow-hero"
           src="/layout-assets/home/arrow-no-bg.png"
           alt=""
           aria-hidden="true"
-          style={{ top: '110px', left: '1250px', width: '100px', height: '100px', transform: 'rotate(20deg)' }}
         />
         <img
-          className="hero-picture"
+          className="hero-picture hero-deco-globe-hero"
           src="/layout-assets/home/globe-no-bg.png"
           alt=""
           aria-hidden="true"
-          style={{ top: '480px', left: '250px', width: '100px', height: '100px', transform: 'rotate(20deg)' }}
         />
         <img
-          className="hero-picture"
+          className="hero-picture hero-deco-heart-hero"
           src="/layout-assets/home/heart-no-bg.png"
           alt=""
           aria-hidden="true"
-          style={{ top: '430px', left: '1270px', width: '100px', height: '100px', transform: 'rotate(-30deg)' }}
         />
 
         <div className="hero-content">
@@ -618,7 +598,7 @@ export default function Home() {
             </Link>
           </div>
           {!hero.loading && hero.error ? (
-            <div className="feed-error" role="alert" style={{ marginTop: '16px' }}>
+            <div className="gdg-feed-error gdg-feed-offset" role="alert">
               <p>{friendlyFeedError(hero.error)}</p>
               <button type="button" className="small-blue-btn" onClick={hero.retry}>
                 Retry
@@ -690,7 +670,7 @@ export default function Home() {
             </a>
           )}
           {!cta.loading && cta.error ? (
-            <div className="feed-error" role="alert" style={{ marginTop: '12px' }}>
+            <div className="gdg-feed-error gdg-feed-offset-sm" role="alert">
               <p>{friendlyFeedError(cta.error)}</p>
               <button type="button" className="small-blue-btn" onClick={cta.retry}>
                 Retry

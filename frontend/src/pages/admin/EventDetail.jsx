@@ -46,11 +46,15 @@ export default function EventDetail() {
   const [original, setOriginal] = useState(EMPTY);
   const [loading, setLoading] = useState(!isNew);
   const [error, setError] = useState(null);
+  // Load retry that preserves form state — bumps the fetch effect below
+  // instead of window.location.reload(), which would wipe unsaved edits.
+  const [loadRetry, setLoadRetry] = useState(0);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
   const [slugDup, setSlugDup] = useState(false);
+  const [slugCheckError, setSlugCheckError] = useState(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [toast, setToast] = useState('');
@@ -66,6 +70,7 @@ export default function EventDetail() {
   const [speakerFile, setSpeakerFile] = useState(null);
   const [confirmSpeaker, setConfirmSpeaker] = useState(null);
   const [media, setMedia] = useState([]);
+  const [mediaError, setMediaError] = useState(null);
   const activePending = useRef(false);
 
   const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(original), [form, original]);
@@ -92,7 +97,7 @@ export default function EventDetail() {
     return () => {
       alive = false;
     };
-  }, [id, isNew]);
+  }, [id, isNew, loadRetry]);
 
   const set = (key, value) => {
     setForm((f) => {
@@ -106,15 +111,23 @@ export default function EventDetail() {
   useEffect(() => {
     if (!form.slug) {
       setSlugDup(false);
+      setSlugCheckError(null);
       return;
     }
     let alive = true;
+    setSlugCheckError(null);
     const t = setTimeout(() => {
       checkSlugUnique(eventsApi, form.slug, isNew ? null : getId(original) ?? id)
         .then((unique) => {
-          if (alive) setSlugDup(!unique);
+          if (alive) { setSlugDup(!unique); setSlugCheckError(null); }
         })
-        .catch(() => {});
+        .catch((err) => {
+          if (!alive) return;
+          if (err?.status === 404) { setSlugDup(false); setSlugCheckError(null); return; }
+          // 500/timeout/network: the slug is unverifiable — block save with the error.
+          setSlugDup(false);
+          setSlugCheckError(err?.body?.message ?? err?.message ?? 'Could not verify slug uniqueness.');
+        });
     }, 400);
     return () => {
       alive = false;
@@ -156,20 +169,34 @@ export default function EventDetail() {
     let alive = true;
     mediaApi.list({ limit: 100 })
       .then((rows) => {
-        if (alive) setMedia(Array.isArray(rows) ? rows : []);
+        if (alive) { setMedia(Array.isArray(rows) ? rows : []); setMediaError(null); }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (alive) setMediaError(err);
+      });
     return () => {
       alive = false;
     };
   }, [isNew]);
 
   if (!isNew && loading) return <section aria-label="Event editor"><h1>Event</h1><LoadingSkeleton label="Loading event…" /></section>;
-  if (!isNew && error) return <section aria-label="Event editor"><h1>Event</h1><ErrorState error={error} onRetry={() => window.location.reload()} context="load this event" /></section>;
+  // Retry clears the error + shows the loader from the click handler (not the
+  // fetch effect) and bumps `loadRetry` — the form state above is untouched.
+  const retryLoad = () => {
+    setError(null);
+    setLoading(true);
+    setLoadRetry((n) => n + 1);
+  };
+  if (!isNew && error) return <section aria-label="Event editor"><h1>Event</h1><ErrorState error={error} onRetry={retryLoad} context="load this event" /></section>;
 
   const publishGate = { ...validateEvent(form), ...(slugDup ? { slug: 'Slug is already in use.' } : {}) };
 
   const persist = async (next, { publish = false } = {}) => {
+    if (slugCheckError) {
+      setErrors({ slug: slugCheckError });
+      focusSummary(summaryRef);
+      return false;
+    }
     const gate = publish ? { ...validateEvent(next), ...(slugDup ? { slug: 'Slug is already in use.' } : {}) } : {};
     setErrors(gate);
     if (Object.keys(gate).length) {
@@ -357,7 +384,7 @@ export default function EventDetail() {
           <h1>{isNew ? 'New event' : form.title || 'Event'}</h1>
           <p className="admin-muted">
             {form.updated_at ? `Last edited ${form.updated_at}${form.updated_by ? ` by ${form.updated_by}` : ''} · ` : ''}
-            Create = draft · publish gate enforced · <a href={publicPreview.events()}>public preview</a>
+            Create = draft · publish gate enforced · <a href={form.slug ? publicPreview.eventSlug(form.slug) : publicPreview.events()} target="_blank" rel="noreferrer">public preview</a>
           </p>
         </div>
         {!isNew ? <Link className="gdg-btn gdg-btn-secondary" to={ADMIN_ENTITY_ROUTES.events.list}>Back to list</Link> : null}
@@ -383,8 +410,8 @@ export default function EventDetail() {
           <Field label="Title" htmlFor="title" error={errors.title} required>
             <input {...inputProps('title', errors.title)} value={form.title} onChange={(e) => set('title', e.target.value)} onBlur={() => setErrors(validateEvent(form))} />
           </Field>
-          <Field label="Slug" hint="Auto from title; override allowed. Lowercase-hyphen-ascii, unique." htmlFor="slug" error={errors.slug ?? (slugDup ? 'Slug is already in use.' : null)} required>
-            <input {...inputProps('slug', errors.slug || slugDup)} value={form.slug} onChange={(e) => { setSlugTouched(true); set('slug', slugify(e.target.value)); }} />
+          <Field label="Slug" hint="Auto from title; override allowed. Lowercase-hyphen-ascii, unique." htmlFor="slug" error={errors.slug ?? slugCheckError ?? (slugDup ? 'Slug is already in use.' : null)} required>
+            <input {...inputProps('slug', errors.slug || slugCheckError || slugDup)} value={form.slug} onChange={(e) => { setSlugTouched(true); set('slug', slugify(e.target.value)); }} />
           </Field>
         </div>
         <Field label="Short description" htmlFor="short_description" error={errors.short_description}>
@@ -474,6 +501,11 @@ export default function EventDetail() {
             {speakerError ? (
               <div className="admin-summary" role="alert">
                 <p>{speakerError}</p>
+              </div>
+            ) : null}
+            {mediaError ? (
+              <div className="admin-summary" role="alert">
+                <p>Media library failed to load: {mediaError?.body?.message ?? mediaError?.message ?? 'request failed'}.</p>
               </div>
             ) : null}
             {speakersLoading ? <LoadingSkeleton label="Loading speakers…" /> : null}

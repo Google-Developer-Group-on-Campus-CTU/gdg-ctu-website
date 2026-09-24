@@ -43,6 +43,43 @@
   opacity: 0.95;
 }
 
+.login-brand .brand-deco-star {
+  top: 14%;
+  right: 6%;
+  width: clamp(80px, 10vw, 120px);
+  transform: rotate(14deg);
+}
+
+.login-brand .brand-deco-globe {
+  bottom: 12%;
+  right: -12px;
+  width: clamp(110px, 14vw, 160px);
+  transform: rotate(18deg);
+  opacity: 0.12;
+}
+
+.login-brand .brand-deco-heart {
+  bottom: 26%;
+  left: -14px;
+  width: clamp(80px, 10vw, 110px);
+  transform: rotate(-18deg);
+  opacity: 0.1;
+}
+
+.login-panel .panel-deco-star {
+  top: 8%;
+  right: 6%;
+  width: 56px;
+}
+
+.login-panel .panel-deco-globe {
+  bottom: 10%;
+  left: 5%;
+  width: 64px;
+  transform: rotate(16deg);
+  opacity: 0.14;
+}
+
 .login-brand::after {
   content: '';
   position: absolute;

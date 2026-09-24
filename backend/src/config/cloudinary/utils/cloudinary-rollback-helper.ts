@@ -7,10 +7,10 @@ export interface CloudinaryUploadResult {
       resource_type: "image" | "video" | "raw" | "auto";
 }
 
-const isCloudinaryDisabledError = (error: any): boolean =>
+export const isCloudinaryDisabledError = (error: unknown): boolean =>
       (error instanceof AppError && error.statusCode === 503) ||
-      (typeof error?.message === "string" &&
-            error.message.includes("not configured"));
+      (typeof (error as { message?: unknown })?.message === "string" &&
+            (error as { message: string }).message.includes("not configured"));
 
 export const rollbackCloudinaryUpload = async (
       uploadResult: CloudinaryUploadResult,
