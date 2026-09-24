@@ -27,7 +27,7 @@ export const MAX_FEATURED_EVENTS = 3;
 export const MAX_FEATURED_TEAM = 10;
 export const MAX_FEATURED_PHOTOS = 8;
 export const MEDIA_ALLOW = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-export const MEDIA_MAX_BYTES = 5 * 1024 * 1024;
+export const MEDIA_MAX_BYTES = 4 * 1024 * 1024;
 
 export function slugify(value = '') {
   return value

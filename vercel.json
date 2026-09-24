@@ -1,8 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build --prefix frontend",
-  "outputDirectory": "frontend/dist",
-  "installCommand": "npm install --prefix frontend",
   "framework": "vite",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "installCommand": "cd backend && npm ci && cd ../frontend && npm ci",
+  "buildCommand": "cd backend && npm run build && cd ../frontend && npm run build",
+  "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/index.ts": { "includeFiles": "backend/dist/**" }
+  },
+  "rewrites": [
+    { "source": "/GDGoC-CTU-Main/v0.0.1/:path*", "destination": "/api" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

@@ -31,6 +31,34 @@ export const UpdateMediaSchema = CreateMediaSchema.partial().refine(
       "At least one field is required",
 );
 
+// Direct-to-Cloudinary signed upload (bulk path): the client sends this as
+// JSON, receives signed params, and POSTs the file bytes straight to
+// Cloudinary — bytes never transit this serverless function (dodges the
+// 4.5MB request cap; see cloudinary.services signDirectUpload).
+export const SignUploadSchema = z.object({
+      // Optional sub-folder under the Cloudinary `GDGoC` root (same
+      // convention as uploadMedia's folder option).
+      folder: z
+            .string()
+            .trim()
+            .max(128)
+            .regex(/^[A-Za-z0-9][A-Za-z0-9_\-/]*$/, {
+                  message:
+                        "Folder may contain letters, digits, '_', '-' and '/'.",
+            })
+            .optional(),
+      publicId: z
+            .string()
+            .trim()
+            .max(128)
+            .regex(/^[A-Za-z0-9][A-Za-z0-9_\-]*$/, {
+                  message: "publicId may contain letters, digits, '_' and '-'.",
+            })
+            .optional(),
+      resourceType: z.enum(["auto", "image", "video", "raw"]).default("auto"),
+});
+export type SignUploadDTO = z.infer<typeof SignUploadSchema>;
+
 export type Media = z.infer<typeof MediaSchema>;
 export type CreateMediaDTO = z.infer<typeof CreateMediaSchema>;
 export type UpdateMediaDTO = z.infer<typeof UpdateMediaSchema>;

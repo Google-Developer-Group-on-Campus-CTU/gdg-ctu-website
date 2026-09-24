@@ -1,59 +1,38 @@
-import ENV, { AUTH_BASE_PATH } from "./config/env.js";
-import express from "express";
-import logger from "./utils/logger.js";
+// backend/src/server.ts — dev / serverful entry ONLY (Render-style
+// long-running process). This file is the only place in src/ allowed to
+// call process.exit().
+//
+// Boot order mirrors the pre-migration server: config validation → app
+// assembly → DB ping → Cloudinary ping → listen. The app module is
+// imported dynamically so a config error raised DURING its import lands
+// in this same catch instead of dying as an uncaught exception.
+import ENV from "./config/env.js";
 import { connectDB } from "./config/connectDB.js";
 import { testCloudinaryConnection } from "./config/cloudinary/cloudinary.connection.js";
-import apiRoutes from "./modules/index.js";
+import logger from "./utils/logger.js";
 import {
-      validateServerPort,
-      validateFrontendOrigin,
       validateBetterAuthKeys,
-      validateProductionMode,
-      configureCors,
-      configureEnvironmentRoutes,
+      validateServerPort,
 } from "./utils/serverValidation.js";
-import { toNodeHandler } from "better-auth/node";
-import { auth, googleProviderEnabled } from "./config/auth.js";
 
-const app = express();
-const PORT = validateServerPort(ENV.PORT);
-const FR_ORIGIN = validateFrontendOrigin(ENV.FR_ORIGIN);
-const isProduction = validateProductionMode(ENV.NODE_ENV);
-// Fatal boot check — BETTER_AUTH_SECRET + BETTER_AUTH_URL (config/auth.ts
-// runs the same validator at import time; both happen before listen).
-validateBetterAuthKeys(ENV.BETTER_AUTH_SECRET, ENV.BETTER_AUTH_URL);
-if (!googleProviderEnabled) {
-      logger.warn(
-            "Google social sign-in disabled — GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set",
-      );
+async function boot(): Promise<void> {
+      const PORT = validateServerPort(ENV.PORT);
+      // Fatal config check — config/auth.ts runs the same validator at its
+      // import time; both throw (never exit) and both happen before listen.
+      validateBetterAuthKeys(ENV.BETTER_AUTH_SECRET, ENV.BETTER_AUTH_URL);
+      const { app } = await import("./app.js");
+      // All-or-nothing boot: DB connectivity → Cloudinary → listen.
+      await connectDB();
+      await testCloudinaryConnection();
+      app.listen(PORT, "0.0.0.0", () => {
+            logger.info(`Server is running on port ${PORT}`);
+      });
 }
 
-// --- MIDDLEWARE ---
-configureCors(app, FR_ORIGIN, isProduction);
-
-// Better Auth node handler — mounted BEFORE express.json(): Better Auth
-// parses the raw body itself. Path must match AUTH_BASE_PATH (frontend
-// auth client calls VITE_API_URL + "/api/auth/*").
-app.all(`${AUTH_BASE_PATH}/*splat`, toNodeHandler(auth));
-
-app.use(express.json());
-
-// ROUTES SECTION
-app.use("/GDGoC-CTU-Main/v0.0.1", apiRoutes);
-configureEnvironmentRoutes(app);
-
-// All-or-nothing boot: DB (+migrations) → Cloudinary → listen.
-connectDB()
-      .then(() => testCloudinaryConnection())
-      .then(() => {
-            app.listen(PORT, "0.0.0.0", () => {
-                  logger.info(`Server is running on port ${PORT}`);
-            });
-      })
-      .catch((err) => {
-            logger.error("Failed to start server:", {
-                  message: err.message,
-                  stack: err.stack,
-            });
-            process.exit(1);
+boot().catch((err) => {
+      logger.error("Failed to start server:", {
+            message: err.message,
+            stack: err.stack,
       });
+      process.exit(1);
+});

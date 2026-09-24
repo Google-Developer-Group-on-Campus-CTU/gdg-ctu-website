@@ -81,7 +81,7 @@ export default function AdminMedia() {
       return;
     }
     if (file.size > MEDIA_MAX_BYTES) {
-      setServerError('File exceeds 5MB (413). Choose a smaller file.');
+      setServerError('File exceeds 4MB (413). Choose a smaller file.');
       return;
     }
     setUploading(true);
@@ -92,7 +92,7 @@ export default function AdminMedia() {
       setAlt('');
       media.retry();
     } catch (err) {
-      setServerError(err?.status === 413 ? 'File exceeds 5MB.' : (err?.body?.message ?? err?.message ?? 'Upload failed.'));
+      setServerError(err?.status === 413 ? 'File exceeds 4MB.' : (err?.body?.message ?? err?.message ?? 'Upload failed.'));
     } finally {
       setUploading(false);
     }
@@ -115,7 +115,7 @@ export default function AdminMedia() {
       <div className="admin-page-head">
         <div>
           <h1>Media</h1>
-          <p className="admin-muted">jpeg/png/webp/gif · ≤ 5MB · alt required · delete only never-used drafts.</p>
+          <p className="admin-muted">jpeg/png/webp/gif · ≤ 4MB · alt required · delete only never-used drafts.</p>
         </div>
       </div>
       {serverError ? <div className="admin-summary" role="alert"><p>{serverError}</p></div> : null}
@@ -123,7 +123,7 @@ export default function AdminMedia() {
 
       <form className="admin-form" onSubmit={upload} aria-label="Upload media">
         <div className="admin-form-grid">
-          <Field label="File" htmlFor="media-file" hint="Allow-list: jpeg, png, webp, gif. Max 5MB." required>
+          <Field label="File" htmlFor="media-file" hint="Allow-list: jpeg, png, webp, gif. Max 4MB." required>
             <input id="media-file" type="file" accept={MEDIA_ALLOW.join(',')} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           </Field>
           <Field label="Alt text" htmlFor="media-alt" error={altError} required>
