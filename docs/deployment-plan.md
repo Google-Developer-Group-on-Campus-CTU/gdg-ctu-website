@@ -13,7 +13,7 @@ Cloudinary. Render is retired after cutover (7-day rollback window).
   1. `/GDGoC-CTU-Main/v0.0.1/:path*` → `/api` (the API — MUST stay first,
      first matching rewrite wins),
   2. `/(.*)` → `/index.html` (SPA deep-link fallback).
-- `package.json` (root, minimal) — pins `engines.node: 22.x` for Vercel's
+- `package.json` (root, minimal) — pins `engines.node: 24.x` for Vercel's
   Node-version detection in the single-project layout. No dependencies, not a
   workspace.
 - `api/index.ts` — serverless entry: dynamically imports the built app,
@@ -28,7 +28,7 @@ Cloudinary. Render is retired after cutover (7-day rollback window).
 |---|---|
 | Root Directory | repo root (empty value — **not** `frontend/`; clear the old frontend-only setting) |
 | installCommand / buildCommand / Output | taken from root `vercel.json` (shown above) |
-| Node.js version | 22.x — detected from root `package.json` `engines` |
+| Node.js version | 24.x — detected from root `package.json` `engines` |
 
 > **Inert file:** `frontend/vercel.json` never applies once Root Directory is the repo root — Vercel reads only the root `vercel.json` above (leave the file in place; it causes no double deploy).
 

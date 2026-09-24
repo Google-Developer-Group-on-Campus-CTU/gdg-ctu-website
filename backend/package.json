@@ -16,14 +16,14 @@
       "author": "",
       "license": "ISC",
       "engines": {
-            "node": "22.x"
+            "node": "24.x"
       },
       "dependencies": {
             "@better-auth/drizzle-adapter": "^1.7.5",
             "@types/cors": "^2.8.19",
             "@types/express": "^5.0.6",
             "@types/multer": "^2.2.0",
-            "@types/node": "^22.0.0",
+            "@types/node": "^24.13.6",
             "@types/pg": "^8.15.6",
             "better-auth": "^1.7.5",
             "cloudinary": "^2.10.1",

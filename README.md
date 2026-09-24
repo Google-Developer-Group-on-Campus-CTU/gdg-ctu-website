@@ -29,7 +29,7 @@ A public club website (home, about, team, events, gallery, partners, contact) wh
 
 You need these installed before starting (all free):
 
-- **Node.js 22 LTS** (LTS = Long-Term Support, the stable version) — [download](https://nodejs.org/)
+- **Node.js 24 LTS** (LTS = Long-Term Support, the stable version) — [download](https://nodejs.org/)
 - **npm** (comes with Node.js — it installs project libraries)
 - **Git** — [download](https://git-scm.com/downloads)
 
@@ -38,7 +38,7 @@ You will also need free accounts later (explained in Getting Started): Neon (dat
 Check your setup:
 
 ```bash
-node --version   # should show v22.x
+node --version   # should show v24.x
 npm --version
 git --version
 ```

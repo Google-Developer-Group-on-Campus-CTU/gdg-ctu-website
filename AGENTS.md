@@ -1,6 +1,6 @@
 # AGENTS.md — GDG-CTU Website + Admin CMS
 
-Two separate npm projects, no workspace (the minimal root `package.json` exists only to pin Node 22 for Vercel's version detection). Run commands from the touched side only: `backend/` (Express 5 + TS API) or `frontend/` (React 19 + Vite 8). Node 22 required (CI pins 22).
+Two separate npm projects, no workspace (the minimal root `package.json` exists only to pin Node 24 for Vercel's version detection). Run commands from the touched side only: `backend/` (Express 5 + TS API) or `frontend/` (React 19 + Vite 8). Node 24 required (CI pins 24).
 
 ## Commands (exact)
 
@@ -30,7 +30,7 @@ Two separate npm projects, no workspace (the minimal root `package.json` exists 
 ## DB / deploy
 
 - Schema change: edit `src/modules/**/models/*.ts` → `npm run db:generate` → `npm run db:migrate` (prod, manual release step: run in `backend/` against the pooled `DB_URL` before shipping the code that needs it — migrations never run at boot or deploy).
-- Deploy is one Vercel project (Root Directory = repo root, Node 22 via root `engines`): root `vercel.json` installs/builds `backend/` then `frontend/` and rewrites `/GDGoC-CTU-Main/v0.0.1/*` → `/api` BEFORE the SPA fallback `/(.*) → /index.html`. Liveness `GET /` (also `/health` and `/GDGoC-CTU-Main/v0.0.1/health`) answers the same JSON. Full env list + runbook: `docs/deployment-plan.md`.
+- Deploy is one Vercel project (Root Directory = repo root, Node 24 via root `engines`): root `vercel.json` installs/builds `backend/` then `frontend/` and rewrites `/GDGoC-CTU-Main/v0.0.1/*` → `/api` BEFORE the SPA fallback `/(.*) → /index.html`. Liveness `GET /` (also `/health` and `/GDGoC-CTU-Main/v0.0.1/health`) answers the same JSON. Full env list + runbook: `docs/deployment-plan.md`.
 
 ## Workflow
 

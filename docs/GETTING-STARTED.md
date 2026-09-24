@@ -8,12 +8,12 @@ This guide assumes you've never set up a project like this before. Take it one s
 
 You need **Node.js** (runs JavaScript outside the browser) and **Git** (downloads and tracks code changes).
 
-1. Install **Node.js 20 LTS** (LTS = the stable version everyone uses) from [nodejs.org](https://nodejs.org/). Accept the defaults.
+1. Install **Node.js 24 LTS** (LTS = the stable version everyone uses) from [nodejs.org](https://nodejs.org/). Accept the defaults.
 2. Install **Git** from [git-scm.com/downloads](https://git-scm.com/downloads). Accept the defaults.
 3. Open a terminal (on Windows: search "PowerShell") and check:
 
    ```bash
-   node --version   # should print something like v20.x.x
+   node --version   # should print something like v24.x.x
    npm --version    # npm installs project libraries; it comes with Node
    git --version
    ```
