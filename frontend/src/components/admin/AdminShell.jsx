@@ -122,7 +122,6 @@ export default function AdminShell() {
             <NavLink
               to={item.to}
               end={item.end}
-              data-kind={item.kind}
               className={({ isActive }) => (isActive ? 'admin-nav-link is-active' : 'admin-nav-link')}
             >
               {item.label}

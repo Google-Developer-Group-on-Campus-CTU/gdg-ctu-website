@@ -118,8 +118,18 @@ export function StatusPill({ status, active }) {
     else raw = 'draft';
   }
   const normalized = String(raw).trim().toLowerCase();
+  const variant =
+    normalized === 'published' || normalized === 'active' || normalized === 'verified'
+      ? 'lozenge-success'
+      : normalized === 'draft' || normalized === 'unverified'
+        ? 'lozenge-warning'
+        : normalized === 'archived' || normalized === 'cancelled' || normalized === 'banned'
+          ? 'lozenge-removed'
+          : normalized === 'new'
+            ? 'lozenge-new'
+            : 'lozenge-default';
   return (
-    <span className={`admin-pill admin-pill-${normalized}`} aria-label={`Status: ${normalized}`}>
+    <span className={`lozenge ${variant}`} aria-label={`Status: ${normalized}`}>
       {normalized}
     </span>
   );

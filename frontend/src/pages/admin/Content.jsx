@@ -6,9 +6,9 @@ import { useAdminList, useDebouncedValue } from '../../admin/editorial.js';
 import { DataTable, DataTableColumnHeader } from '../../components/admin/data-table.jsx';
 import { EmptyState, StatusPill } from '../../components/admin/shared.jsx';
 
-/* 44px row-action targets — pill outline, no extra card borders (DataTable owns the brutal wrapper). */
+/* 32px row-action targets — quiet bordered buttons, no extra card borders (DataTable owns the wrapper). */
 const ACTION_LINK_CLASS =
-  'inline-flex min-h-[44px] items-center rounded-full border border-border bg-card px-4 text-sm font-medium hover:bg-muted';
+  'inline-flex h-8 items-center px-3 rounded-[3px] border border-[#DFE1E6] bg-[#FAFBFC] text-sm font-medium text-[#42526E] hover:bg-[#EBECF0] hover:text-[#172B4D]';
 
 /* Static column defs: sectionKey link · title · status · manage. Rows are
    fixed CONTENT_KEYS entries (some may not exist on the backend yet). */

@@ -68,9 +68,9 @@ function RevokeConfirm({ invite, busy, error, onCancel, onConfirm }) {
   );
 }
 
-/* 44px action target on the shared link-button language (DataTable owns the brutal wrapper). */
+/* 32px action target on the shared row-button language. */
 const REVOKE_BUTTON_CLASS =
-  'admin-link-btn admin-link-btn-danger inline-flex min-h-[44px] items-center';
+  'inline-flex h-8 items-center px-3 rounded-[3px] border border-[#DFE1E6] bg-[#FAFBFC] text-sm font-medium text-[#DE350B] hover:bg-[#FFEBE6]';
 
 /* Static column defs: status · code · created · expires · role · used by ·
    created by. The Revoke action column is appended in-component (needs the

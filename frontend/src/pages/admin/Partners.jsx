@@ -21,16 +21,16 @@ const TIERS = [
   { value: 'community', label: 'Community' },
 ];
 
-/* 44px row-action targets — pill outline, no extra card borders (DataTable owns the brutal wrapper). */
+/* 32px row-action targets — quiet bordered buttons, no extra card borders (DataTable owns the wrapper). */
 const ACTION_LINK_CLASS =
-  'inline-flex min-h-[44px] items-center rounded-full border border-border bg-card px-4 text-sm font-medium hover:bg-muted';
+  'inline-flex h-8 items-center px-3 rounded-[3px] border border-[#DFE1E6] bg-[#FAFBFC] text-sm font-medium text-[#42526E] hover:bg-[#EBECF0] hover:text-[#172B4D]';
 
 function PartnerStatusCell({ row }) {
   const partner = row.original;
   const id = getId(partner) ?? partner.slug;
   const [active, setActive] = useState(!!partner.is_active);
   return (
-    <div className="flex min-h-[44px] flex-wrap items-center gap-x-3 gap-y-1">
+    <div className="flex min-h-[32px] flex-wrap items-center gap-x-3 gap-y-1">
       <StatusPill status={partner.status} active={partner.is_active} />
       <Toggle
         id={`partner-active-${id}`}
@@ -83,7 +83,7 @@ const columns = [
     accessorKey: 'tier',
     header: 'Tier',
     enableSorting: false,
-    cell: ({ row }) => <span className="admin-pill">{row.original.tier ?? '—'}</span>,
+    cell: ({ row }) => <span className="lozenge lozenge-default">{row.original.tier ?? '—'}</span>,
   },
   {
     accessorKey: 'display_order',

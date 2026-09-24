@@ -19,16 +19,16 @@ function deptOf(m) {
   return [m.department, m.program, m.yearSection ?? m.year_section].filter(Boolean).join(' · ') || '—';
 }
 
-/* 44px row-action targets — pill outline, no extra card borders (DataTable owns the brutal wrapper). */
+/* 32px row-action targets — quiet bordered buttons, no extra card borders (DataTable owns the wrapper). */
 const ACTION_LINK_CLASS =
-  'inline-flex min-h-[44px] items-center rounded-full border border-border bg-card px-4 text-sm font-medium hover:bg-muted';
+  'inline-flex h-8 items-center px-3 rounded-[3px] border border-[#DFE1E6] bg-[#FAFBFC] text-sm font-medium text-[#42526E] hover:bg-[#EBECF0] hover:text-[#172B4D]';
 
 function MemberStatusCell({ row }) {
   const member = row.original;
   const id = getId(member) ?? member.slug;
   const [active, setActive] = useState(!!member.is_active);
   return (
-    <div className="flex min-h-[44px] flex-wrap items-center gap-x-3 gap-y-1">
+    <div className="flex min-h-[32px] flex-wrap items-center gap-x-3 gap-y-1">
       <StatusPill status={member.status} active={member.is_active} />
       <Toggle
         id={`team-active-${id}`}

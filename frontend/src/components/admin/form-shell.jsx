@@ -14,9 +14,9 @@ import { checkSlugUnique, isAnyUrl, isReservedSlug } from '../../admin/editorial
 import './form-shell.css';
 
 /**
- * Shared editor shell — window-card language (see styles/login.css).
+ * Shared editor shell — quiet Atlassian-style theme.
  *
- * Migration target for the detail pages (TeamDetail pilots). Do NOT restyle
+ * Migration target for the detail pages. Do NOT restyle
  * shadcn primitives here: EditorField binds them through react-hook-form's
  * Controller via the shadcn FormField/FormItem/FormLabel/FormMessage set.
  */
@@ -225,8 +225,7 @@ export function focusEditorErrors(ref) {
 }
 
 /**
- * Window card: white, 1.5px #222, 16px radius, dots row, hard shadow
- * (flat on mobile — see form-shell.css).
+ * Quiet card: white, 1px #EBECF0 border, 3px radius, subtle shadow.
  */
 export function EditorCard({ title, eyebrow, actions, children }) {
   return (
@@ -315,7 +314,7 @@ function errorMessage(value) {
 }
 
 /**
- * Red validation card: 1.5px #EA4335 on #FCE8E6, "fix N fields" + anchor
+ * Quiet validation card: 1px #FFBDAD on #FFEBE6, "fix N fields" + anchor
  * links, focusable via summaryRef (focus on submit). Accepts a flat
  * { field: message } map or RHF formState.errors. `serverError` (backend 400
  * text) renders as the banner paragraph in the same card.
@@ -346,10 +345,10 @@ export function EditorErrors({ errors, serverError, summaryRef, title }) {
 }
 
 /**
- * Sticky action bar: Save draft (secondary white pill, form submit),
- * Publish (yellow #FFC400 pill), Archive/Delete (red outline tertiary,
- * hidden for new records). Disabled buttons sit at opacity .7 with a 16px
- * spinner; every target is ≥ 44px.
+ * Sticky action bar: Save draft (secondary, form submit), Publish (primary
+ * #0C66E4), Archive/Delete (danger outline, hidden for new records).
+ * Quiet Atlassian buttons: 32px min-height, 3px radius, disabled at
+ * opacity .7 with a 16px spinner.
  */
 export function EditorFooter({
   saving = false,
