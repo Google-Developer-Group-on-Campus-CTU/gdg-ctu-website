@@ -15,9 +15,9 @@ function fileLabel(m) {
   return m.filename ?? m.originalName ?? String(getId(m) ?? '');
 }
 
-/* 44px row-action targets on the shared link-button language (DataTable owns the brutal wrapper). */
-const ROW_BUTTON_CLASS = 'admin-link-btn inline-flex min-h-[44px] items-center';
-const ROW_BUTTON_DANGER_CLASS = 'admin-link-btn admin-link-btn-danger inline-flex min-h-[44px] items-center';
+/* 32px row-action targets on the shared quiet button language. */
+const ROW_BUTTON_CLASS = 'inline-flex h-8 items-center px-3 rounded-[3px] border border-[#DFE1E6] bg-[#FAFBFC] text-sm font-medium text-[#42526E] hover:bg-[#EBECF0] hover:text-[#172B4D]';
+const ROW_BUTTON_DANGER_CLASS = 'inline-flex h-8 items-center px-3 rounded-[3px] border border-[#DFE1E6] bg-[#FAFBFC] text-sm font-medium text-[#DE350B] hover:bg-[#FFEBE6]';
 
 export default function AdminMedia() {
   const [params, setParams] = useSearchParams();

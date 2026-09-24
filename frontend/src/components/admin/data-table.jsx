@@ -35,16 +35,14 @@ import {
 /**
  * Shared admin DataTable — shadcn Table primitives + TanStack Table.
  *
- * des-2: the stock Table has no border/shadow, so this wrapper carries the
- * Neo Brutalist card treatment (border-[1.5px] + 4px hard shadow +
- * rounded-xl clip) — the same 4px 4px 0 #111 as login/EditorCard.
- * Do NOT restyle Table/TableHeader/TableBody themselves.
+ * Quiet Jira-style card treatment (1px border + subtle shadow + rounded-md
+ * clip). Do NOT restyle Table/TableHeader/TableBody themselves.
  * The table scrolls inside an explicit `overflow-x-auto` child div so <640px
- * viewports scroll horizontally while the card keeps its rounded-xl clip +
- * hard shadow.
+ * viewports scroll horizontally while the card keeps its rounded-md clip +
+ * quiet shadow.
  */
 const WRAPPER_CLASS =
-  'overflow-hidden rounded-xl border-[1.5px] border-border bg-card shadow-[4px_4px_0_#111]';
+  'overflow-hidden rounded-md border border-border bg-card shadow-[0_1px_1px_rgba(9,30,66,0.13),0_0_1px_rgba(9,30,66,0.13)]';
 
 const ALL = 'all';
 
@@ -57,7 +55,7 @@ function friendlyTableError(error) {
 }
 
 /**
- * Pill sortable header button. Use as a column `header`:
+ * Compact sortable header button. Use as a column `header`:
  *   header: ({ column }) => <DataTableColumnHeader column={column} title="Title" />
  */
 export function DataTableColumnHeader({ column, title }) {
@@ -70,7 +68,7 @@ export function DataTableColumnHeader({ column, title }) {
       variant="ghost"
       size="sm"
       onClick={() => column.toggleSorting(sorted === 'asc')}
-      className="-ml-2 rounded-full"
+      className="-ml-2 h-6 rounded-[3px]"
       aria-label={`Sort by ${title}${sorted === 'asc' ? ' (sorted ascending)' : sorted === 'desc' ? ' (sorted descending)' : ''}`}
     >
       {title}
@@ -83,7 +81,10 @@ function DefaultEmptyState({ title, hint }) {
   return (
     <Card className={WRAPPER_CLASS}>
       <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
-        <span className="admin-brand-mark" aria-hidden="true">
+        <span
+          className="flex size-8 items-center justify-center rounded-[3px] bg-[#DEEBFF] text-sm font-bold text-[#0747A6]"
+          aria-hidden="true"
+        >
           G
         </span>
         <p className="font-heading text-base font-medium">{title}</p>
@@ -105,7 +106,7 @@ function DefaultErrorState({ error, onRetry, requestId }) {
           ) : null}
         </div>
         {onRetry ? (
-          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onRetry}>
+          <Button type="button" variant="outline" size="sm" className="h-8 rounded-[3px]" onClick={onRetry}>
             Retry
           </Button>
         ) : null}
@@ -275,7 +276,7 @@ export function DataTable({
           <Input
             id={`datatable-search-${searchColumnId}`}
             type="search"
-            className="h-10 min-h-[44px] rounded-full bg-card pr-3 pl-9"
+            className="h-8 rounded-[3px] bg-[#FAFBFC] pr-3 pl-9"
             placeholder={searchPlaceholder}
             value={activeSearch}
             onChange={(e) => handleSearch(e.target.value)}
@@ -290,8 +291,7 @@ export function DataTable({
             <Select value={activeScope} onValueChange={handleScope} disabled={loading}>
               <SelectTrigger
                 id="datatable-scope"
-                size="sm"
-                className="h-10 min-h-[44px] rounded-full bg-card"
+                className="h-8 rounded-[3px]"
               >
                 <SelectValue placeholder={scopePlaceholder} />
               </SelectTrigger>
@@ -305,7 +305,7 @@ export function DataTable({
             </Select>
           </>
         ) : null}
-        <span className="text-sm text-muted-foreground" aria-live="polite">
+        <span className="text-xs text-muted-foreground" aria-live="polite">
           {loading ? loadingLabel : `${total} result(s)`}
         </span>
       </div>
@@ -316,7 +316,7 @@ export function DataTable({
         <div className={WRAPPER_CLASS}>
           <div className="overflow-x-auto">
             <Table>
-            <TableHeader>
+            <TableHeader className="border-b border-[#EBECF0] bg-[#FAFBFC]">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
@@ -326,6 +326,7 @@ export function DataTable({
                       <TableHead
                         key={header.id}
                         scope="col"
+                        className="h-8 px-3 text-[11px] font-semibold uppercase text-muted-foreground"
                         aria-sort={
                           sortable
                             ? sorted
@@ -348,18 +349,22 @@ export function DataTable({
             <TableBody>
               {loading
                 ? Array.from({ length: skeletonRows }).map((_, rowIndex) => (
-                    <TableRow key={`skeleton-${rowIndex}`}>
+                    <TableRow key={`skeleton-${rowIndex}`} className="hover:bg-[#F4F5F7]">
                       {Array.from({ length: columnCount }).map((_, cellIndex) => (
-                        <TableCell key={`skeleton-${rowIndex}-${cellIndex}`}>
+                        <TableCell key={`skeleton-${rowIndex}-${cellIndex}`} className="px-3 py-2 text-sm">
                           <Skeleton className="h-5 w-full" aria-hidden="true" />
                         </TableCell>
                       ))}
                     </TableRow>
                   ))
                 : visibleRows.map((row) => (
-                    <TableRow key={row.id} data-state={row.getIsSelected?.() && 'selected'}>
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected?.() && 'selected'}
+                      className="hover:bg-[#F4F5F7] data-[state=selected]:bg-[#DEEBFF]"
+                    >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
+                        <TableCell key={cell.id} className="px-3 py-2 text-sm">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}
@@ -384,7 +389,7 @@ export function DataTable({
             onValueChange={(value) => table.setPageSize(Number(value))}
             disabled={loading}
           >
-            <SelectTrigger id="datatable-pagesize" size="sm" className="rounded-full">
+            <SelectTrigger id="datatable-pagesize" className="h-8 rounded-[3px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -399,7 +404,7 @@ export function DataTable({
             type="button"
             variant="outline"
             size="sm"
-            className="min-h-[44px] rounded-full"
+            className="h-8 rounded-[3px]"
             onClick={() => table.previousPage()}
             disabled={loading || !table.getCanPreviousPage()}
           >
@@ -409,7 +414,7 @@ export function DataTable({
             type="button"
             variant="outline"
             size="sm"
-            className="min-h-[44px] rounded-full"
+            className="h-8 rounded-[3px]"
             onClick={() => table.nextPage()}
             disabled={loading || !table.getCanNextPage()}
           >

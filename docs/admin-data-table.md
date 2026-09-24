@@ -14,16 +14,21 @@ list page yet — Events is the planned pilot.
 
 ## Styling (des-2)
 
-The stock shadcn `Table` has no border/shadow, so the card treatment lives
+Quiet Atlassian theme: system font stack, `#172B4D` text on `#F4F5F7`
+backgrounds, `#0C66E4` primary, lozenge tiles, 32px control density. The
+stock shadcn `Table` has no border/shadow, so the card treatment lives
 on the `DataTable` wrapper — never restyle the Table primitives themselves:
 
-- wrapper: `border-[1.5px] border-border rounded-xl bg-card overflow-hidden shadow-[var(--shadow-card)]`
+- wrapper: `border border-border rounded-md bg-card overflow-hidden` + quiet
+  elevation `shadow-[0_1px_1px_rgba(9,30,66,0.13),0_0_1px_rgba(9,30,66,0.13)]`
   with an explicit inner `overflow-x-auto` div around `<Table>` so <640px
-  viewports scroll horizontally without losing the rounded-xl clip
-- toolbar pills: search `Input` + scope `SelectTrigger` are `h-10 min-h-[44px]
-  rounded-full bg-card`
-- sortable header buttons: ghost pills (`rounded-full`) via `DataTableColumnHeader`
-- empty/error brand cards use the same wrapper classes on shadcn `Card`
+  viewports scroll horizontally without losing the rounded-md clip; header
+  row is `border-b border-[#EBECF0] bg-[#FAFBFC]`
+- toolbar controls: search `Input` + scope `SelectTrigger` are `h-8`
+  (32px density) `rounded-[3px]`
+- sortable header buttons: compact ghost `h-6 rounded-[3px]` via `DataTableColumnHeader`
+- empty/error cards use the same wrapper classes on shadcn `Card` (brand `G`
+  tile in `#DEEBFF` / `#0747A6`; Retry is an outline `h-8 rounded-[3px]` button)
 
 ## Props API
 
@@ -31,10 +36,10 @@ on the `DataTable` wrapper — never restyle the Table primitives themselves:
 | --- | --- | --- | --- |
 | `columns` | `ColumnDef[]` | — | TanStack defs; use `DataTableColumnHeader` for sortable headers |
 | `data` | `object[]` | `[]` | Row data |
-| `loading` / `error` / `onRetry` | `bool` / `err` / `fn` | `false` / `null` | Skeleton rows / error card + Retry pill |
+| `loading` / `error` / `onRetry` | `bool` / `err` / `fn` | `false` / `null` | Skeleton rows / error card + Retry button |
 | `requestId` | `string` | — | Rendered **inside** the error card (`Request ID: …`); pass `useAdminList`'s `requestId` instead of a separate line under the table |
 | `renderError` | `node` / `fn({ error, onRetry, requestId })` | default brand error card | Full error override; function form receives the error context |
-| `searchColumnId` / `searchPlaceholder` | `string` | `'title'` / `'Search…'` | Pill `Input` filters this column when uncontrolled |
+| `searchColumnId` / `searchPlaceholder` | `string` | `'title'` / `'Search…'` | Search `Input` filters this column when uncontrolled |
 | `searchValue` / `onSearchChange` | `string` / `fn` | uncontrolled | Controlled search (required for server-backed lists) |
 | `scopes` | `{value,label}[]` | `[]` | Renders the scope `Select` only when non-empty; include `{ value: 'all', label: '…' }` |
 | `scopeColumnId` / `scopeValue` / `onScopeChange` | `string` / `string` / `fn` | `'scope'` / uncontrolled | `'all'` clears the column filter |
@@ -42,7 +47,7 @@ on the `DataTable` wrapper — never restyle the Table primitives themselves:
 | `manualSorting` / `manualFiltering` / `manualPagination` | `bool` | `false` | Server-backed Express API mode |
 | `rowCount` / `pageCount` | `number` | — | Server total / pages; `pageCount` defaults to `ceil(rowCount / pageSize)` |
 | `pageSizeOptions` | `number[]` | `[10, 20]` | Page-size `Select` options |
-| `renderEmptyState` | `node` | brand card | Override; default is the `G`-mark brand card (`emptyTitle` / `emptyHint`) |
+| `renderEmptyState` | `node` | brand card | Override; default is the brand card (`G` tile, `emptyTitle` / `emptyHint`) |
 | `loadingLabel` | `string` | `'Loading…'` | Toolbar live region + sr-only status |
 | `className` | `string` | — | Outer div passthrough |
 
@@ -58,10 +63,9 @@ state, or via `onPaginationChange` when pagination is controlled) so heavy
 filtering never strands the user on a stale page. Uncontrolled typing
 already resets through the toolbar handlers.
 
-Pagination Previous/Next keep the outline pill styling (`rounded-full`) with
-a `min-h-[44px]` touch target; the brutal wrapper
-(`border-[1.5px] border-border rounded-xl bg-card overflow-hidden
-shadow-[var(--shadow-card)]`) is unchanged.
+Previous/Next are outline `h-8 rounded-[3px]` buttons (32px density); the
+quiet card wrapper (`border border-border rounded-md bg-card overflow-hidden`
++ `shadow-[0_1px_1px_rgba(9,30,66,0.13),0_0_1px_rgba(9,30,66,0.13)]`) is unchanged.
 
 ## Usage — Events pilot (client-side first)
 

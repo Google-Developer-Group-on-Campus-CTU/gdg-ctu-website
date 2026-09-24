@@ -1,6 +1,6 @@
 # Admin form shell (shared)
 
-Shared editor infra for the forms phase: window-card chrome + react-hook-form
+Shared editor infra for the forms phase: quiet Atlassian card chrome + react-hook-form
 bindings + validation summary + sticky footer. Lives at
 `frontend/src/components/admin/form-shell.jsx` (+ `form-shell.css`, `.editor-*`
 scope only). No detail page migrates yet — TeamDetail is the pilot target.
@@ -13,11 +13,11 @@ as-is — never restyled, never touched.
 
 | Export | Props | Notes |
 | --- | --- | --- |
-| `EditorCard` | `title` / `eyebrow` / `actions` / `children` | White card, 1.5px `#222`, 16px radius, 4-dot window row, hard `4px` shadow desktop / flat mobile |
+| `EditorCard` | `title` / `eyebrow` / `actions` / `children` | White card, 1px `#EBECF0` border, 3px radius, quiet Atlassian elevation, dots row hidden; `#172B4D` text in the system font stack |
 | `EditorField` | `control` / `name` / `label` / `hint` / `required` / `anchorId` / `plain` / `showMessage` / `className` / render-`children(field)` | Binds shadcn `FormField`→`FormItem`→`FormLabel`→`FormMessage` through the Controller `field`. Single ref-forwarding inputs render inside `FormControl` (id + `aria-invalid` + `aria-describedby` via Slot); composites (`Select` root, shared `Toggle`, `MediaPicker`, file inputs) pass `plain`. `showMessage={false}` when the child renders its own error (MediaPicker). Anchors (`#name`) land on the item wrapper (`anchorId ?? name`) |
-| `EditorErrors` | `errors` / `serverError` / `summaryRef` / `title` | Red card (1.5px `#EA4335`, `#FCE8E6`): "fix N fields" + anchor links, `role="alert"`, focusable. Accepts flat `{ field: msg }` or RHF `formState.errors`. `serverError` (backend 400 text) renders as the banner paragraph in the same card |
-| `EditorFooter` | `saving` / `isNew` / `onPublish` / `onArchive` / labels | Sticky bar: Save draft (secondary white pill, form submit), Publish (yellow `#FFC400` pill), Archive/Delete (red outline tertiary, hidden when new). Disabled = opacity `.7` + 16px spinner; all targets ≥ 44px |
-| `DirtyGuardBanner` | `blocker` | Renders on `blocker.state === 'blocked'` with Stay (`reset()`) / Discard (`proceed()`) pills |
+| `EditorErrors` | `errors` / `serverError` / `summaryRef` / `title` | Error card (1px `#FFBDAD` on `#FFEBE6`, `#BF2600` text, 3px radius): "fix N fields" + anchor links, `role="alert"`, focusable. Accepts flat `{ field: msg }` or RHF `formState.errors`. `serverError` (backend 400 text) renders as the banner paragraph in the same card |
+| `EditorFooter` | `saving` / `isNew` / `onPublish` / `onArchive` / labels | Sticky bar, white with `#EBECF0` top border: Save draft (secondary `#FAFBFC`, form submit), Publish (primary `#0C66E4`), Archive/Delete (danger outline `#DE350B`, hidden when new). 32px targets, 3px radii; disabled = opacity `.7` + 16px spinner |
+| `DirtyGuardBanner` | `blocker` | Renders on `blocker.state === 'blocked'` with Stay (`reset()`) / Discard (`proceed()`) buttons |
 | `useEditorForm` | `{ schema, defaultValues, ...options }` | `useForm` + `zodResolver` in one call. After fetching, the page calls `reset(toForm(item))` — that is how defaults come from the record |
 | `useSlugUniqueness` | `(api, slug, currentId)` | 400ms debounce; 404 = unique; 500/timeout/network → error-blocking message. Returns `{ slugDup, slugCheckError }` for the publish gate |
 | `toEditorPayload` | `(values, { nullable })` | `display_order` numeric coercion + nullable trio (`''` → `null`) |
@@ -203,11 +203,11 @@ field (`accept="image/*"`, upload wins over media ID, exactly like today);
 
 ## Status
 
-- [x] Shared `form-shell.jsx` + `form-shell.css` (window-card, RHF bindings,
+- [x] Shared `form-shell.jsx` + `form-shell.css` (quiet Atlassian card, RHF bindings,
   errors card, sticky footer, dirty banner, slug hook, payload normalizer,
   team schema)
 - [x] Pilot migration: `pages/admin/TeamDetail.jsx` — editor wrapped in
-  `<EditorCard>` (eyebrow Team + Public preview pill to `/team` in actions);
+  `<EditorCard>` (eyebrow Team + Public preview button to `/team` in actions);
   all fields via `<EditorField>` + `useEditorForm(teamEditorSchema)` with
   `reset(toForm(item))` defaults (EMPTY/toForm mapping verbatim); photo via
   `MediaPicker` in a plain field (`showMessage={false}`) + photo alt field
@@ -228,7 +228,7 @@ field (`accept="image/*"`, upload wins over media ID, exactly like today);
   ContentEditor, one per change, each reusing the shell as-is.
 - [x] PartnerDetail migration — same shape as Team (`partnerEditorSchema`,
   no nullable trio); footer Publish (status + active force) / Archive via
-  `TypedConfirm`; greenfield-404 save message kept; Public preview pill to
+  `TypedConfirm`; greenfield-404 save message kept; Public preview button to
   `/partners`. Preserved: slug auto-fill + uniqueness hook, MediaPicker logo +
   alt, tier select, `display_order` coercion, load retry, toasts, dirty guard.
 - [x] EventDetail migration — main `EditorCard` (`eventEditorSchema`,
@@ -245,10 +245,10 @@ field (`accept="image/*"`, upload wins over media ID, exactly like today);
   `createdBy`-from-session verbatim); settings toggles bound to the same form
   in the settings tab; photos tab (sub-list, picker add, optimistic
   reorder/feature/remove, cap 8) stays outside the card verbatim; archive via
-  `isActive: false`. Public preview pill (slug-aware). Preserved: tabs,
+  `isActive: false`. Public preview button (slug-aware). Preserved: tabs,
   `setTab('content')` on invalid, load retry, toasts, dirty guard.
 - [x] ContentEditor migration — `contentEditorSchema`, no slug flow;
   section-key fetch/create-or-update, camelCase payload + `updatedBy` session,
-  rowId/notFound flows verbatim; no archive tertiary. Public preview pill per
+  rowId/notFound flows verbatim; no archive tertiary. Public preview button per
   section map (hero/about → own routes, rest → `/`). Preserved: immutable-key
   header with last-edited line, load retry, toasts, dirty guard.

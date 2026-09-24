@@ -30,9 +30,9 @@ import { EmptyState, StatusPill } from '../../components/admin/shared.jsx';
 /** Server-side cap on list-users (plugin `limit` param). */
 const LIST_LIMIT = 50;
 
-/* 44px action targets on the shared link-button language (DataTable owns the brutal wrapper). */
-const ROW_BUTTON_CLASS = 'admin-link-btn inline-flex min-h-[44px] items-center';
-const ROW_BUTTON_DANGER_CLASS = 'admin-link-btn admin-link-btn-danger inline-flex min-h-[44px] items-center';
+/* 32px row-action targets on the shared quiet button language. */
+const ROW_BUTTON_CLASS = 'inline-flex h-8 items-center px-3 rounded-[3px] border border-[#DFE1E6] bg-[#FAFBFC] text-sm font-medium text-[#42526E] hover:bg-[#EBECF0] hover:text-[#172B4D]';
+const ROW_BUTTON_DANGER_CLASS = 'inline-flex h-8 items-center px-3 rounded-[3px] border border-[#DFE1E6] bg-[#FAFBFC] text-sm font-medium text-[#DE350B] hover:bg-[#FFEBE6]';
 
 /**
  * better-auth's client resolves — it does not throw — on HTTP errors:
