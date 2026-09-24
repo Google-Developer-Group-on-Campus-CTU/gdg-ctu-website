@@ -133,8 +133,8 @@ export function TypedConfirm({ open, title, body, expected, confirmLabel = 'Conf
         }}
       >
         <h3>{title}</h3>
-        <p>{body}</p>
-        <label htmlFor="typed-confirm">
+        <p className="admin-muted">{body}</p>
+        <label htmlFor="typed-confirm" style={{ fontWeight: 600, fontSize: '0.9rem' }}>
           Type <code>{expected}</code> to confirm
         </label>
         <input
@@ -144,7 +144,7 @@ export function TypedConfirm({ open, title, body, expected, confirmLabel = 'Conf
           onChange={(e) => setTyped(e.target.value)}
           autoComplete="off"
         />
-        <div className="gdg-btn-row">
+        <div className="gdg-btn-row" style={{ justifyContent: 'flex-end', marginTop: '1.25rem' }}>
           <button type="button" className="gdg-btn gdg-btn-secondary" onClick={onCancel} disabled={busy}>
             Cancel
           </button>
@@ -166,7 +166,7 @@ export function Toggle({ id, label, checked, onChange, hint }) {
   return (
     <div className="admin-toggle">
       <input id={id} type="checkbox" checked={!!checked} onChange={(e) => onChange(e.target.checked)} />
-      <label htmlFor={id}>{label}</label>
+      <label htmlFor={id} style={{ fontWeight: 500 }}>{label}</label>
       {hint ? <p className="admin-hint">{hint}</p> : null}
     </div>
   );
@@ -174,8 +174,7 @@ export function Toggle({ id, label, checked, onChange, hint }) {
 
 /**
  * Shared admin list shell: loading → error → empty → table/content.
- * Used by admin/Events.jsx, admin/Team.jsx, admin/Gallery.jsx — do not
- * re-implement these four states inline in list pages.
+ * Uses public DS utilities (gdg-btn, admin-table inside admin-table-wrap card).
  */
 export function AdminListPage({
   loading,

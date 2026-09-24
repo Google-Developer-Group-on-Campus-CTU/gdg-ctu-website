@@ -4,8 +4,7 @@ import { authClient } from '../../lib/auth-client';
 import { ADMIN_ENTITY_ROUTES, adminNewTargetFor } from '../../admin/editorial.js';
 import '../../styles/admin.css';
 
-// Entity nav rows derive from the canonical ADMIN_ENTITY_ROUTES map (list
-// path + label) — non-entity sections stay local here.
+// Entity nav rows derive from the canonical ADMIN_ENTITY_ROUTES map (list path + label) — non-entity sections stay local here.
 export const ADMIN_NAV = [
   { to: '/admin', label: 'Dashboard', end: true },
   ...Object.values(ADMIN_ENTITY_ROUTES).map((entity) => ({ to: entity.list, label: entity.label })),
@@ -17,7 +16,6 @@ export const ADMIN_NAV = [
 function Breadcrumbs() {
   const { pathname } = useLocation();
   const segments = pathname.split('/').filter(Boolean);
-  // Show at depth >= 2 relative to /admin (e.g. /admin/events/abc -> Events / abc)
   if (segments.length < 2 || segments[0] !== 'admin') return null;
   const crumbs = segments.slice(1).map((seg, i) => {
     const href = `/admin/${segments.slice(1, i + 2).join('/')}`;
@@ -60,11 +58,7 @@ function Identity() {
     <div className="admin-identity">
       <span className="admin-avatar" aria-hidden="true">{initial}</span>
       <span className="admin-identity-name" title={name}>{name}</span>
-      <button
-        type="button"
-        className="admin-link-btn"
-        onClick={handleSignOut}
-      >
+      <button type="button" className="admin-link-btn" onClick={handleSignOut}>
         Sign out
       </button>
     </div>
@@ -82,9 +76,6 @@ export default function AdminShell() {
     setDrawerOpen(false);
   }, [location.pathname]);
 
-  // Defense in depth behind ProtectedRoute: the shell (and every list page
-  // under it) may only render with a live session — no session means no
-  // protected fetches should ever fire from admin children.
   if (!session?.user) return <Navigate to="/admin/login" replace />;
 
   const nav = (
@@ -113,7 +104,12 @@ export default function AdminShell() {
           <span>GDG-CTU Admin</span>
         </Link>
         {nav}
-        <p className="admin-sidebar-note">CMS writes content. Public site reads it.</p>
+        <div className="admin-sidebar-note">
+          <strong style={{ display: 'block', color: 'var(--text)', marginBottom: '0.25rem' }}>CMS writes. Site reads.</strong>
+          Public pages pull from the same content API.
+          <br />
+          <Link to="/" style={{ color: 'var(--gdg-blue)', fontWeight: 600 }}>← View public site</Link>
+        </div>
       </aside>
 
       <div className="admin-main-col">
@@ -127,11 +123,7 @@ export default function AdminShell() {
           >
             ☰
           </button>
-          <form
-            className="admin-search"
-            role="search"
-            onSubmit={(e) => e.preventDefault()}
-          >
+          <form className="admin-search" role="search" onSubmit={(e) => e.preventDefault()}>
             <label className="admin-visually-hidden" htmlFor="admin-search">Search this section</label>
             <input
               id="admin-search"

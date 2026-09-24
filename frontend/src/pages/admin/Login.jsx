@@ -8,7 +8,6 @@ import '../../styles/login.css';
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MIN_PASSWORD_LENGTH = 8;
 
 function GoogleGIcon() {
   return (
@@ -37,8 +36,6 @@ export default function AdminLogin() {
   const navigate = useNavigate();
   const { data: session, isPending } = authClient.useSession();
 
-  const [mode, setMode] = useState('sign-in');
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -47,22 +44,9 @@ export default function AdminLogin() {
   const [notice, setNotice] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  const isSignUp = mode === 'sign-up';
-
-  // Hooks above run unconditionally; only then branch on configuration/state.
   if (!API_BASE_URL) return <AdminDisabled />;
 
-  // A real session always carries `user` — same predicate as ProtectedRoute.
   if (!isPending && session?.user) return <Navigate to="/admin" replace />;
-
-  const switchMode = (next) => {
-    setMode(next);
-    setFieldErrors({});
-    setFormError(null);
-    setNotice(null);
-    setPassword('');
-    setShowPassword(false);
-  };
 
   const clearFieldError = (field) => {
     setFieldErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
@@ -70,13 +54,8 @@ export default function AdminLogin() {
 
   const validate = () => {
     const errs = {};
-    if (isSignUp && !name.trim()) errs.name = 'Add your name.';
     if (!EMAIL_RE.test(email.trim())) errs.email = 'Enter a valid email address.';
-    if (!password) {
-      errs.password = 'Enter your password.';
-    } else if (isSignUp && password.length < MIN_PASSWORD_LENGTH) {
-      errs.password = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
-    }
+    if (!password) errs.password = 'Enter your password.';
     const clean = Object.fromEntries(Object.entries(errs).filter(([, v]) => v));
     setFieldErrors(clean);
     return Object.keys(clean).length === 0;
@@ -90,29 +69,6 @@ export default function AdminLogin() {
 
     setBusy(true);
     try {
-      if (isSignUp) {
-        const { data, error } = await authClient.signUp.email({
-          name: name.trim(),
-          email: email.trim(),
-          password,
-        });
-        if (error) {
-          setFormError(error.message || 'Could not create the account. Try again.');
-          return;
-        }
-        if (data?.token) {
-          // Account created and signed in — go straight to the dashboard.
-          navigate('/admin', { replace: true });
-          return;
-        }
-        // Email verification required: no session yet.
-        setNotice('Account created. Check your inbox to verify it, then sign in.');
-        setMode('sign-in');
-        setFieldErrors({});
-        setPassword('');
-        return;
-      }
-
       const { error } = await authClient.signIn.email({
         email: email.trim(),
         password,
@@ -139,7 +95,6 @@ export default function AdminLogin() {
       setFormError(error.message || 'Google sign-in failed. Try again.');
       setBusy(false);
     }
-    // On success the browser redirects to Google, so we stay busy.
   };
 
   return (
@@ -151,12 +106,8 @@ export default function AdminLogin() {
           <div className="login-card">
             <header className="login-card-head">
               <span className="gdg-badge">Admin</span>
-              <h2>{isSignUp ? 'Create your admin account' : 'Sign in to the admin'}</h2>
-              <p>
-                {isSignUp
-                  ? 'Set up an email and password for the GDG-CTU admin.'
-                  : 'Use the account you use for the chapter — or continue with Google.'}
-              </p>
+              <h2>Sign in to the admin</h2>
+              <p>Use the account you use for the chapter — or continue with Google.</p>
             </header>
 
             {formError ? (
@@ -171,29 +122,6 @@ export default function AdminLogin() {
             ) : null}
 
             <form className="login-form" onSubmit={handleSubmit} noValidate>
-              {isSignUp ? (
-                <div className={`login-field${fieldErrors.name ? ' has-error' : ''}`}>
-                  <label htmlFor="login-name">Full name</label>
-                  <input
-                    id="login-name"
-                    type="text"
-                    autoComplete="name"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value);
-                      clearFieldError('name');
-                    }}
-                    aria-invalid={fieldErrors.name ? 'true' : undefined}
-                    aria-describedby={fieldErrors.name ? 'login-name-error' : undefined}
-                  />
-                  {fieldErrors.name ? (
-                    <p className="login-field-error" id="login-name-error" role="alert">
-                      {fieldErrors.name}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-
               <div className={`login-field${fieldErrors.email ? ' has-error' : ''}`}>
                 <label htmlFor="login-email">Email</label>
                 <input
@@ -222,20 +150,14 @@ export default function AdminLogin() {
                   <input
                     id="login-password"
                     type={showPassword ? 'text' : 'password'}
-                    autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
                       clearFieldError('password');
                     }}
                     aria-invalid={fieldErrors.password ? 'true' : undefined}
-                    aria-describedby={
-                      fieldErrors.password
-                        ? 'login-password-error'
-                        : isSignUp
-                          ? 'login-password-hint'
-                          : undefined
-                    }
+                    aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
                   />
                   <button
                     type="button"
@@ -246,11 +168,6 @@ export default function AdminLogin() {
                     {showPassword ? 'Hide' : 'Show'}
                   </button>
                 </div>
-                {isSignUp && !fieldErrors.password ? (
-                  <p className="login-hint" id="login-password-hint">
-                    At least {MIN_PASSWORD_LENGTH} characters.
-                  </p>
-                ) : null}
                 {fieldErrors.password ? (
                   <p className="login-field-error" id="login-password-error" role="alert">
                     {fieldErrors.password}
@@ -259,14 +176,8 @@ export default function AdminLogin() {
               </div>
 
               <button type="submit" className="login-submit" disabled={busy}>
-                {busy && !isSignUp ? <span className="login-spinner" aria-hidden="true" /> : null}
-                {busy
-                  ? isSignUp
-                    ? 'Creating account…'
-                    : 'Signing in…'
-                  : isSignUp
-                    ? 'Create account'
-                    : 'Sign in'}
+                {busy ? <span className="login-spinner" aria-hidden="true" /> : null}
+                {busy ? 'Signing in…' : 'Sign in'}
               </button>
             </form>
 
@@ -274,32 +185,13 @@ export default function AdminLogin() {
               <span>or</span>
             </div>
 
-            <button
-              type="button"
-              className="login-google"
-              onClick={handleGoogle}
-              disabled={busy}
-            >
+            <button type="button" className="login-google" onClick={handleGoogle} disabled={busy}>
               <GoogleGIcon />
               Continue with Google
             </button>
 
             <p className="login-switch">
-              {isSignUp ? (
-                <>
-                  Already have an account?{' '}
-                  <button type="button" onClick={() => switchMode('sign-in')}>
-                    Sign in
-                  </button>
-                </>
-              ) : (
-                <>
-                  Need an account?{' '}
-                  <button type="button" onClick={() => switchMode('sign-up')}>
-                    Create one
-                  </button>
-                </>
-              )}
+              Need an account? Ask an admin for an invite link.
             </p>
           </div>
 

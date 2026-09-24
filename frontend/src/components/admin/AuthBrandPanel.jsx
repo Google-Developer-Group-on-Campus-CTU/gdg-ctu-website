@@ -1,6 +1,8 @@
 /**
  * Split-stage brand panel shared by the admin auth pages
  * (/admin/login and /admin/register) — styled by src/styles/login.css.
+ * Visual language mirrors public DS: Poppins, GDG palette (blue/red/yellow/green),
+ * dot texture + 4-color bar echo shell/footer.
  */
 export default function AuthBrandPanel() {
   return (
@@ -18,8 +20,8 @@ export default function AuthBrandPanel() {
           The campus site, <span>managed in one place.</span>
         </h1>
         <p className="login-brand-sub">
-          Events, officers, gallery, and pages — write them here once and
-          the public site picks them up right away.
+          Events, officers, gallery, and pages — write them here once and the
+          public site picks them up right away.
         </p>
       </div>
 
