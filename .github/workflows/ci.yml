@@ -2,9 +2,10 @@ name: CI
 
 # Basic CI for the GDG-CTU monorepo.
 #
-# CD is handled by the hosting platforms (Render for backend, Vercel for
-# frontend) via auto-deploy on push to `main`. This workflow gates those
-# deploys: a push/PR must pass lint + typecheck + build before it is merged.
+# CD is handled by Vercel (single project serving frontend + API) via
+# auto-deploy on push to `main`. This workflow gates that deploy: a
+# push/PR must pass lint + typecheck + build + offline smoke before it
+# is merged.
 
 on:
   push:
@@ -31,7 +32,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
@@ -40,6 +41,9 @@ jobs:
 
       - name: Typecheck / build
         run: npm run build --if-present
+
+      - name: Offline smoke (dist import + route mounts)
+        run: npm run smoke --if-present
 
       - name: Validate Drizzle schema
         run: npm run db:generate --if-present
@@ -57,7 +61,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 

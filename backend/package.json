@@ -9,17 +9,21 @@
             "build": "tsc",
             "start": "node dist/server.js",
             "db:generate": "node ./scripts/run-drizzle-generate.cjs",
-            "db:migrate": "node -r ./scripts/resolve-ts-specifiers.cjs ./node_modules/drizzle-kit/bin.cjs migrate"
+            "db:migrate": "node -r ./scripts/resolve-ts-specifiers.cjs ./node_modules/drizzle-kit/bin.cjs migrate",
+            "smoke": "node scripts/smoke.cjs"
       },
       "keywords": [],
       "author": "",
       "license": "ISC",
+      "engines": {
+            "node": "22.x"
+      },
       "dependencies": {
             "@better-auth/drizzle-adapter": "^1.7.5",
             "@types/cors": "^2.8.19",
             "@types/express": "^5.0.6",
             "@types/multer": "^2.2.0",
-            "@types/node": "^24.0.0",
+            "@types/node": "^22.0.0",
             "@types/pg": "^8.15.6",
             "better-auth": "^1.7.5",
             "cloudinary": "^2.10.1",

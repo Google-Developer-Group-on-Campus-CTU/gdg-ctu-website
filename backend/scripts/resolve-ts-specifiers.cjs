@@ -1,8 +1,8 @@
 /**
  * Preload for drizzle-kit (see package.json db:generate / db:migrate).
  *
- * Our TypeScript sources use Node16-style `./foo.js` relative specifiers —
- * tsc requires them under `moduleResolution: node16`, and they resolve at
+ * Our TypeScript sources use NodeNext-style `./foo.js` relative specifiers —
+ * tsc requires them under `moduleResolution: NodeNext`, and they resolve at
  * runtime because dist/foo.js exists. drizzle-kit, however, loads schema and
  * config files through plain CommonJS require, which treats an explicit
  * `.js` request as a literal filename and never falls back to the sibling

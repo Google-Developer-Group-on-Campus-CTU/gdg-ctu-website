@@ -176,3 +176,67 @@ export async function deleteMediaCloudinaryService(
             resource_type: resourceType,
       });
 }
+
+/**
+ * Signed params for a client-direct-to-Cloudinary upload (bulk path).
+ *
+ * The browser POSTs the file bytes straight to Cloudinary using the
+ * returned params — the bytes never transit this serverless function, so
+ * the 4.5MB request-body cap and long transfer timeouts do not apply.
+ *
+ * The signature (SHA-1 over folder/public_id/resource params + timestamp,
+ * keyed by api_secret) binds those values: the client cannot alter them
+ * without re-signing, and the api_secret never leaves the server.
+ */
+export function signDirectUpload(options: {
+      folder?: string;
+      publicId?: string;
+      resourceType?: "auto" | "image" | "video" | "raw";
+}) {
+      if (!isCloudinaryEnabled()) {
+            throw new AppError(
+                  503,
+                  "Media service unavailable: Cloudinary is not configured",
+            );
+      }
+
+      const { api_key: apiKey, api_secret: apiSecret, cloud_name: cloudName } =
+            cloudinary.config();
+      if (!apiKey || !apiSecret || !cloudName) {
+            throw new AppError(
+                  503,
+                  "Media service unavailable: Cloudinary is not configured",
+            );
+      }
+
+      // Same folder convention as uploadMedia: GDGoC root, optional
+      // sub-folder(s) underneath.
+      const targetFolder = options.folder
+            ? `GDGoC/${options.folder}`
+            : "GDGoC";
+
+      const paramsToSign: Record<string, string | number> = {
+            timestamp: Math.floor(Date.now() / 1000),
+            folder: targetFolder,
+      };
+      if (options.publicId) {
+            paramsToSign.public_id = options.publicId;
+      }
+
+      const signature = cloudinary.utils.api_sign_request(
+            paramsToSign,
+            apiSecret,
+      );
+      const resourceType = options.resourceType ?? "auto";
+
+      return {
+            uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
+            apiKey,
+            cloudName,
+            signature,
+            timestamp: paramsToSign.timestamp,
+            folder: targetFolder,
+            publicId: options.publicId,
+            resourceType,
+      };
+}

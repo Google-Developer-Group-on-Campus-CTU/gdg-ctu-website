@@ -15,10 +15,11 @@ import {
       updateMediaService,
       deleteMediaService,
 } from "./media.services.js";
-import { CreateMediaSchema, UpdateMediaSchema } from "./media.validations.js";
+import { CreateMediaSchema, UpdateMediaSchema, SignUploadSchema } from "./media.validations.js";
 import {
       uploadMedia,
       deleteMediaCloudinaryService,
+      signDirectUpload,
 } from "../../config/cloudinary/cloudinary.services.js";
 import { rollbackCloudinaryUpload } from "../../config/cloudinary/utils/cloudinary-rollback-helper.js";
 import logger from "../../utils/logger.js";
@@ -199,5 +200,26 @@ export const removeMedia = async (req: Request, res: Response) => {
             });
       } catch (error) {
             return handleControllerError(res, error, "Failed to delete media");
+      }
+};
+
+/**
+ * Sign a client-direct-to-Cloudinary upload (POST /media/sign-upload).
+ * Returns signed params only — the client then POSTs the file bytes
+ * straight to Cloudinary, so bulk uploads never pass through this
+ * serverless function (Hobby 4.5MB request cap). Session-authenticated
+ * via the protected /media mount.
+ */
+export const signUpload = (req: Request, res: Response) => {
+      try {
+            const data = validateBody(SignUploadSchema, req.body ?? {});
+            const signed = signDirectUpload({
+                  folder: data.folder,
+                  publicId: data.publicId,
+                  resourceType: data.resourceType,
+            });
+            return res.status(200).json({ success: true, upload: signed });
+      } catch (error) {
+            return handleControllerError(res, error, "Failed to sign upload");
       }
 };

@@ -16,9 +16,11 @@ import {
       verification,
 } from "../modules/auth/models/auth.js";
 
-// Fatal boot check — BETTER_AUTH_SECRET + BETTER_AUTH_URL (server.ts calls
-// the same validator again before mounting; import order means this runs
-// first, both paths exit(1) on bad config).
+// Fatal config check — BETTER_AUTH_SECRET + BETTER_AUTH_URL. The validator
+// THROWS (it never exits the process — only the dev entry server.ts may,
+// and it validates these same keys inside boot's catch before importing
+// the app module). Called here because betterAuth() needs the normalized
+// values at construction time.
 const { secret, baseURL } = validateBetterAuthKeys(
       ENV.BETTER_AUTH_SECRET,
       ENV.BETTER_AUTH_URL,
@@ -125,6 +127,14 @@ export const auth = betterAuth({
                     },
               }
             : {},
+      // Cookie verification (Phase 4): no cookie overrides on purpose —
+      // Better Auth's defaults are already same-origin safe for the
+      // single-domain Vercel layout: httpOnly + SameSite=Lax, with `secure`
+      // following BETTER_AUTH_URL's protocol (https => Secure; localhost
+      // stays usable in dev). advanced.trustedProxyHeaders below makes the
+      // https check see X-Forwarded-Proto behind Vercel's proxy. When
+      // BETTER_AUTH_URL becomes https://<same-domain>, nothing here needs
+      // to change.
       session: {
             expiresIn: 60 * 60 * 24 * 7, // 7 days
             updateAge: 60 * 60 * 24, // refresh the session when >1 day old

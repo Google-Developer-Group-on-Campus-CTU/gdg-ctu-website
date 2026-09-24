@@ -1,60 +1,88 @@
-# Deployment Plan — GDG-CTU (separate backend + frontend)
+# Deployment Plan — GDG-CTU (single Vercel project)
 
-Target: backend API on Render (or Railway) + React frontend on Vercel.
-Order matters: **backend first** (its URL is needed for `FR_ORIGIN` and `VITE_API_URL`).
+Target: **one Vercel project** serving the React frontend and the backend API
+on the same domain. The API runs as a serverless function (`api/index.ts` →
+`backend/dist/app.js`); Postgres stays on Neon (pooled URL), images on
+Cloudinary. Render is retired after cutover (7-day rollback window).
 
-## 0. Prerequisites (do once)
+## 0. Prerequisites (already in the repo)
 
-- `backend/.env` filled with production values — set these in the host dashboard, never commit the file:
-  `PORT` (injected by host — just reference it), `NODE_ENV=production`,
-  `FR_ORIGIN=https://<frontend-url>` (one origin, or several comma-separated — each is trimmed and any trailing `/` stripped),
-  `BETTER_AUTH_SECRET` (generate: `openssl rand -base64 32`), `BETTER_AUTH_URL=https://<backend-url>` (backend origin, no trailing `/`),
-  optional `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` (enables "Sign in with Google"), optional `ADMIN_USER_IDS` (comma-separated bootstrap admin user IDs),
-  `DB_URL` (Neon Postgres), `CLOUDINARY_URL`.
-- Run DB migrations against the production database once: `npm run db:migrate` from `backend/`
-  (needs `DB_URL` set; or use the host's one-off job / release command feature).
-- Push branch `chore/repo-cleanup` (or merge it to `main` first and deploy from `main`).
+- `vercel.json` (root) — install/build commands covering both halves
+  (`cd backend && npm ci && cd ../frontend && npm ci`; build = backend `tsc`
+  then frontend `vite build`), output `frontend/dist`, and rewrites:
+  1. `/GDGoC-CTU-Main/v0.0.1/:path*` → `/api` (the API — MUST stay first,
+     first matching rewrite wins),
+  2. `/(.*)` → `/index.html` (SPA deep-link fallback).
+- `package.json` (root, minimal) — pins `engines.node: 22.x` for Vercel's
+  Node-version detection in the single-project layout. No dependencies, not a
+  workspace.
+- `api/index.ts` — serverless entry: dynamically imports the built app,
+  logs import failures as structured JSON and rethrows (never serves from a
+  half-loaded app).
+- Database: a Neon **pooled** connection string (`…-pooler.<region>.neon.tech`).
+  Direct (non-pooler) strings exhaust connections under serverless concurrency.
 
-## 1. Backend → Render
-
-| Setting | Value |
-|---|---|
-| Root Directory | `backend` |
-| Build Command | `npm install && npm run build` (`tsc` → `dist/`) |
-| Start Command | `npm start` (`node dist/server.js`) |
-| Node version | 20 LTS |
-| Health Check Path | `/` (public liveness — Render's default probe; `/health` and `/GDGoC-CTU-Main/v0.0.1/health` return the same JSON) |
-
-- Add all env vars from step 0 in the Render dashboard. `PORT` is injected automatically.
-- API base path is `/GDGoC-CTU-Main/v0.0.1`; liveness (`/`, `/health`) and reads under `/public/*` are open, everything else (including `/admins`) requires an active-admin Better Auth session (`401`/`403` otherwise).
-- CORS allows only the origin(s) listed in `FR_ORIGIN` (comma-separated allowlist) with credentials — must include the Vercel URL.
-- Note: Winston writes to `logs/`; Render's filesystem is ephemeral, so logs don't persist across deploys.
-
-## 2. Frontend → Vercel
+## 1. Vercel project settings (dashboard)
 
 | Setting | Value |
 |---|---|
-| Root Directory | `frontend` — set it on the import screen (Root Directory → Edit). For an existing project: Settings → General → Root Directory. CLI alternative: `cd frontend && vercel` (no dashboard setting needed) |
-| Build Command | `npm run build` |
-| Output Directory | `dist` |
-| Env vars | `VITE_API_URL=https://<render-backend>/GDGoC-CTU-Main/v0.0.1` |
+| Root Directory | repo root (empty value — **not** `frontend/`; clear the old frontend-only setting) |
+| installCommand / buildCommand / Output | taken from root `vercel.json` (shown above) |
+| Node.js version | 22.x — detected from root `package.json` `engines` |
 
-- React Router needs an SPA fallback, otherwise refresh on `/about`, `/events`, etc. returns 404.
-  Add `frontend/vercel.json`:
-  ```json
-  { "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
-  ```
+> **Inert file:** `frontend/vercel.json` never applies once Root Directory is the repo root — Vercel reads only the root `vercel.json` above (leave the file in place; it causes no double deploy).
 
-## 3. Wire them together
+## 2. Environment variables (Settings → Environment Variables)
 
-1. Deploy backend → copy its public URL.
-2. Set `VITE_API_URL` on Vercel to `<backend-url>/GDGoC-CTU-Main/v0.0.1`, redeploy frontend.
-3. Set `FR_ORIGIN` on Render to the exact Vercel URL, redeploy backend.
+Set on Production and Preview. Full list:
 
-## 4. Verify end-to-end
+| Key | Value / notes |
+|---|---|
+| `DB_URL` | Neon **pooled** URL |
+| `FR_ORIGIN` | `https://<domain>` — comma-separated allowlist if several (add `http://localhost:5173` only if you deploy to a shared backend used from local dev) |
+| `CLOUDINARY_URL` | `cloudinary://<api_key>:<api_secret>@<cloud_name>` |
+| `BETTER_AUTH_SECRET` | generate: `openssl rand -base64 32` |
+| `BETTER_AUTH_URL` | `https://<domain>` — same origin as the frontend, no trailing `/` |
+| `GOOGLE_CLIENT_ID` | optional — enables Google sign-in (with the secret below) |
+| `GOOGLE_CLIENT_SECRET` | optional |
+| `ADMIN_USER_IDS` | optional — comma-separated bootstrap admin user IDs |
+| `VITE_API_URL` | `https://<domain>/GDGoC-CTU-Main/v0.0.1` — baked in at build; changing it requires a redeploy |
+| `NODE_ENV` | leave unset — Vercel sets `production` (production logging = JSON on stdout) |
+| `PORT` | not used on Vercel (dev entry only) |
+
+## 3. Database migrations — required manual release step
+
+Migrations never run at boot or deploy (serverless cold starts must not
+migrate). After ANY schema change, before shipping the code that needs it:
+
+```sh
+cd backend
+DB_URL=<pooled-prod-url> npm run db:migrate
+```
+
+Run once per release against the pooled production URL. CI only validates the
+schema offline (`npm run db:generate`).
+
+## 4. Deploy
+
+1. Merge to `main` with CI green (backend: build + offline smoke + schema
+   check; frontend: lint + build) → Vercel builds and deploys automatically.
+2. Preview deploys live on `.vercel.app` origins that are **per-deployment**:
+   session cookies are not shared across preview/production (and Safari ITP
+   blocks workarounds). Run full auth flows on the production domain.
+3. Liveness checks: `GET /`, `/health`, and `/GDGoC-CTU-Main/v0.0.1/health`
+   all return the same JSON (the prefixed ones reach the function through the
+   rewrite).
+
+## 5. Verify end-to-end (production domain)
 
 - [ ] Frontend loads; all public pages render with images.
-- [ ] `GET <backend>/` (or `/health`) returns `{"status":"ok"}` (proves the server is alive); a public read like `GET <backend>/GDGoC-CTU-Main/v0.0.1/public/events` returns data (proves DB + API).
-- [ ] No CORS errors in browser console on API calls.
-- [ ] `/admin/login` shows the GDG-CTU sign-in form; sign-in reaches the admin dashboard.
-- [ ] Authenticated admin request (e.g. list events) succeeds.
+- [ ] `GET https://<domain>/GDGoC-CTU-Main/v0.0.1/public/events` returns data (API + DB through the rewrite).
+- [ ] No CORS errors in the browser console (`FR_ORIGIN` contains the domain; same-origin now).
+- [ ] `/admin/login` sign-in reaches the admin dashboard — session cookie is
+      SameSite=Lax + Secure on the single domain (Better Auth defaults;
+      `BETTER_AUTH_URL` is https, proxy headers trusted).
+- [ ] Multipart upload ≤4MB succeeds; a >4MB file returns HTTP 413 with a JSON message.
+- [ ] Bulk upload path: `POST /GDGoC-CTU-Main/v0.0.1/media/sign-upload`
+      returns signed params; file bytes go straight from the browser to
+      Cloudinary (never through the function).

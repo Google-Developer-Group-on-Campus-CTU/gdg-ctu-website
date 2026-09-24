@@ -1,14 +1,44 @@
 import { drizzle } from "drizzle-orm/node-postgres";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "node:url";
 import ENV from "./env.js";
 import logger from "../utils/logger.js";
 
-export const pool = new Pool({
+/**
+ * Serverless-safe Postgres pool — DB_URL must be the Neon *pooled pooler*
+ * connection string (…-pooler.<region>.neon.tech), not the direct one.
+ *
+ * - ONE module-level Pool per container: Vercel reuses this module across
+ *   invocations, so a cold start builds it once and every warm request shares
+ *   the same instance. Request handlers must never `new Pool()` — one pool
+ *   per request is the classic serverless connection-exhaustion bug.
+ * - The constructor performs no I/O; pg opens the first connection lazily on
+ *   the first query, so importing this module costs nothing on a cold start.
+ * - `max: 2` (not 1): redeemAdminInviteService's transaction holds one
+ *   checked-out client while Better Auth's adapter writes user/account rows
+ *   through the shared pool on a second connection (see the note there) —
+ *   max: 1 would deadlock that flow against `connectionTimeoutMillis`. 2 also
+ *   covers the adapter's own transaction paths and stays far under Neon's
+ *   per-instance limits.
+ * - `connectionTimeoutMillis`: bounds how long a queued query waits for a free
+ *   client, so pile-ups fail fast instead of hanging until the platform kills
+ *   the function.
+ * - `idleTimeoutMillis` + `allowExitOnIdle`: a warm container releases its
+ *   idle backend and never keeps the event loop alive by itself (the HTTP
+ *   server handle does that while listening).
+ */
+const pool = new Pool({
       connectionString: ENV.DB_URL,
+      max: 2,
+      connectionTimeoutMillis: 10_000,
+      idleTimeoutMillis: 30_000,
+      allowExitOnIdle: true,
+});
+
+// Idle-backend failures (pooler restart, server-side idle close) surface as
+// an 'error' event on the Pool; without a listener pg rethrows them and would
+// crash the warm container the next time it is reused.
+pool.on("error", (err) => {
+      logger.error("Postgres pool idle-client error", { message: err.message });
 });
 
 // No `schema` option here: it used to `import * from "../modules/index.js"`, which
@@ -19,43 +49,16 @@ export const db = drizzle({
       client: pool,
 });
 
-// ESM replacement for __dirname (package.json is type:module).
-const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-
+/**
+ * Boot-time connectivity check (all-or-nothing: a dead DB fails the boot).
+ *
+ * Migrations are intentionally NOT run at boot — serverless cold starts must
+ * never migrate, and CI has no live DB. Apply them manually against a live
+ * DB_URL with:
+ *
+ *     npm run db:migrate
+ */
 export const connectDB = async () => {
-      const cwdMigrationsFolder = path.resolve(process.cwd(), "drizzle");
-      const distRelativeMigrationsFolder = path.resolve(moduleDir, "../../drizzle");
-      const migrationsFolder = fs.existsSync(cwdMigrationsFolder)
-            ? cwdMigrationsFolder
-            : distRelativeMigrationsFolder;
-      try {
-            logger.info(`Applying Drizzle migrations from ${migrationsFolder}...`);
-            await migrate(db, { migrationsFolder });
-            logger.info("Drizzle migrations applied successfully");
-      } catch (err) {
-            const cause = err instanceof Error ? err.cause : undefined;
-            const field = (obj: unknown, key: string) =>
-                  obj !== null && typeof obj === "object"
-                        ? (obj as Record<string, unknown>)[key]
-                        : undefined;
-            logger.error("Failed to apply Drizzle migrations:", {
-                  migrationsFolder,
-                  message: err instanceof Error ? err.message : String(err),
-                  code: field(err, "code") ?? field(cause, "code"),
-                  detail: field(err, "detail") ?? field(cause, "detail"),
-                  hint: field(err, "hint") ?? field(cause, "hint"),
-                  constraint: field(err, "constraint") ?? field(cause, "constraint"),
-                  table: field(err, "table") ?? field(cause, "table"),
-                  column: field(err, "column") ?? field(cause, "column"),
-                  cause:
-                        cause instanceof Error
-                              ? { message: cause.message, stack: cause.stack }
-                              : cause,
-                  stack: err instanceof Error ? err.stack : undefined,
-            });
-            const message = err instanceof Error ? err.message : String(err);
-            throw new Error(`Failed to apply Drizzle migrations from ${migrationsFolder}: ${message}`);
-      }
       await pool.query("SELECT 1");
       return logger.info("Server Connected to Database Successfully");
 };

@@ -14,7 +14,7 @@ A public club website (home, about, team, events, gallery, partners, contact) wh
 - Admin dashboard at `/admin`: manage events, team members, partners, gallery albums, site text, media uploads, and settings
 - Login with Better Auth (email/password + Google — the backend keeps passwords, the browser keeps the session cookie)
 - Public reads, login-required writes: anyone can view the site, only signed-in active admins can change things
-- Image uploads with Cloudinary (an image-hosting service) with a 5 MB file limit
+- Image uploads with Cloudinary (an image-hosting service) with a 4 MB file limit
 - Versioned API (application programming interface — the backend's set of URLs the frontend calls), so future changes don't break the current site
 
 ## Tech stack
@@ -23,22 +23,22 @@ A public club website (home, about, team, events, gallery, partners, contact) wh
 |---|---|
 | Frontend (what visitors see) | React 19, React Router 7, Vite 8, Better Auth React (sign-in form) |
 | Backend (the server that stores data) | Node + Express 5, TypeScript, Drizzle ORM (tool that talks to the database) + Postgres (Neon), Better Auth (checks logins — HTTP-only session cookie), Cloudinary (image storage), Zod (checks that incoming data has the right shape), Winston (writes server logs) |
-| Hosting (where it runs online) | Backend on Render, frontend on Vercel; database on Neon, images on Cloudinary |
+| Hosting (where it runs online) | One Vercel project for frontend + API; database on Neon, images on Cloudinary |
 
 ## Prerequisites
 
 You need these installed before starting (all free):
 
-- **Node.js 20 LTS** (LTS = Long-Term Support, the stable version) — [download](https://nodejs.org/)
+- **Node.js 22 LTS** (LTS = Long-Term Support, the stable version) — [download](https://nodejs.org/)
 - **npm** (comes with Node.js — it installs project libraries)
 - **Git** — [download](https://git-scm.com/downloads)
 
-You will also need free accounts later (explained in Getting Started): Neon (database), Cloudinary (images), Render (backend hosting), Vercel (frontend hosting). Login itself needs no account — Better Auth runs inside the backend — but a Google Cloud Console project is optional if you want "Sign in with Google".
+You will also need free accounts later (explained in Getting Started): Neon (database), Cloudinary (images), Vercel (hosting — frontend and API on one project). Login itself needs no account — Better Auth runs inside the backend — but a Google Cloud Console project is optional if you want "Sign in with Google".
 
 Check your setup:
 
 ```bash
-node --version   # should show v20.x
+node --version   # should show v22.x
 npm --version
 git --version
 ```
@@ -151,7 +151,7 @@ Never commit real `.env` files — they hold secrets like passwords and keys.
 2. Not logged in = error `401`; logged in but not an active admin = error `403`.
 3. Every backend URL starts with `/GDGoC-CTU-Main/v0.0.1` (the versioned base path).
 4. The backend only answers the frontend address(es) listed in `FR_ORIGIN` — a comma-separated allowlist (this is CORS — a browser safety rule), and the frontend must point `VITE_API_URL` at the backend.
-5. Data lives in Postgres via Drizzle (reads go straight to the database), images in Cloudinary (5 MB max); pages find things by `slug` (URL-friendly name) and `site_content` keys, and items have a `status` (e.g. draft/published).
+5. Data lives in Postgres via Drizzle (reads go straight to the database), images in Cloudinary (4 MB max per request; bulk uses signed direct-to-Cloudinary uploads); pages find things by `slug` (URL-friendly name) and `site_content` keys, and items have a `status` (e.g. draft/published).
 
 ## Docs links
 
@@ -159,7 +159,7 @@ Never commit real `.env` files — they hold secrets like passwords and keys.
 - [`docs/ARCHITECTURE-OVERVIEW.md`](docs/ARCHITECTURE-OVERVIEW.md) — how the pieces fit together (student summary)
 - [`docs/gdg_backend_architecture.md`](docs/gdg_backend_architecture.md) — full backend design (24 modules, diagrams, database tables)
 - [`docs/admin-cms-spec.md`](docs/admin-cms-spec.md) — Admin CMS rules (spec v0.4)
-- [`docs/deployment-plan.md`](docs/deployment-plan.md) — how to publish (Render + Vercel)
+- [`docs/deployment-plan.md`](docs/deployment-plan.md) — how to publish (single Vercel project)
 - [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) — how to contribute
 
 ## Contributing
@@ -168,9 +168,9 @@ We'd love your help! Please read [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) 
 
 ## Deploy (3 lines)
 
-1. Publish the **backend first** on Render (root folder `backend`, build `npm install && npm run build`, start `npm start`), since the frontend needs its URL.
-2. Publish the **frontend** on Vercel (root folder `frontend`, build `npm run build`, output `dist`), setting `VITE_API_URL` to `<backend-url>/GDGoC-CTU-Main/v0.0.1` and `FR_ORIGIN` on Render to the exact Vercel URL.
-3. Full steps and checklist: [`docs/deployment-plan.md`](docs/deployment-plan.md).
+1. Everything ships from **one Vercel project** (Root Directory = repo root): root `vercel.json` installs and builds `backend/` (TypeScript → `dist/`) then `frontend/`, and routes `/GDGoC-CTU-Main/v0.0.1/*` to the API function before the SPA fallback — push to `main` deploys.
+2. Set the Vercel env vars from the deployment plan (`DB_URL` = Neon **pooled** URL, `VITE_API_URL=https://<domain>/GDGoC-CTU-Main/v0.0.1`, `FR_ORIGIN=https://<domain>`, Better Auth + Cloudinary keys); after any schema change run `npm run db:migrate` in `backend/` against the pooled URL — once per release, by hand.
+3. Full steps, env list, and checklist: [`docs/deployment-plan.md`](docs/deployment-plan.md).
 
 ## Troubleshooting (5 common errors)
 

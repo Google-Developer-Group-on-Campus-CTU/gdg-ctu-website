@@ -2,12 +2,12 @@
       "compilerOptions": {
             "rootDir": "./src", // Where your source files are
             "outDir": "./dist", // Where compiled JS goes
-            "module": "Node16", // Output format and module semantics for Node 16+ environments
+            "module": "NodeNext", // Output format: ESM (package.json is type:module), matches Node 22 runtime
             "target": "es2022", // JS version to compile to (modern)
             "esModuleInterop": true, // Allows `import x from 'y'` syntax with CommonJS modules
             "strict": true, // Enables all strict type-checking
             "skipLibCheck": true, // Skips type-checking .d.ts files (faster builds)
-            "moduleResolution": "node16", // How TS finds modules (node_modules lookup)
+            "moduleResolution": "NodeNext", // How TS finds modules (Node ESM rules: package exports + .js specifiers)
             "resolveJsonModule": true, // Allows importing .json files
             "forceConsistentCasingInFileNames": true, // Prevents case-sensitivity bugs
       },

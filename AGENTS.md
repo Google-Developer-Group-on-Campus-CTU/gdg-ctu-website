@@ -1,12 +1,12 @@
 # AGENTS.md — GDG-CTU Website + Admin CMS
 
-Two separate npm projects, no workspace. Run commands from the touched side only: `backend/` (Express 5 + TS API) or `frontend/` (React 19 + Vite 8). Node 20 required (CI pins 20).
+Two separate npm projects, no workspace (the minimal root `package.json` exists only to pin Node 22 for Vercel's version detection). Run commands from the touched side only: `backend/` (Express 5 + TS API) or `frontend/` (React 19 + Vite 8). Node 22 required (CI pins 22).
 
 ## Commands (exact)
 
-- Backend: `npm run dev` (nodemon → `ts-node src/server.ts`), `npm run build` (`tsc`, also the typecheck — no lint/test), `npm start` (`node dist/server.js`), `npm run db:generate` (offline schema check), `npm run db:migrate` (needs live `DB_URL`).
+- Backend: `npm run dev` (nodemon → `ts-node src/server.ts`), `npm run build` (`tsc`, also the typecheck — no lint/test), `npm start` (`node dist/server.js`), `npm run db:generate` (offline schema check), `npm run db:migrate` (needs live `DB_URL`), `npm run smoke` (offline: imports `dist/`, asserts routes — run `npm run build` first).
 - Frontend: `npm run dev` (vite), `npm run build` (`vite build`), `npm run lint` (`oxlint`), `npm run preview`. No tests or typecheck script.
-- CI (`.github/workflows/ci.yml`, gates `main`): backend `npm ci && npm run build && npm run db:generate`; frontend `npm ci && npm run lint && npm run build`. Render/Vercel auto-deploy `main` on green.
+- CI (`.github/workflows/ci.yml`, gates `main`): backend `npm ci && npm run build && npm run smoke && npm run db:generate`; frontend `npm ci && npm run lint && npm run build`. Vercel auto-deploys `main` on green (one project serves frontend + API).
 
 ## Env (never commit `.env`)
 
@@ -16,21 +16,21 @@ Two separate npm projects, no workspace. Run commands from the touched side only
 
 ## API contract gotchas
 
-- Base path: all backend routes mount at `/GDGoC-CTU-Main/v0.0.1` (`backend/src/server.ts:43`). `VITE_API_URL` must include it, e.g. `http://localhost:3000/GDGoC-CTU-Main/v0.0.1`.
+- Base path: all backend routes mount at `/GDGoC-CTU-Main/v0.0.1` (`backend/src/app.ts`). `VITE_API_URL` must include it, e.g. `http://localhost:3000/GDGoC-CTU-Main/v0.0.1` (production: `https://<domain>/GDGoC-CTU-Main/v0.0.1`).
 - Auth: 401 = not signed in, 403 = signed in but not active admin. Writes go through `requireAuth` / protected router (`backend/src/modules/index.ts`); public reads live under `/public/*` + `/health`.
 - CORS: `FR_ORIGIN` is a comma-separated allowlist of frontend origins (local: `http://localhost:5173`); each entry is trimmed and trailing `/` stripped, and in development any `localhost`/`127.0.0.1` loopback port is allowed. Origin missing from the list = browser CORS block; fix + restart backend.
 - Frontend calls: use `apiFetch(path, opts)` from `frontend/src/api/client.js` — base is `VITE_API_URL`, always `credentials: 'include'` (the Better Auth session cookie rides along; no Authorization header). Throws with `error.status`/`error.body` on non-OK.
-- Boot is all-or-nothing: `connectDB → Cloudinary → listen`, any failure exits (`server.ts:45-59`). Missing/wrong `DB_URL`/`CLOUDINARY_URL` = server won't start; missing `BETTER_AUTH_SECRET`/`BETTER_AUTH_URL` also exits at boot.
+- Boot: the dev entry (`src/server.ts`) runs config checks → imports the app → `connectDB` ping → Cloudinary ping → `listen`, exiting(1) on failure. Vercel has no boot step — `api/index.ts` imports `backend/dist/app.js` per cold start, so missing `BETTER_AUTH_SECRET`/`BETTER_AUTH_URL`/`FR_ORIGIN` fails that import loudly (structured JSON log, invocation errors); wrong `DB_URL` fails the first query; `PORT` is dev-only.
 
 ## Code layout
 
-- Backend: `src/server.ts` entry; one dir per domain in `src/modules/` (admins, auth, events, event-*, team-members, media*, site-content, terms, partners, health, public); schema co-located at `src/modules/**/models/*.ts`, migrations emitted to `drizzle/` (postgres). Shared: `src/middleware/` (auth/validation/multer upload), `src/config/` (env/db/cloudinary), `src/utils/` (Winston `logger`, validation). Validate input with Zod, log with `logger` not `console.log`.
-- Frontend: `index.html → src/main.jsx` (no auth provider needed) `→ src/App.jsx` (`BrowserRouter`). Public routes `/, /about, /team, /events[/:slug], /gallery[/:slug], /partners, /contact`; admin `/admin/login` open, everything else under `<ProtectedRoute><AdminShell>`. Keep both `vercel.json` SPA rewrites (`/(.*) → /index.html`) or deep links refresh to 404.
+- Backend: `src/app.ts` (side-effect-free Express assembly) + `src/server.ts` (dev entry — listens; the only `process.exit` in `src/`); repo-root `api/index.ts` is the Vercel handler. One dir per domain in `src/modules/` (admins, auth, events, event-*, team-members, media*, site-content, terms, partners, health, public); schema co-located at `src/modules/**/models/*.ts`, migrations emitted to `drizzle/` (postgres). Shared: `src/middleware/` (auth/validation/multer upload), `src/config/` (env/db/cloudinary), `src/utils/` (Winston `logger`, validation). Validate input with Zod, log with `logger` not `console.log`.
+- Frontend: `index.html → src/main.jsx` (no auth provider needed) `→ src/App.jsx` (`BrowserRouter`). Public routes `/, /about, /team, /events[/:slug], /gallery[/:slug], /partners, /contact`; admin `/admin/login` open, everything else under `<ProtectedRoute><AdminShell>`. The SPA fallback lives in the ROOT `vercel.json` (`/(.*) → /index.html`, ordered AFTER the API rewrite) or deep links refresh to 404; `frontend/vercel.json` is inert once Root Directory is the repo root.
 
 ## DB / deploy
 
-- Schema change: edit `src/modules/**/models/*.ts` → `npm run db:generate` → `npm run db:migrate` (prod DB once).
-- Deploy order is backend-first: Render (`rootDir backend`, build `npm install && npm run build`, start `npm start`, health `/` — also `/health` and `/GDGoC-CTU-Main/v0.0.1/health` answer the same liveness JSON) → set Vercel `VITE_API_URL=<backend-url>/GDGoC-CTU-Main/v0.0.1` (root `vercel.json` builds `frontend/dist`) → set Render `FR_ORIGIN=<vercel-url>` + redeploy.
+- Schema change: edit `src/modules/**/models/*.ts` → `npm run db:generate` → `npm run db:migrate` (prod, manual release step: run in `backend/` against the pooled `DB_URL` before shipping the code that needs it — migrations never run at boot or deploy).
+- Deploy is one Vercel project (Root Directory = repo root, Node 22 via root `engines`): root `vercel.json` installs/builds `backend/` then `frontend/` and rewrites `/GDGoC-CTU-Main/v0.0.1/*` → `/api` BEFORE the SPA fallback `/(.*) → /index.html`. Liveness `GET /` (also `/health` and `/GDGoC-CTU-Main/v0.0.1/health`) answers the same JSON. Full env list + runbook: `docs/deployment-plan.md`.
 
 ## Workflow
 

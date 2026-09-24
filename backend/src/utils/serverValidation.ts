@@ -8,7 +8,7 @@ import { livenessHandler } from "./liveness.js";
 export function validateServerPort(port: string | undefined): number {
       if (!port) {
             logger.info("Error: PORT is not defined in environment variables.");
-            process.exit(1);
+            throw new Error("PORT is not defined in environment variables.");
       }
 
       const parsedPort = Number(port);
@@ -20,7 +20,7 @@ export function validateServerPort(port: string | undefined): number {
             !Number.isInteger(parsedPort)
       ) {
             logger.info("Error: PORT is not a valid port number.");
-            process.exit(1);
+            throw new Error("PORT is not a valid port number.");
       }
 
       return parsedPort;
@@ -32,7 +32,9 @@ export function validateFrontendOrigin(frOrigin: string | undefined): string {
             logger.info(
                   "Error: FR_ORIGIN is not defined in environment variables.",
             );
-            process.exit(1);
+            throw new Error(
+                  "FR_ORIGIN is not defined in environment variables.",
+            );
       }
 
       return frOrigin;
@@ -47,7 +49,9 @@ export function validateBetterAuthKeys(
             logger.error(
                   "Error: BETTER_AUTH_SECRET and BETTER_AUTH_URL must be set in environment variables.",
             );
-            process.exit(1);
+            throw new Error(
+                  "BETTER_AUTH_SECRET and BETTER_AUTH_URL must be set in environment variables.",
+            );
       }
 
       // Better Auth resolves its effective baseURL as `origin + basePath` when
@@ -62,7 +66,9 @@ export function validateBetterAuthKeys(
             logger.error(
                   "Error: BETTER_AUTH_URL must be an absolute URL (e.g. http://localhost:3000).",
             );
-            process.exit(1);
+            throw new Error(
+                  "BETTER_AUTH_URL must be an absolute URL (e.g. http://localhost:3000).",
+            );
       }
 
       const allowedPaths = ["/", AUTH_BASE_PATH];
@@ -70,7 +76,9 @@ export function validateBetterAuthKeys(
             logger.error(
                   `Error: BETTER_AUTH_URL path must be "/" (backend origin) or "${AUTH_BASE_PATH}" — got "${pathname}".`,
             );
-            process.exit(1);
+            throw new Error(
+                  `BETTER_AUTH_URL path must be "/" (backend origin) or "${AUTH_BASE_PATH}" — got "${pathname}".`,
+            );
       }
 
       return { secret, baseURL: url.replace(/\/+$/, "") };
@@ -82,7 +90,9 @@ export function validateProductionMode(mode: string | undefined): boolean {
             logger.info(
                   "Error: NODE_ENV is not defined in environment variables.",
             );
-            process.exit(1);
+            throw new Error(
+                  "NODE_ENV is not defined in environment variables.",
+            );
       }
 
       return mode === "production";
