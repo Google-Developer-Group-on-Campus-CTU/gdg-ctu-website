@@ -22,6 +22,7 @@ import publicEventsRoutes from "./public/public-events.routes.js";
 import publicContentRoutes from "./public/public-content.routes.js";
 import publicPartnersRoutes from "./public/public-partners.routes.js";
 import publicGalleryRoutes from "./public/public-gallery.routes.js";
+import publicAuthRoutes from "./public/public-auth.routes.js";
 
 const router = Router();
 const protectedRouter = Router();
@@ -61,6 +62,7 @@ const publicMounts = [
       ["/public/partners", publicPartnersRoutes],
       ["/public/gallery", publicGalleryRoutes],
       ["/public/admin-invites", publicAdminInviteRoutes],
+      ["/public/auth", publicAuthRoutes],
 ] as const;
 
 export function registerPublicRoutes(target: Router) {

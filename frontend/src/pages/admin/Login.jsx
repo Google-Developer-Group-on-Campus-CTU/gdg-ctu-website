@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { authClient } from '../../lib/auth-client';
+import { apiFetch } from '../../api/client.js';
 import { AdminDisabled } from '../../components/ProtectedRoute.jsx';
 import AuthBrandPanel from '../../components/admin/AuthBrandPanel.jsx';
 import '../../styles/login.css';
@@ -8,6 +9,7 @@ import '../../styles/login.css';
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 8;
 
 function GoogleGIcon() {
   return (
@@ -36,13 +38,42 @@ export default function AdminLogin() {
   const navigate = useNavigate();
   const { data: session, isPending } = authClient.useSession();
 
+  // 'checking' → setup-status request in flight; then 'ready' with setupNeeded
+  // set from the response (any fetch error fails open to setupNeeded=false).
+  const [setupStatus, setSetupStatus] = useState('checking');
+  const [setupNeeded, setSetupNeeded] = useState(false);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [busy, setBusy] = useState(false);
+
+  // First-run check: does the user table have any admins yet? Fails open —
+  // a network error or missing endpoint shows the normal sign-in form
+  // instead of blocking login.
+  useEffect(() => {
+    if (!API_BASE_URL) return undefined;
+    let alive = true;
+    apiFetch('/public/auth/setup-status')
+      .then((data) => {
+        if (!alive) return;
+        setSetupNeeded(Boolean(data?.setupNeeded));
+        setSetupStatus('ready');
+      })
+      .catch(() => {
+        if (!alive) return;
+        setSetupNeeded(false);
+        setSetupStatus('ready');
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   if (!API_BASE_URL) return <AdminDisabled />;
 
@@ -54,8 +85,14 @@ export default function AdminLogin() {
 
   const validate = () => {
     const errs = {};
+    if (setupNeeded && !name.trim()) errs.name = 'Add your name.';
     if (!EMAIL_RE.test(email.trim())) errs.email = 'Enter a valid email address.';
-    if (!password) errs.password = 'Enter your password.';
+    if (!password) {
+      errs.password = setupNeeded ? 'Choose a password.' : 'Enter your password.';
+    } else if (setupNeeded && password.length < MIN_PASSWORD_LENGTH) {
+      errs.password = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+    }
+    if (setupNeeded && confirm !== password) errs.confirm = "Passwords don't match.";
     const clean = Object.fromEntries(Object.entries(errs).filter(([, v]) => v));
     setFieldErrors(clean);
     return Object.keys(clean).length === 0;
@@ -69,6 +106,22 @@ export default function AdminLogin() {
 
     setBusy(true);
     try {
+      if (setupNeeded) {
+        // First user created here is promoted to role admin by the backend
+        // databaseHooks.user.create.before hook (emailVerified set true too).
+        const { error } = await authClient.signUp.email({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+        });
+        if (error) {
+          setFormError(error.message || 'Could not create the first admin account.');
+          return;
+        }
+        navigate('/admin', { replace: true });
+        return;
+      }
+
       const { error } = await authClient.signIn.email({
         email: email.trim(),
         password,
@@ -103,96 +156,218 @@ export default function AdminLogin() {
         <AuthBrandPanel />
 
         <main className="login-panel">
+          <img
+            className="panel-deco"
+            src="/layout-assets/home/star-no-bg.png"
+            alt=""
+            aria-hidden="true"
+            style={{ top: '8%', right: '6%', width: '56px' }}
+          />
+          <img
+            className="panel-deco"
+            src="/layout-assets/home/globe-no-bg.png"
+            alt=""
+            aria-hidden="true"
+            style={{ bottom: '10%', left: '5%', width: '64px', transform: 'rotate(16deg)', opacity: 0.14 }}
+          />
           <div className="login-card">
-            <header className="login-card-head">
-              <span className="gdg-badge">Admin</span>
-              <h2>Sign in to the admin</h2>
-              <p>Use the account you use for the chapter — or continue with Google.</p>
-            </header>
-
-            {formError ? (
-              <div className="login-alert" role="alert">
-                {formError}
-              </div>
-            ) : null}
-            {notice ? (
-              <div className="login-notice" role="status">
-                {notice}
-              </div>
-            ) : null}
-
-            <form className="login-form" onSubmit={handleSubmit} noValidate>
-              <div className={`login-field${fieldErrors.email ? ' has-error' : ''}`}>
-                <label htmlFor="login-email">Email</label>
-                <input
-                  id="login-email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    clearFieldError('email');
-                  }}
-                  aria-invalid={fieldErrors.email ? 'true' : undefined}
-                  aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
-                />
-                {fieldErrors.email ? (
-                  <p className="login-field-error" id="login-email-error" role="alert">
-                    {fieldErrors.email}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className={`login-field${fieldErrors.password ? ' has-error' : ''}`}>
-                <label htmlFor="login-password">Password</label>
-                <div className="login-password-wrap">
-                  <input
-                    id="login-password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      clearFieldError('password');
-                    }}
-                    aria-invalid={fieldErrors.password ? 'true' : undefined}
-                    aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
-                  />
-                  <button
-                    type="button"
-                    className="login-peek"
-                    aria-pressed={showPassword}
-                    onClick={() => setShowPassword((v) => !v)}
-                  >
-                    {showPassword ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-                {fieldErrors.password ? (
-                  <p className="login-field-error" id="login-password-error" role="alert">
-                    {fieldErrors.password}
-                  </p>
-                ) : null}
-              </div>
-
-              <button type="submit" className="login-submit" disabled={busy}>
-                {busy ? <span className="login-spinner" aria-hidden="true" /> : null}
-                {busy ? 'Signing in…' : 'Sign in'}
-              </button>
-            </form>
-
-            <div className="login-divider" aria-hidden="true">
-              <span>or</span>
+            <div className="login-card-dots" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+              <i />
             </div>
+            {setupStatus === 'checking' ? (
+              <>
+                <header className="login-card-head">
+                  <span className="gdg-badge">Admin</span>
+                  <h2>Checking admin setup…</h2>
+                  <p>One quick check before you sign in.</p>
+                </header>
+                <div className="gdg-loading" role="status">
+                  <span className="gdg-spinner" aria-hidden="true" />
+                  <p>Checking…</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <header className="login-card-head">
+                  <span className="gdg-badge">Admin</span>
+                  {setupNeeded ? (
+                    <>
+                      <h2>Create the first admin</h2>
+                      <p>No admins exist yet — this account becomes the chapter admin and can invite others.</p>
+                    </>
+                  ) : (
+                    <>
+                      <h2>Welcome back</h2>
+                      <p>Sign in to update events, team, gallery and content. Changes appear on the public site right away.</p>
+                    </>
+                  )}
+                </header>
 
-            <button type="button" className="login-google" onClick={handleGoogle} disabled={busy}>
-              <GoogleGIcon />
-              Continue with Google
-            </button>
+                {formError ? (
+                  <div className="login-alert" role="alert">
+                    {formError}
+                  </div>
+                ) : null}
+                {notice ? (
+                  <div className="login-notice" role="status">
+                    {notice}
+                  </div>
+                ) : null}
 
-            <p className="login-switch">
-              Need an account? Ask an admin for an invite link.
-            </p>
+                <form className="login-form" onSubmit={handleSubmit} noValidate>
+                  {setupNeeded ? (
+                    <div className={`login-field${fieldErrors.name ? ' has-error' : ''}`}>
+                      <label htmlFor="login-name">Full name</label>
+                      <input
+                        id="login-name"
+                        type="text"
+                        autoComplete="name"
+                        value={name}
+                        onChange={(e) => {
+                          setName(e.target.value);
+                          clearFieldError('name');
+                        }}
+                        aria-invalid={fieldErrors.name ? 'true' : undefined}
+                        aria-describedby={fieldErrors.name ? 'login-name-error' : undefined}
+                      />
+                      {fieldErrors.name ? (
+                        <p className="login-field-error" id="login-name-error" role="alert">
+                          {fieldErrors.name}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <div className={`login-field${fieldErrors.email ? ' has-error' : ''}`}>
+                    <label htmlFor="login-email">Email</label>
+                    <input
+                      id="login-email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        clearFieldError('email');
+                      }}
+                      aria-invalid={fieldErrors.email ? 'true' : undefined}
+                      aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
+                    />
+                    {fieldErrors.email ? (
+                      <p className="login-field-error" id="login-email-error" role="alert">
+                        {fieldErrors.email}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className={`login-field${fieldErrors.password ? ' has-error' : ''}`}>
+                    <label htmlFor="login-password">Password</label>
+                    <div className="login-password-wrap">
+                      <input
+                        id="login-password"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete={setupNeeded ? 'new-password' : 'current-password'}
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          clearFieldError('password');
+                        }}
+                        aria-invalid={fieldErrors.password ? 'true' : undefined}
+                        aria-describedby={
+                          fieldErrors.password
+                            ? 'login-password-error'
+                            : setupNeeded
+                              ? 'login-password-hint'
+                              : undefined
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="login-peek"
+                        aria-pressed={showPassword}
+                        onClick={() => setShowPassword((v) => !v)}
+                      >
+                        {showPassword ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                    {setupNeeded && !fieldErrors.password ? (
+                      <p className="login-hint" id="login-password-hint">
+                        At least {MIN_PASSWORD_LENGTH} characters.
+                      </p>
+                    ) : null}
+                    {fieldErrors.password ? (
+                      <p className="login-field-error" id="login-password-error" role="alert">
+                        {fieldErrors.password}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {setupNeeded ? (
+                    <div className={`login-field${fieldErrors.confirm ? ' has-error' : ''}`}>
+                      <label htmlFor="login-confirm">Confirm password</label>
+                      <div className="login-password-wrap">
+                        <input
+                          id="login-confirm"
+                          type={showConfirm ? 'text' : 'password'}
+                          autoComplete="new-password"
+                          value={confirm}
+                          onChange={(e) => {
+                            setConfirm(e.target.value);
+                            clearFieldError('confirm');
+                          }}
+                          aria-invalid={fieldErrors.confirm ? 'true' : undefined}
+                          aria-describedby={fieldErrors.confirm ? 'login-confirm-error' : undefined}
+                        />
+                        <button
+                          type="button"
+                          className="login-peek"
+                          aria-pressed={showConfirm}
+                          onClick={() => setShowConfirm((v) => !v)}
+                        >
+                          {showConfirm ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                      {fieldErrors.confirm ? (
+                        <p className="login-field-error" id="login-confirm-error" role="alert">
+                          {fieldErrors.confirm}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <button type="submit" className="login-submit" disabled={busy}>
+                    {busy ? <span className="login-spinner" aria-hidden="true" /> : null}
+                    {busy
+                      ? setupNeeded
+                        ? 'Creating account…'
+                        : 'Signing in…'
+                      : setupNeeded
+                        ? 'Create first admin'
+                        : 'Sign in'}
+                  </button>
+                </form>
+
+                <div className="login-divider" aria-hidden="true">
+                  <span>or</span>
+                </div>
+
+                <button type="button" className="login-google" onClick={handleGoogle} disabled={busy}>
+                  <GoogleGIcon />
+                  Continue with Google
+                </button>
+
+                {setupNeeded ? (
+                  <p className="login-switch">The first Google account you sign in with also becomes the site admin.</p>
+                ) : (
+                  <p className="login-switch">
+                    Need an account? Ask an admin for an invite link, then <Link to="/admin/register">register</Link>.
+                  </p>
+                )}
+              </>
+            )}
           </div>
 
           <Link className="login-back" to="/">
