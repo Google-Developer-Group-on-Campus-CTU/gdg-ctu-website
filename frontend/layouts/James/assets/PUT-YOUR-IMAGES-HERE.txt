@@ -1,0 +1,9 @@
+PUT YOUR IMAGES HERE
+
+Header: header-photo.jpg
+Team: team-photo.jpg
+Events: event-1.jpg, event-2.jpg, event-3.jpg
+Partners: partner-1.png, partner-2.png, partner-3.png
+Gallery: moment-1.jpg, moment-2.jpg, moment-3.jpg
+
+You can simply drop your own images into this folder using those filenames.

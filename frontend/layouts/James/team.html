@@ -1,0 +1,2411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Our Team - GDGoC CTU</title>
+
+  <link rel="icon" href="assets/icon - Copy.png" type="image/png">
+  <link rel="stylesheet" href="team.css">
+
+  <!-- ===== HAMBURGER NAV STYLES (idagdag lamang, hindi binago ang iba) ===== -->
+  <style>
+    /* =========================
+       HAMBURGER BUTTON
+    ========================= */
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 30px;
+      height: 22px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      z-index: 30;
+      margin-left: auto;
+      margin-right: 10px;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .hamburger:active {
+      transform: scale(0.88);
+    }
+
+    .hamburger span {
+      display: block;
+      width: 100%;
+      height: 3px;
+      background: #111;
+      border-radius: 3px;
+      transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+      transform-origin: center;
+    }
+
+    .hamburger.active span:nth-child(1) {
+      transform: translateY(9.5px) rotate(45deg);
+    }
+    .hamburger.active span:nth-child(2) {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+    .hamburger.active span:nth-child(3) {
+      transform: translateY(-9.5px) rotate(-45deg);
+    }
+
+    /* =========================
+       MOBILE NAV PANEL — SMOOTH OPEN & CLOSE
+    ========================= */
+    .mobile-nav {
+      position: fixed;
+      top: 58px;
+      left: 0;
+      width: 100%;
+      background: #ddd;
+      border-bottom: 1px solid #bdbdbd;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      z-index: 25;
+
+      max-height: 0;
+      padding: 0 0;
+      opacity: 0;
+      transform: translateY(-12px);
+      overflow: hidden;
+      pointer-events: none;
+      visibility: hidden;
+
+      transition:
+        max-height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        padding 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.4s ease,
+        transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        visibility 0s linear 0.5s;
+    }
+
+    .mobile-nav.open {
+      max-height: 520px;
+      padding: 20px 0 25px;
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+      visibility: visible;
+      transition:
+        max-height 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        padding 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.35s ease 0.05s,
+        transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        visibility 0s linear 0s;
+    }
+
+    /* =========================
+       MOBILE NAV LINKS
+    ========================= */
+    .mobile-nav a {
+      position: relative;
+      font-size: 16px;
+      font-weight: 500;
+      color: #111;
+      text-decoration: none;
+      padding: 6px 14px;
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition:
+        color 0.25s ease,
+        transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+        letter-spacing 0.25s ease,
+        opacity 0.35s ease;
+      -webkit-tap-highlight-color: transparent;
+      cursor: pointer;
+    }
+
+    .mobile-nav a::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: 0;
+      height: 2px;
+      background: #4285f4;
+      border-radius: 2px;
+      transform: translateX(-50%);
+      transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .mobile-nav.open a {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .mobile-nav.open a:nth-child(1) { transition-delay: 0.08s; }
+    .mobile-nav.open a:nth-child(2) { transition-delay: 0.13s; }
+    .mobile-nav.open a:nth-child(3) { transition-delay: 0.18s; }
+    .mobile-nav.open a:nth-child(4) { transition-delay: 0.23s; }
+    .mobile-nav.open a:nth-child(5) { transition-delay: 0.28s; }
+    .mobile-nav.open a:nth-child(6) { transition-delay: 0.33s; }
+    .mobile-nav.open a:nth-child(7) { transition-delay: 0.38s; }
+
+    .mobile-nav a:hover,
+    .mobile-nav a:focus,
+    .mobile-nav a:focus-visible,
+    .mobile-nav a:active {
+      color: #4285f4 !important;
+      transform: translateY(-2px) scale(1.06);
+      letter-spacing: 0.5px;
+      outline: none;
+    }
+
+    .mobile-nav a:hover::after,
+    .mobile-nav a:focus::after,
+    .mobile-nav a:focus-visible::after,
+    .mobile-nav a:active::after {
+      width: 70%;
+    }
+
+    .mobile-nav a.active {
+      color: #4285f4 !important;
+      font-weight: 700;
+    }
+
+    .mobile-nav a.active::after {
+      width: 70%;
+    }
+
+    /* =========================
+       RESPONSIVE — MOBILE
+    ========================= */
+    @media (max-width: 700px) {
+      .topbar {
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 40;
+      }
+
+      body {
+        padding-top: 58px;
+      }
+
+      .hamburger {
+        display: flex;
+      }
+      .nav-links {
+        display: none;
+      }
+      .join-top {
+        display: none;
+      }
+    }
+
+    @media (min-width: 701px) {
+      .mobile-nav {
+        display: none !important;
+      }
+    }
+
+    /* =========================
+       PIXEL GLITCH EFFECT — TOPBAR
+    ========================= */
+    .topbar.glitch {
+      animation: glitchTopbar 0.4s steps(2, end) 1;
+    }
+
+    @keyframes glitchTopbar {
+      0%   { transform: translate(0, 0); }
+      10%  { transform: translate(-3px, 1px); }
+      20%  { transform: translate(3px, -1px); }
+      30%  { transform: translate(-2px, -2px); }
+      40%  { transform: translate(2px, 2px); }
+      50%  { transform: translate(-1px, 1px); }
+      60%  { transform: translate(1px, -1px); }
+      70%  { transform: translate(-2px, 0); }
+      80%  { transform: translate(2px, 0); }
+      90%  { transform: translate(-1px, 1px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    .mobile-nav.open {
+      animation: glitchPanelIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) 1;
+    }
+
+    @keyframes glitchPanelIn {
+      0%   { clip-path: inset(0 0 100% 0); }
+      25%  { clip-path: inset(0 0 55% 0); }
+      50%  { clip-path: inset(0 0 25% 0); }
+      75%  { clip-path: inset(0 0 8% 0); }
+      100% { clip-path: inset(0 0 0 0); }
+    }
+
+    .mobile-nav.open a {
+      animation: glitchLink 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      opacity: 0;
+    }
+
+    .mobile-nav.open a:nth-child(1) { animation-delay: 0.08s; }
+    .mobile-nav.open a:nth-child(2) { animation-delay: 0.13s; }
+    .mobile-nav.open a:nth-child(3) { animation-delay: 0.18s; }
+    .mobile-nav.open a:nth-child(4) { animation-delay: 0.23s; }
+    .mobile-nav.open a:nth-child(5) { animation-delay: 0.28s; }
+    .mobile-nav.open a:nth-child(6) { animation-delay: 0.33s; }
+    .mobile-nav.open a:nth-child(7) { animation-delay: 0.38s; }
+
+    @keyframes glitchLink {
+      0%   { opacity: 0; transform: translateX(-8px) skewX(-10deg); }
+      45%  { opacity: 0.7; transform: translateX(3px) skewX(6deg); }
+      75%  { opacity: 0.95; transform: translateX(-1px) skewX(-2deg); }
+      100% { opacity: 1; transform: translateX(0) skewX(0); }
+    }
+  </style>
+  <!-- ===== END HAMBURGER NAV STYLES ===== -->
+</head>
+
+<body>
+
+  <!-- ================= HEADER ================= -->
+  <header class="topbar">
+
+    <a class="site-logo" href="#home">
+      <img src="assets/icon - Copy.png" alt="GDGoC-CTU Logo">
+    </a>
+
+    <!-- ===== HAMBURGER BUTTON ===== -->
+    <button class="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="index.html">Home</a>
+      <a href="#story">About</a>
+      <a class="active" href="#team">Our Team</a>
+      <a href="#events">Events</a>
+      <a href="#partners">Partners</a>
+      <a href="#gallery">Gallery</a>
+    </nav>
+
+    <a class="join-top" href="#join">Join Us</a>
+
+  </header>
+
+  <!-- ===== MOBILE NAV PANEL ===== -->
+  <nav class="mobile-nav" aria-label="Mobile navigation">
+    <a href="index.html">Home</a>
+    <a href="#story">About</a>
+    <a class="active" href="#team">Our Team</a>
+    <a href="#events">Events</a>
+    <a href="#partners">Partners</a>
+    <a href="#gallery">Gallery</a>
+    <a href="#join">Join Us</a>
+  </nav>
+  <!-- ===== END MOBILE NAV PANEL ===== -->
+
+
+  <!-- ================= TEAM HERO ================= -->
+  <main>
+
+    <section class="team-hero">
+
+      <img
+        class="hero-picture hero-left"
+        src="assets/star-no-bg.png"
+        alt=""
+        style=" left: 410px; top: 70px; width: 90px; height: 90px;"
+      >
+
+      <img
+        class="hero-picture hero-top-right"
+        src="assets/arrow-no-bg.png"
+        alt=""
+        style=" left: 1100px; top: 50px; width: 100px; height: 100px; transform: rotate(-30deg);"
+      >
+
+      <img
+        class="hero-picture hero-bottom-lefts"
+        src="assets/heart-no-bg.png"
+        alt=""
+        style=" left: 1130px; bottom: -2px; width: 80px; height: 100px; transform: rotate(30deg);"
+      >
+
+      <img
+        class="hero-picture hero-bottom-lefts"
+        src="assets/globe-no-bg.png"
+        alt=""
+        style=" left: 440px; bottom: 10px; width: 100px; height: 80px; transform: rotate(30deg);"
+      >
+
+      <div class="team-intro">
+
+        <div class="team-label">
+          <span></span>
+          MEET THE TEAM
+        </div>
+
+        <h1>
+          The people behind<br>
+          the community
+        </h1>
+
+        <p>
+          A team of students who plan, create, organize, and build<br>
+          the experiences behind GDGoC - CTU.
+        </p>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= YEAR SELECTOR ================= -->
+    <section class="year-bar">
+
+      <div class="year-dropdown">
+
+        <button class="year-btn" id="yearBtn">
+          <span id="yearLabel">2025</span>
+          <svg class="year-caret" viewBox="0 0 24 24" fill="none"
+               xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9L12 15L18 9"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="year-menu" id="yearMenu">
+          <button class="year-option" data-year="2026">2026</button>
+          <button class="year-option" data-year="2025">2025</button>
+          <button class="year-option" data-year="2024">2024</button>
+          <button class="year-option" data-year="2023">2023</button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ============================================================
+         YEAR 2026
+    ============================================================ -->
+    <div class="year-panel" data-year="2026" hidden>
+
+      <!-- ========== EXECUTIVE BOARD ========== -->
+      <section class="department">
+        <h2>Executive Board</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+              <div class="team-card"
+
+                   data-name="Juan Dela Cruz"
+                   data-role="Campus Organizer"
+                   data-desc="Leads the entire organization and manages the executive board."
+                   data-email="juan@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="4th Year - BSIT"
+                   data-github="https://github.com/juandelacruz"
+                   data-linkedin="https://linkedin.com/in/juandelacruz">
+                <img class="card-photo" src="assets/officers 2026/campus-organizer.jpg" alt="Juan Dela Cruz">
+              </div>
+
+
+            </div>
+          </div>
+          <div class="edge edge-left">
+            <button class="slider-btn prev-btn">‹</button>
+          </div>
+          <div class="edge edge-right">
+            <button class="slider-btn next-btn">›</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== OPERATIONS ========== -->
+      <section class="department">
+        <h2>Operations Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+              <div class="team-card"
+
+                   data-name="Juan Dela Cruz"
+                   data-role="Operations Lead"
+                   data-desc="Leads the operations team in planning and executing events."
+                   data-email="juan@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github="https://github.com/juandelacruz"
+                   data-linkedin="https://linkedin.com/in/juandelacruz">
+                <img class="card-photo" src="assets/officers 2026/operations-lead.jpg" alt="Juan Dela Cruz">
+
+              </div>
+            </div>
+          </div>
+          <div class="edge edge-left">
+            <button class="slider-btn prev-btn">‹</button>
+          </div>
+          <div class="edge edge-right">
+            <button class="slider-btn next-btn">›</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== TECHNOLOGY ========== -->
+      <section class="department">
+        <h2>Technology Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+              <div class="team-card"
+
+                   data-name="Juan Dela Cruz"
+                   data-role="Campus Organizer"
+                   data-desc="Leads the entire organization and manages the executive board."
+                   data-email="juan@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="4th Year - BSIT"
+                   data-github="https://github.com/juandelacruz"
+                   data-linkedin="https://linkedin.com/in/juandelacruz">
+                <img class="card-photo" src="assets/officers 2026/campus-organizer.jpg" alt="Juan Dela Cruz">
+
+              </div>
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <!-- ========== CREATIVES ========== -->
+      <section class="department">
+        <h2>Creatives Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+              <div class="team-card"
+                   data-name="Juan Dela Cruz"
+                   data-role="Campus Organizer"
+                   data-desc="Leads the entire organization and manages the executive board."
+                   data-email="juan@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="4th Year - BSIT"
+                   data-github="https://github.com/juandelacruz"
+                   data-linkedin="https://linkedin.com/in/juandelacruz">
+                <img class="card-photo" src="assets/officers 2026/campus-organizer.jpg" alt="Juan Dela Cruz">
+
+              </div>
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <!-- ========== COMMUNITY DEVELOPMENT ========== -->
+      <section class="department">
+        <h2>Community Development Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+              <div class="team-card"
+
+                   data-name="Juan Dela Cruz"
+                   data-role="Campus Organizer"
+                   data-desc="Leads the entire organization and manages the executive board."
+                   data-email="juan@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="4th Year - BSIT"
+                   data-github="https://github.com/juandelacruz"
+                   data-linkedin="https://linkedin.com/in/juandelacruz">
+                <img class="card-photo" src="assets/officers 2026/campus-organizer.jpg" alt="Juan Dela Cruz">
+
+              </div>
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <!-- ========== FINANCE ========== -->
+      <section class="department">
+        <h2>Finance Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Juan Dela Cruz"
+                   data-role="Campus Organizer"
+                   data-desc="Leads the entire organization and manages the executive board."
+                   data-email="juan@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="4th Year - BSIT"
+                   data-github="https://github.com/juandelacruz"
+                   data-linkedin="https://linkedin.com/in/juandelacruz">
+                <img class="card-photo" src="assets/officers 2026/campus-organizer.jpg" alt="Juan Dela Cruz">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+    </div>
+
+
+    <!-- ============================================================
+         YEAR 2025
+    ============================================================ -->
+    <div class="year-panel" data-year="2025" >
+
+      <section class="department">
+        <h2>Executive Board</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Tyrone Tabornal"
+                   data-role="Campus Organizer"
+                   data-desc="Leads the organization and manages all executive operations."
+                   data-email="tyrone@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSCS">
+                <img class="card-photo" src="assets/officers 2025/Campus Organizer.jpg" alt="Tyrone Tabornal">
+              </div>
+
+              <div class="team-card"
+                   data-name="James Niño Tan"
+                   data-role="Chief Technology Officer"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="james@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="4th Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Chief-Technology-Officer.jpg" alt="James Niño Tan">
+              </div>
+
+              <div class="team-card"
+                   data-name="Michael Angelo Bejona"
+                   data-role="Chief Operating Officer"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="michael@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Chief Operating Officer.jpg" alt="Michael Angelo Bejona">
+              </div>
+
+              <div class="team-card"
+                   data-name="Alexis Red Saranza"
+                   data-role="Chief Community Development Officer"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="alexis@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Chief community development Officer.jpg" alt="Alexis Red Saranza">
+              </div>
+
+              <div class="team-card"
+                   data-name="Mikaela Vianca Molina"
+                   data-role="Consultant"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="mikaela@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSCEP">
+                <img class="card-photo" src="assets/officers 2025/Consultant.jpg" alt="Mikaela Vianca Molina">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <section class="department">
+        <h2>Operations Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Michael Angelo Bejona"
+                   data-role="Chief Operating Officer"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="michael@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Chief Operating Officer.jpg" alt="Michael Angelo Bejona">
+              </div>
+
+              <div class="team-card"
+                   data-name="Lucy Jean Bansag"
+                   data-role="Volunteer Management Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Volunteer Management Lead - Copy.jpg" alt="Lucy Jean Bansag">
+              </div>
+
+              <div class="team-card"
+                   data-name="Ma. Cristine Bierba"
+                   data-role="Event Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Event Lead.jpg" alt="Ma. Cristine Bierba">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <section class="department">
+        <h2>Technology Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="James Niño Tan"
+                   data-role="Chief-Technology-Officer"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="4th Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Chief-Technology-Officer.jpg" alt="James Niño Tan">
+              </div>
+
+              <div class="team-card"
+                   data-name="James Simblante"
+                   data-role="Web Development Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/WebDevelopementLead - Copy.jpg" alt="James Simblante">
+              </div>
+
+              <div class="team-card"
+                   data-name="Jefferson Gonzales"
+                   data-role="Cybersecurity Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Cybersecurity Lead.jpg" alt="Jefferson Gonzales">
+              </div>
+
+              <div class="team-card"
+                   data-name="Dexter Inguito"
+                   data-role="Mobile Development Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Mobile Development Lead - Copy.jpg" alt="Dexter Inguito">
+              </div>
+
+              <div class="team-card"
+                   data-name="Julian Gen Carticiano"
+                   data-role="External Relations Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/External Relations Lead - Copy.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Honeylyn Jeda Carocoy"
+                   data-role="UI/UX Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/UI UX LEAD - Copy.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Jonrheym Remegia"
+                   data-role="Artificial Intelligence and Machine Learning Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/AI AND ML LEAD.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Ryan Andrie Coretico"
+                   data-role="Game Development Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Game Developement Lead - Copy.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="John Derrick Gamon"
+                   data-role="Web Development Associate Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Web Dev Associate Lead - Copy.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Mitch Andrie Amores"
+                   data-role="Web Development Associate Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Web Dev Associate Lead 1 - Copy.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="John Vincent Augusto"
+                   data-role="Cloud Development Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Cloud Development Lead.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Mary Jane Soller"
+                   data-role="Technical Project Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Technical Project Lead - Copy.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Janssen Feihl Geyrozaga"
+                   data-role="Data Science and Analysis Associate Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Data science and Analysis Lead.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <section class="department">
+        <h2>Creatives Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="John Paul Mamolo"
+                   data-role="Graphics Designer"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Graphic Designer 2.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Huey P. Sumanting"
+                   data-role="Graphics Designer"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Graphics Designer - Copy.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="LC Q. Camposo"
+                   data-role="Graphics Designer"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Graphics Designer 1 - Copy.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Bea Angela W. Verastigue"
+                   data-role="Photography/Videographer Officer"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Photography videography Officer - Copy.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Jessel Ann M. Piamonte"
+                   data-role="Photography/Videographer Officer"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Photography videography Officer 1 - Copy.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Lee Suzane J. Necessario"
+                   data-role="Social Media Manager"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Social Media Manager.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Joseph Vince Tejero"
+                   data-role="Multimedia Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Multimedia Mnaager.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Russel Alforque"
+                   data-role="Graphics Designer"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Graphic Designer 3.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <section class="department">
+        <h2>Community Development Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+              
+              <div class="team-card"
+                   data-name="Alexis Saranza"
+                   data-role="Chief Community Development Officer"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Chief community development Officer.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Althea Lila Ocariza"
+                   data-role="External Relations Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/External Relations Lead 1 - Copy.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Kristine Mae Junsay"
+                   data-role="External Relations Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/External Relations Lead - Copy.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="IC Myles Catgcatag"
+                   data-role="Internal Relations Lead"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/External Relation Lead - Copy.jpg" alt="Julian Gen Carticiano">
+              </div>
+            
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <section class="department">
+        <h2>Finance Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Sean Humphrey Densing"
+                   data-role="Auditor"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Auditor.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+              <div class="team-card"
+                   data-name="Archie Aligsao"
+                   data-role="Finance Officer"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="lucy@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/officers 2025/Finance Mnager.jpg" alt="Julian Gen Carticiano">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+    </div>
+
+
+    <!-- ============================================================
+         YEAR 2024
+    ============================================================ -->
+<div class="year-panel" data-year="2024" hidden>
+
+      <section class="department">
+        <h2>Executive Board</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Tyrone Tabornal"
+                   data-role="Campus Organizer"
+                   data-desc="Leads the organization and manages all executive operations."
+                   data-email="tyrone@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSCS">
+                <img class="card-photo" src="assets/Officer 2024/Tyrone Tabornal.jpg" alt="Tyrone Tabornal">
+              </div>
+
+              <div class="team-card"
+                   data-name="Dexter Inquito"
+                   data-role="Chief Technology Officer"
+                   data-desc="Heads the technology and innovation initiatives."
+                   data-email="dexter@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/dexter inquito.jpg" alt="Dexter Inquito">
+              </div>
+
+              <div class="team-card"
+                   data-name="Mikaela Bianca"
+                   data-role="Chief Operations Officer"
+                   data-desc="Oversees the operations and logistics of the organization."
+                   data-email="mikaela@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSCEP">
+                <img class="card-photo" src="assets/Officer 2024/Mikaela Bianca.jpg" alt="Mikaela Bianca">
+              </div>
+
+              <div class="team-card"
+                   data-name="Teresa"
+                   data-role="Chief Creatives Officer"
+                   data-desc="Heads the creatives department and branding initiatives."
+                   data-email="teresa@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Teresa.jpg" alt="Teresa">
+              </div>
+
+              <div class="team-card"
+                   data-name="Wilbert Lucina"
+                   data-role="Chief Finance Officer"
+                   data-desc="Manages the financial operations of the organization."
+                   data-email="wilbert@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSBA">
+                <img class="card-photo" src="assets/Officer 2024/Wilbert Lucina.jpg" alt="Wilbert Lucina">
+              </div>
+
+              <div class="team-card"
+                   data-name="Carlos John"
+                   data-role="Consultant"
+                   data-desc="Provides guidance and strategic advice to the executive board."
+                   data-email="carlos@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Carlos John.jpg" alt="Carlos John">
+              </div>
+
+              <div class="team-card"
+                   data-name="Ivan Suralta"
+                   data-role="Consultant"
+                   data-desc="Provides guidance and strategic advice to the executive board."
+                   data-email="ivan@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Ivan Suralta.jpg" alt="Ivan Suralta">
+              </div>
+
+              <div class="team-card"
+                   data-name="Melvin Inaja"
+                   data-role="Secretary"
+                   data-desc="Handles documentation and records of the organization."
+                   data-email="melvin@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Melvin Inaja.jpg" alt="Melvin Inaja">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <section class="department">
+        <h2>Operations Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Trishian"
+                   data-role="Events Lead"
+                   data-desc="Leads the planning and execution of all events."
+                   data-email="trishian@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Trishian.jpg" alt="Trishian">
+              </div>
+
+              <div class="team-card"
+                   data-name="Hanna Shehn"
+                   data-role="Logistics Officer"
+                   data-desc="Handles logistics and event coordination."
+                   data-email="hanna@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/hanna shehn.jpg" alt="Hanna Shehn">
+              </div>
+
+              <div class="team-card"
+                   data-name="Katrina Chin"
+                   data-role="Logistics Officer"
+                   data-desc="Handles logistics and event coordination."
+                   data-email="katrina@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Katrina chin.jpg" alt="Katrina Chin">
+              </div>
+
+              <div class="team-card"
+                   data-name="Nathalie Jane"
+                   data-role="Logistics Officer"
+                   data-desc="Handles logistics and event coordination."
+                   data-email="nathalie@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Nathalie Jane.jpg" alt="Nathalie Jane">
+              </div>
+
+              <div class="team-card"
+                   data-name="Jamaika"
+                   data-role="Documentation Officer"
+                   data-desc="Handles documentation of events and activities."
+                   data-email="jamaika@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Jamaika.jpg" alt="Jamaika">
+              </div>
+
+              <div class="team-card"
+                   data-name="Johsua Igot"
+                   data-role="Documentation Lead"
+                   data-desc="Leads the documentation team for all activities."
+                   data-email="johsua@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Johsua Igot.jpg" alt="Johsua Igot">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <section class="department">
+        <h2>Technology Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Krishia"
+                   data-role="Web Development Lead"
+                   data-desc="Leads the web development initiatives."
+                   data-email="krishia@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Krishia.jpg" alt="Krishia">
+              </div>
+
+              <div class="team-card"
+                   data-name="Nino James"
+                   data-role="Mobile Development Lead"
+                   data-desc="Leads mobile app development initiatives."
+                   data-email="nino@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Nino James.jpg" alt="Nino James">
+              </div>
+
+              <div class="team-card"
+                   data-name="Leandro"
+                   data-role="AI/ML Lead"
+                   data-desc="Leads artificial intelligence and machine learning projects."
+                   data-email="leandro@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSCS">
+                <img class="card-photo" src="assets/Officer 2024/lEANDRO.jpg" alt="Leandro">
+              </div>
+
+              <div class="team-card"
+                   data-name="John Vincent"
+                   data-role="Cloud Development Lead"
+                   data-desc="Leads cloud infrastructure and development."
+                   data-email="johnvincent@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/John Vincent.jpg" alt="John Vincent">
+              </div>
+
+              <div class="team-card"
+                   data-name="Jefferson Gonzalez"
+                   data-role="Cybersecurity Lead"
+                   data-desc="Leads cybersecurity awareness and initiatives."
+                   data-email="jefferson@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Jefferson Gonzalez.jpg" alt="Jefferson Gonzalez">
+              </div>
+
+              <div class="team-card"
+                   data-name="John Rowen"
+                   data-role="Data Science and Analytics Lead"
+                   data-desc="Leads data science and analytics projects."
+                   data-email="johnrowen@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSCS">
+                <img class="card-photo" src="assets/Officer 2024/John Rowen.jpg" alt="John Rowen">
+              </div>
+
+              <div class="team-card"
+                   data-name="Ezikiel"
+                   data-role="UI/UX Lead"
+                   data-desc="Leads user interface and user experience design."
+                   data-email="ezikiel@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Ezikiel.jpg" alt="Ezikiel">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <section class="department">
+        <h2>Creatives Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Asian Baguio"
+                   data-role="Graphics Design Lead"
+                   data-desc="Leads graphic design and branding."
+                   data-email="asian@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Asian Baguio.jpg" alt="Asian Baguio">
+              </div>
+
+              <div class="team-card"
+                   data-name="Gerlie"
+                   data-role="Graphics Designer"
+                   data-desc="Creates visual assets for events and social media."
+                   data-email="gerlie@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/GERLIE.jpg" alt="Gerlie">
+              </div>
+
+              <div class="team-card"
+                   data-name="Justinian"
+                   data-role="Graphics Designer"
+                   data-desc="Creates visual assets for events and social media."
+                   data-email="justinian@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Justinian.jpg" alt="Justinian">
+              </div>
+
+              <div class="team-card"
+                   data-name="Mariam Ruelo"
+                   data-role="Graphics Designer"
+                   data-desc="Creates visual assets for events and social media."
+                   data-email="mariam@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="1st Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Mariam Ruelo.jpg" alt="Mariam Ruelo">
+              </div>
+
+              <div class="team-card"
+                   data-name="Sharaloue"
+                   data-role="Social Media Manager"
+                   data-desc="Manages social media accounts and content."
+                   data-email="sharaloue@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Sharaloue.jpg" alt="Sharaloue">
+              </div>
+
+              <div class="team-card"
+                   data-name="Angelique"
+                   data-role="Multimedia Lead"
+                   data-desc="Leads multimedia content creation."
+                   data-email="angelique@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/angelique.jpg" alt="Angelique">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <section class="department">
+        <h2>Community Development Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Chrispaolo"
+                   data-role="Community Development Officer"
+                   data-desc="Leads community outreach programs."
+                   data-email="chrispaolo@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Chrispaolo.jpg" alt="Chrispaolo">
+              </div>
+
+              <div class="team-card"
+                   data-name="Tyrone Tabornal"
+                   data-role="External Relations Lead"
+                   data-desc="Manages external partnerships and relations."
+                   data-email="tyrone@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSCS">
+                <img class="card-photo" src="assets/Officer 2024/Tyrone Tabornal.jpg" alt="Tyrone Tabornal">
+              </div>
+
+              <div class="team-card"
+                   data-name="Yousef"
+                   data-role="Internal Relations Lead"
+                   data-desc="Manages internal member relations."
+                   data-email="yousef@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT">
+                <img class="card-photo" src="assets/Officer 2024/Yousef.jpg" alt="Yousef">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <section class="department">
+        <h2>Finance Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Kyla Hubahid"
+                   data-role="Finance Officer"
+                   data-desc="Manages financial records and reports."
+                   data-email="kyla@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSBA">
+                <img class="card-photo" src="assets/Officer 2024/Kyla Hubahid.jpg" alt="Kyla Hubahid">
+              </div>
+
+              <div class="team-card"
+                   data-name="Gabriel Poenix"
+                   data-role="Auditor"
+                   data-desc="Audits financial transactions and records."
+                   data-email="gabriel@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSBA">
+                <img class="card-photo" src="assets/Officer 2024/Gabriel Poenix.jpg" alt="Gabriel Poenix">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ============================================================
+         YEAR 2023
+    ============================================================ -->
+
+<div class="year-panel" data-year="2023" hidden>
+
+      <section class="department">
+        <h2>Executive Board</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Laurence Miguel Ibarra"
+                   data-role="Chief Technology Officer"
+                   data-desc="Heads the technology and innovation initiatives of the organization."
+                   data-email="laurence@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/LAURENCE - CHIEF TECHNOLOGY.jpg" alt="Laurence Miguel Ibarra">
+              </div>
+
+              <div class="team-card"
+                   data-name="Jamaica Cavalida"
+                   data-role="Chief Operations Officer"
+                   data-desc="Oversees the operations and logistics of the organization."
+                   data-email="jamaica@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/jAMAICA - CHEF OPERATIONS.jpg" alt="Jamaica Cavalida">
+              </div>
+
+              <div class="team-card"
+                   data-name="Marriam P. Ruelo"
+                   data-role="Chief Creatives Officer"
+                   data-desc="Heads the creatives department and branding initiatives."
+                   data-email="marriam@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/MARIAM - CHIEF CREATIVES.jpg" alt="Marriam P. Ruelo">
+              </div>
+
+              <div class="team-card"
+                   data-name="Mars Celine B. Grancapal"
+                   data-role="Chief Finance Officer"
+                   data-desc="Manages the financial operations of the organization."
+                   data-email="mars@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSBA"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/MARS - CHIEF FINANCE.jpg" alt="Mars Celine B. Grancapal">
+              </div>
+
+              <div class="team-card"
+                   data-name="Carlos John Alpay"
+                   data-role="Chief Community Development Officer"
+                   data-desc="Leads community outreach and development programs."
+                   data-email="carlos@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/cARLOS - CHIEF COMMUNITY.jpg" alt="Carlos John Alpay">
+              </div>
+
+              <div class="team-card"
+                   data-name="Ivan G. Suralta"
+                   data-role="Lead"
+                   data-desc="Provides guidance and strategic advice to the executive board."
+                   data-email="ivan@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/iVAN - LEAD.jpg" alt="Ivan G. Suralta">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <section class="department">
+        <h2>Operations Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Andio Mart Libron"
+                   data-role="Events Lead"
+                   data-desc="Leads the planning and execution of all events."
+                   data-email="andio@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/ANDIO - EVENT LEAD.jpg" alt="Andio Mart Libron">
+              </div>
+
+              <div class="team-card"
+                   data-name="Rigel Kent Y. Canonigo"
+                   data-role="Documentation Lead"
+                   data-desc="Leads the documentation team for all activities."
+                   data-email="rigel@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/rIGEL - dOCUMENTATION.jpg" alt="Rigel Kent Y. Canonigo">
+              </div>
+
+              <div class="team-card"
+                   data-name="Alexander T. Llesol"
+                   data-role="Promotions Lead"
+                   data-desc="Handles promotions and marketing for events."
+                   data-email="alexander@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/aLEXANDER - pROMOTION.jpg" alt="Alexander T. Llesol">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <section class="department">
+        <h2>Technology Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Youssef L. Cabañero"
+                   data-role="Web Development Lead"
+                   data-desc="Leads the web development initiatives."
+                   data-email="youssef@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/yOUSEEF - WEB LEAD.jpg" alt="Youssef L. Cabañero">
+              </div>
+
+              <div class="team-card"
+                   data-name="Dexter G. Inguito"
+                   data-role="Mobile Development Lead"
+                   data-desc="Leads mobile app development initiatives."
+                   data-email="dexter@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/DEXTER - MOBILE DEVELOPEMENT LEAD.jpg" alt="Dexter G. Inguito">
+              </div>
+
+              <div class="team-card"
+                   data-name="Arth Daryll T. Labbino"
+                   data-role="Associate Mobile Development Officer"
+                   data-desc="Assists in mobile app development initiatives."
+                   data-email="arth@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/ARTH - ASSOCIATE MOBILE.jpg" alt="Arth Daryll T. Labbino">
+              </div>
+
+              <div class="team-card"
+                   data-name="Nhorwin Brixer L. Codino"
+                   data-role="Cloud Development Lead"
+                   data-desc="Leads cloud infrastructure and development."
+                   data-email="nhorwin@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/Nhorwin - cLOUD.jpg" alt="Nhorwin Brixer L. Codino">
+              </div>
+
+              <div class="team-card"
+                   data-name="Jenica Rezi L. Sabanal"
+                   data-role="Cybersecurity Lead"
+                   data-desc="Leads cybersecurity awareness and initiatives."
+                   data-email="jenica@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/Jenix - Cyber.jpg" alt="Jenica Rezi L. Sabanal">
+              </div>
+
+              <div class="team-card"
+                   data-name="Niño Rey B. Manso"
+                   data-role="Associate Cybersecurity Lead"
+                   data-desc="Assists in cybersecurity initiatives."
+                   data-email="nino@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/Nino rey associate cyber.jpg" alt="Niño Rey B. Manso">
+              </div>
+
+              <div class="team-card"
+                   data-name="Genesis E. Esdrilon Jr."
+                   data-role="Data Science and Analytics Lead"
+                   data-desc="Leads data science and analytics projects."
+                   data-email="genesis@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSCS"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/GENESIS - DATA LEAD.jpg" alt="Genesis E. Esdrilon Jr.">
+              </div>
+
+              <div class="team-card"
+                   data-name="Simpaul Dave D. Simpron"
+                   data-role="Associate Data Science and Analytics Officer"
+                   data-desc="Assists in data science and analytics projects."
+                   data-email="simpaul@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSCS"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/SIMAPUL DAVE - ASSOCIUATE DATA.jpg" alt="Simpaul Dave D. Simpron">
+              </div>
+
+              <div class="team-card"
+                   data-name="Melvin R. Inajada"
+                   data-role="Artificial Intelligence / Machine Learning Lead"
+                   data-desc="Leads artificial intelligence and machine learning projects."
+                   data-email="melvin@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSCS"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/MELVIN AI AND ML LEAD.jpg" alt="Melvin R. Inajada">
+              </div>
+
+              <div class="team-card"
+                   data-name="Chris Paolo S. Caral"
+                   data-role="Associate AI/ML Officer"
+                   data-desc="Assists in artificial intelligence and machine learning projects."
+                   data-email="chris@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSCS"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/Chris Paolo - ASSOCIATE ai.jpg" alt="Chris Paolo S. Caral">
+              </div>
+
+              <div class="team-card"
+                   data-name="Geoff Adrian M. Rensulat"
+                   data-role="User Interface / User Experience Lead"
+                   data-desc="Leads user interface and user experience design."
+                   data-email="geoff@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/gEOF - ui.jpg" alt="Geoff Adrian M. Rensulat">
+              </div>
+
+              <div class="team-card"
+                   data-name="Madelyn S. Contento"
+                   data-role="Associate Web Development Officer"
+                   data-desc="Assists in web development initiatives."
+                   data-email="madelyn@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/mEDELYN- aSSOCHIATE WEB DEVELOPMENT.jpg" alt="Madelyn S. Contento">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <section class="department">
+        <h2>Creatives Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Ezekiel R. Villadolid"
+                   data-role="Design and Branding Lead"
+                   data-desc="Leads design and branding initiatives."
+                   data-email="ezekiel@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/Ezikiel - Design.jpg" alt="Ezekiel R. Villadolid">
+              </div>
+
+              <div class="team-card"
+                   data-name="Karlfred Martinez"
+                   data-role="Social Media Manager"
+                   data-desc="Manages social media accounts and content."
+                   data-email="karlfred@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/kARLFRED - sOCIAL mEDIA.jpg" alt="Karlfred Martinez">
+              </div>
+
+              <div class="team-card"
+                   data-name="Shara Lou S. Ejurango"
+                   data-role="Social Media Manager"
+                   data-desc="Manages social media accounts and content."
+                   data-email="shara@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="2nd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/SHARA - SOCIAL MEDIA MANAGER.jpg" alt="Shara Lou S. Ejurango">
+              </div>
+
+              <div class="team-card"
+                   data-name="Michael James Labitad"
+                   data-role="Multimedia Lead"
+                   data-desc="Leads multimedia content creation."
+                   data-email="michael@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSIT"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/mICHAEL jAMES - MUlltimedia.jpg" alt="Michael James Labitad">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+      <section class="department">
+        <h2>Finance Department</h2>
+        <div class="team-slider">
+          <div class="team-viewport">
+            <div class="team-track">
+
+              <div class="team-card"
+                   data-name="Shyra P. Ticod"
+                   data-role="Auditor"
+                   data-desc="Audits financial transactions and records."
+                   data-email="shyra@example.com"
+                   data-school="Cebu Technological University"
+                   data-year="3rd Year - BSBA"
+                   data-github=""
+                   data-linkedin="">
+                <img class="card-photo" src="assets/Officer 2023/Shyra Auditor.jpg" alt="Shyra P. Ticod">
+              </div>
+
+            </div>
+          </div>
+          <div class="edge edge-left"><button class="slider-btn prev-btn">‹</button></div>
+          <div class="edge edge-right"><button class="slider-btn next-btn">›</button></div>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+
+  <!-- ================= OFFICER MODAL ================= -->
+  <div class="officer-modal" id="officerModal" aria-hidden="true">
+    <div class="officer-modal-backdrop" data-close></div>
+
+    <div class="officer-modal-card" role="dialog" aria-modal="true">
+
+      <button class="officer-modal-close" aria-label="Close" data-close>×</button>
+
+      <div class="officer-modal-photo">
+        <img id="modalPhoto" src="" alt="">
+        <div class="photo-placeholder"><strong>NO PHOTO</strong></div>
+      </div>
+
+      <div class="officer-modal-body">
+        <h3 id="modalName">Name</h3>
+        <p class="officer-modal-role" id="modalRole">Role</p>
+        <p class="officer-modal-desc" id="modalDesc">Description</p>
+
+        <div class="officer-modal-info">
+          <div class="info-row">
+            <span class="info-label">Email</span>
+            <a id="modalEmail" href="#">—</a>
+          </div>
+          <div class="info-row">
+            <span class="info-label">School</span>
+            <span id="modalSchool">—</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Year &amp; Course</span>
+            <span id="modalYear">—</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Portfolio</span>
+            <span class="info-links">
+              <a id="modalGithub" href="#" target="_blank">GitHub</a>
+              <a id="modalLinkedin" href="#" target="_blank">LinkedIn</a>
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ==========================================
+       MORE THAN A ROLE
+  ========================================== -->
+
+  <section class="more-role">
+
+    <div class="role-line"></div>
+
+    <div class="role-content">
+
+      <div class="role-badge">
+        <span></span>
+        MORE THAN A ROLE
+      </div>
+
+      <div class="roles">
+
+        <div class="role-item">
+          <span class="role-dot yellow"></span>
+          <span>Plan</span>
+        </div>
+
+        <div class="role-item">
+          <span class="role-dot red"></span>
+          <span>Connect</span>
+        </div>
+
+        <div class="role-item">
+          <span class="role-dot blue"></span>
+          <span>Create</span>
+        </div>
+
+        <div class="role-item">
+          <span class="role-dot green"></span>
+          <span>Deliver</span>
+        </div>
+
+      </div>
+
+      <p class="role-description">
+        Different roles.<br>
+        One community.
+      </p>
+
+    </div>
+
+
+    <div class="join-card">
+
+      <div class="join-dots">
+        <span class="dot red"></span>
+        <span class="dot blue"></span>
+        <span class="dot green"></span>
+        <span class="dot yellow"></span>
+      </div>
+
+      <div class="join-content">
+
+        <h2>Join Us</h2>
+
+        <p>
+          There's always room for another builder
+        </p>
+
+        <a href="#" class="community-btn">
+          Join the community
+          <span>↗</span>
+        </a>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="footer">
+    <div class="footer-content">
+
+      <div class="footer-brand">
+        <div class="gdg-symbol">
+          <span class="symbol-blue"></span>
+          <span class="symbol-red"></span>
+          <span class="symbol-green"></span>
+          <span class="symbol-yellow"></span>
+        </div>
+
+        <div class="big-logo">
+          <span class="blue">G</span>
+          <span class="red">D</span>
+          <span class="yellow">G</span>
+          <span class="blue">o</span>
+          <span class="green">C</span>
+          <span class="dash">-</span>
+          <span class="blue">C</span>
+          <span class="green">T</span>
+          <span class="red">U</span>
+        </div>
+      </div>
+
+      <div class="footer-links">
+        <div class="footer-column">
+          <h3>Socials</h3>
+          <a href="#">Instagram</a>
+          <a href="#">Facebook</a>
+          <a href="#">LinkedIn</a>
+          <a href="#">TikTok</a>
+        </div>
+
+        <div class="footer-column">
+          <h3>Navigation</h3>
+          <a href="#home">Home</a>
+          <a href="#about">About</a>
+          <a href="#team">Our Team</a>
+          <a href="#events">Events</a>
+          <a href="#partner">Partner</a>
+          <a href="#gallery">Gallery</a>
+        </div>
+
+        <div class="footer-column contact">
+          <h3>Contact</h3>
+          <a href="mailto:gdgsc.ctu@gmail.com">gdgsc.ctu@gmail.com</a>
+          <h3 class="address-title">Address</h3>
+          <a class="address" href="https://maps.google.com/" target="_blank">
+            M.J. Cuenco Ave, Cor R.<br>
+            Palma Street, 6000 Cebu<br>
+            Cebu City, Philippines,<br>
+            6000
+          </a>
+        </div>
+      </div>
+    </div>
+    <br><br><br>
+  </footer>
+
+
+  <!-- ================= SCRIPTS ================= -->
+<script>
+  function getVisibleCount() {
+    const w = window.innerWidth;
+    if (w <= 550) return 1;
+    if (w <= 700) return 2;
+    if (w <= 900) return 3;
+    return 4;
+  }
+
+  function initSliders(scope) {
+    const sliders = scope.querySelectorAll('.team-slider');
+
+    sliders.forEach((slider) => {
+      const track   = slider.querySelector('.team-track');
+      const prevBtn = slider.querySelector('.prev-btn');
+      const nextBtn = slider.querySelector('.next-btn');
+      const cards   = track.children;
+      let index     = 0;
+
+      if (slider._prevHandler) {
+        prevBtn.removeEventListener('click', slider._prevHandler);
+      }
+      if (slider._nextHandler) {
+        nextBtn.removeEventListener('click', slider._nextHandler);
+      }
+      if (slider._resizeHandler) {
+        window.removeEventListener('resize', slider._resizeHandler);
+      }
+
+      function cardStep() {
+        const card = cards[0];
+        const gap  = parseFloat(getComputedStyle(track).gap) || 12;
+        return card.getBoundingClientRect().width + gap;
+      }
+
+      function maxIndex() {
+        const visible = getVisibleCount();
+        return Math.max(0, cards.length - visible);
+      }
+
+      function update() {
+        if (index > maxIndex()) index = maxIndex();
+        if (index < 0) index = 0;
+
+        track.style.transform = `translateX(${-index * cardStep()}px)`;
+        prevBtn.disabled = index === 0;
+        nextBtn.disabled = index >= maxIndex();
+      }
+
+      slider._nextHandler = () => {
+        index = (index >= maxIndex()) ? 0 : index + 1;
+        update();
+      };
+
+      slider._prevHandler = () => {
+        index = (index <= 0) ? maxIndex() : index - 1;
+        update();
+      };
+
+      slider._resizeHandler = () => {
+        index = 0;
+        update();
+      };
+
+      nextBtn.addEventListener('click', slider._nextHandler);
+      prevBtn.addEventListener('click', slider._prevHandler);
+      window.addEventListener('resize', slider._resizeHandler);
+
+      update();
+    });
+  }
+
+
+  function ensureCardInfo() {
+    document.querySelectorAll('.team-card').forEach((card) => {
+      if (card.querySelector('.card-info')) return;
+
+      const data = card.dataset;
+
+      const info = document.createElement('div');
+      info.className = 'card-info';
+
+      const name = document.createElement('h4');
+      name.className = 'card-name';
+      name.textContent = data.name || 'No name';
+
+      const role = document.createElement('p');
+      role.className = 'card-role';
+      role.textContent = data.role || 'No role';
+
+      info.appendChild(name);
+      info.appendChild(role);
+
+      if (data.github || data.linkedin) {
+        const links = document.createElement('div');
+        links.className = 'card-links';
+
+        if (data.github) {
+          const a = document.createElement('a');
+          a.href = data.github;
+          a.target = '_blank';
+          a.textContent = 'GitHub';
+          links.appendChild(a);
+        }
+
+        if (data.linkedin) {
+          const a = document.createElement('a');
+          a.href = data.linkedin;
+          a.target = '_blank';
+          a.textContent = 'LinkedIn';
+          links.appendChild(a);
+        }
+
+        info.appendChild(links);
+      }
+
+      card.appendChild(info);
+    });
+  }
+
+
+  function initImageLoading() {
+    document.querySelectorAll('.team-card').forEach((card) => {
+      const img = card.querySelector('.card-photo');
+      if (!img) return;
+
+      if (card.dataset.imgInit === '1') return;
+      card.dataset.imgInit = '1';
+
+      card.classList.add('img-loading');
+
+      if (img.complete && img.naturalWidth > 0) {
+        card.classList.remove('img-loading');
+        card.classList.add('img-loaded');
+        return;
+      }
+
+      if (img.complete && img.naturalWidth === 0) {
+        card.classList.remove('img-loading');
+        card.classList.add('img-error');
+        return;
+      }
+
+      img.addEventListener('load', () => {
+        card.classList.remove('img-loading');
+        card.classList.add('img-loaded');
+      }, { once: true });
+
+      img.addEventListener('error', () => {
+        card.classList.remove('img-loading');
+        card.classList.add('img-error');
+      }, { once: true });
+    });
+  }
+
+
+  function triggerCardsLoading(scope) {
+    const cards = scope.querySelectorAll('.team-card');
+
+    cards.forEach((card) => {
+      const img = card.querySelector('.card-photo');
+
+      card.classList.remove('img-loaded', 'img-error');
+      card.classList.add('img-loading');
+
+      if (!img) return;
+
+      if (img.complete && img.naturalWidth > 0) {
+        setTimeout(() => {
+          card.classList.remove('img-loading');
+          card.classList.add('img-loaded');
+        }, 300);
+        return;
+      }
+
+      if (img.complete && img.naturalWidth === 0) {
+        card.classList.remove('img-loading');
+        card.classList.add('img-error');
+        return;
+      }
+
+      img.addEventListener('load', function onLoad() {
+        card.classList.remove('img-loading');
+        card.classList.add('img-loaded');
+        img.removeEventListener('load', onLoad);
+      }, { once: true });
+
+      img.addEventListener('error', function onError() {
+        card.classList.remove('img-loading');
+        card.classList.add('img-error');
+        img.removeEventListener('error', onError);
+      }, { once: true });
+    });
+  }
+
+
+  const yearBtn   = document.getElementById('yearBtn');
+  const yearMenu  = document.getElementById('yearMenu');
+  const yearLabel = document.getElementById('yearLabel');
+  const yearOpts  = document.querySelectorAll('.year-option');
+  const panels    = document.querySelectorAll('.year-panel');
+
+  yearBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    yearMenu.classList.toggle('open');
+    yearBtn.classList.toggle('open');
+  });
+
+  yearOpts.forEach((opt) => {
+    opt.addEventListener('click', () => {
+      const year = opt.dataset.year;
+
+      yearMenu.classList.remove('open');
+      yearBtn.classList.remove('open');
+
+      yearLabel.textContent = year;
+
+      yearOpts.forEach((o) => o.classList.remove('active'));
+      opt.classList.add('active');
+
+      panels.forEach((panel) => {
+        if (panel.dataset.year === year) {
+          panel.hidden = false;
+          ensureCardInfo();
+          initSliders(panel);
+          triggerCardsLoading(panel);
+        } else {
+          panel.hidden = true;
+        }
+      });
+    });
+  });
+
+  document.addEventListener('click', () => {
+    yearMenu.classList.remove('open');
+    yearBtn.classList.remove('open');
+  });
+
+
+  const modal          = document.getElementById('officerModal');
+  const modalPhoto     = document.getElementById('modalPhoto');
+  const modalName      = document.getElementById('modalName');
+  const modalRole      = document.getElementById('modalRole');
+  const modalDesc      = document.getElementById('modalDesc');
+  const modalEmail     = document.getElementById('modalEmail');
+  const modalSchool    = document.getElementById('modalSchool');
+  const modalYear      = document.getElementById('modalYear');
+  const modalGit       = document.getElementById('modalGithub');
+  const modalLink      = document.getElementById('modalLinkedin');
+  const modalPhotoWrap = modal.querySelector('.officer-modal-photo');
+
+  function openOfficerModal(card) {
+    const data = card.dataset;
+
+    const img = card.querySelector('.card-photo');
+    let photo = (img && img.getAttribute('src')) ? img.getAttribute('src') : '';
+
+    if (card.classList.contains('img-error') || !photo || photo.trim() === '') {
+      photo = '';
+    }
+
+    if (photo && photo.trim() !== '') {
+      modalPhoto.src = photo;
+      modalPhoto.style.display = 'block';
+      modalPhotoWrap.classList.remove('no-photo');
+    } else {
+      modalPhoto.src = '';
+      modalPhoto.style.display = 'none';
+      modalPhotoWrap.classList.add('no-photo');
+    }
+
+    modalName.textContent   = data.name   || '—';
+    modalRole.textContent   = data.role   || '—';
+    modalDesc.textContent   = data.desc   || '—';
+    modalSchool.textContent = data.school || '—';
+    modalYear.textContent   = data.year   || '—';
+
+    modalEmail.textContent = data.email || '—';
+    modalEmail.href        = data.email ? `mailto:${data.email}` : '#';
+
+    if (data.github) {
+      modalGit.textContent = 'GitHub';
+      modalGit.href        = data.github;
+      modalGit.style.display = 'inline';
+    } else {
+      modalGit.style.display = 'none';
+    }
+
+    if (data.linkedin) {
+      modalLink.textContent = 'LinkedIn';
+      modalLink.href        = data.linkedin;
+      modalLink.style.display = 'inline';
+    } else {
+      modalLink.style.display = 'none';
+    }
+
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeOfficerModal() {
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.officer-modal')) return;
+
+    if (e.target.closest('.slider-btn') ||
+        e.target.closest('.edge') ||
+        e.target.closest('.year-btn') ||
+        e.target.closest('.year-menu')) return;
+
+    if (e.target.closest('.card-links a')) return;
+
+    const card = e.target.closest('.team-card');
+    if (!card) return;
+
+    openOfficerModal(card);
+  });
+
+  modal.querySelectorAll('[data-close]').forEach((el) => {
+    el.addEventListener('click', closeOfficerModal);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('open')) {
+      closeOfficerModal();
+    }
+  });
+
+
+  const observer = new MutationObserver((mutations) => {
+    let shouldUpdate = false;
+
+    mutations.forEach((m) => {
+      m.addedNodes.forEach((node) => {
+        if (node.nodeType === 1) {
+          if (node.classList && node.classList.contains('team-card')) {
+            shouldUpdate = true;
+          }
+          if (node.querySelectorAll && node.querySelectorAll('.team-card').length) {
+            shouldUpdate = true;
+          }
+        }
+      });
+    });
+
+    if (shouldUpdate) {
+      ensureCardInfo();
+      initImageLoading();
+    }
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
+
+  ensureCardInfo();
+  initImageLoading();
+  initSliders(document.querySelector('.year-panel[data-year="2025"]'));
+  document.querySelector('.year-option[data-year="2025"]').classList.add('active');
+</script>
+
+
+  <!-- ===== HAMBURGER NAV SCRIPT (idagdag lamang) ===== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const hamburger = document.querySelector('.hamburger');
+      const mobileNav = document.querySelector('.mobile-nav');
+      const mobileLinks = document.querySelectorAll('.mobile-nav a');
+      const topbar = document.querySelector('.topbar');
+
+      if (!hamburger || !mobileNav) return;
+
+      function triggerGlitch() {
+        if (!topbar) return;
+        topbar.classList.remove('glitch');
+        void topbar.offsetWidth;
+        topbar.classList.add('glitch');
+        setTimeout(() => topbar.classList.remove('glitch'), 450);
+      }
+
+      hamburger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        triggerGlitch();
+        mobileNav.classList.toggle('open');
+        hamburger.classList.toggle('active');
+        hamburger.setAttribute(
+          'aria-expanded',
+          mobileNav.classList.contains('open')
+        );
+      });
+
+      mobileLinks.forEach(link => {
+        link.addEventListener('click', function () {
+          if (!mobileNav.classList.contains('open')) return;
+          triggerGlitch();
+          mobileNav.classList.remove('open');
+          hamburger.classList.remove('active');
+          hamburger.setAttribute('aria-expanded', 'false');
+        });
+      });
+
+      document.addEventListener('click', function (e) {
+        if (
+          mobileNav.classList.contains('open') &&
+          !mobileNav.contains(e.target) &&
+          !hamburger.contains(e.target)
+        ) {
+          triggerGlitch();
+          mobileNav.classList.remove('open');
+          hamburger.classList.remove('active');
+          hamburger.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      window.addEventListener('resize', function () {
+        if (window.innerWidth > 700) {
+          mobileNav.classList.remove('open');
+          hamburger.classList.remove('active');
+          hamburger.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+  </script>
+  <!-- ===== END HAMBURGER NAV SCRIPT ===== -->
+
+</body>
+</html>

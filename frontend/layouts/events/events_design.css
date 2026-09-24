@@ -1,0 +1,1042 @@
+html {
+  scroll-behavior: smooth;
+}
+
+html, body {
+    font-family: "Poppins", sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #fafafa;
+}
+
+.hero {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 60px 20px 80px;
+    margin-top: 50px;
+}
+
+/* pill badge */
+.events-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: 1px solid #444;
+    border-radius: 999px;
+    background: #fff;
+    font-family: 'Google Sans Flex', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    color: #000;
+    cursor: default;
+    margin-bottom: 32px;
+    margin-top: -50px;
+}
+
+.events-btn .dot {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ea4335;
+    border: none;
+}
+
+h1 {
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 75px;
+    font-weight: 300;
+    margin: 0;
+    line-height: 1.15;
+    color: #1a1a1a;
+}
+
+p {
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 21px;
+    font-weight: 400;
+    color: #444;
+    margin: 20px 0 0;
+    line-height: 1.6;
+    max-width: 700px;
+}
+
+p:nth-of-type(2) {
+    margin-top: 0;
+}
+
+.cta-btn {
+    margin-top: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    height: 45px;
+    width: 300px;
+    background: #5ADB6C;
+    border-radius: 999px;
+    color: #1a1a1a;
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 22px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    border: 2px solid black;
+}
+
+.cta-btn:hover {
+    background: #22c58e;
+}
+
+.doodle {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+}
+
+.doodle-1 { top: 45px;  left: 20%;  padding: 20px; height: 120px;  width: 120px; }
+.doodle-2 { top: 30px;  right: 16%; padding: 20px; width: 140px; height: 140px; }
+.doodle-3 { top: 250px; left: 13%;  padding: 20px; width: 140px; height: 140px; transform: rotate(15deg); }
+.doodle-4 { top: 250px; right: 13%; padding: 20px; width: 140px; height: 140px; }
+
+.doodle path,
+.doodle circle {
+    stroke-width: 2.5;
+}
+
+.doodle-2 path {
+    stroke-width: 4;
+}
+
+.arrow-down {
+    display: inline-block;
+    margin-top: -5px;
+    margin-left: -10px;
+    font-size: 28px;
+    font-weight: 500;
+    transition: transform 0.3s ease;
+}
+
+.learn-img {
+    width: 230px;
+    height: 120px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+hr {
+  margin-top: 80px;
+  border: none;
+  border-top: 2px solid #1a1a1a;
+  width: 100%;
+}
+
+.upcoming-events-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: 1px solid #444;
+    border-radius: 999px;
+    background: #fff;
+    font-family: 'Google Sans Flex', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    color: #000;
+    cursor: default;
+    margin-bottom: 32px;
+    margin-top: 50px;
+}
+
+.upcoming-events-btn .up-dot {
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #F9AB00;
+}
+
+.carousel-wrapper {
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.carousel {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    padding: 8px 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.carousel::-webkit-scrollbar {
+    display: none;
+}
+
+.card {
+    margin-top: 40px;
+    height: 300px;
+    width: 450px;
+    flex-shrink: 0;
+    background-color: #d9d9d9;
+    border-radius: 12px;
+    scroll-snap-align: start;
+}
+
+.card-featured {
+    margin-top: 40px;
+    height: 400px;
+    width: 1100px;
+    flex-shrink: 0;
+    background-color: #d9d9d9;
+    border-radius: 12px;
+    scroll-snap-align: start;
+}
+
+.carousel-wrapper::before,
+.carousel-wrapper::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 70px;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.carousel-wrapper::before {
+    left: 0;
+    background: linear-gradient(to left, rgba(250,250,250,0), #fafafa);
+}
+
+.carousel-wrapper::after {
+    right: 0;
+    background: linear-gradient(to right, rgba(250,250,250,0), #fafafa);
+}
+
+.carousel-wrapper.show-left::before {
+    opacity: 1;
+}
+
+.carousel-wrapper.show-right::after {
+    opacity: 1;
+}
+
+.carousel-arrow-right {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.carousel-arrow-left {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.featured-events-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: 1px solid #444;
+    border-radius: 999px;
+    background: #fff;
+    font-family: 'Google Sans Flex', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    color: #000;
+    cursor: default;
+    margin-bottom: 32px;
+    margin-top: 60px;
+}
+
+.featured-events-btn .feat-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #34A853;
+}
+
+.past-events-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: 1px solid #444;
+    border-radius: 999px;
+    background: #fff;
+    font-family: 'Google Sans Flex', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    color: #000;
+    cursor: default;
+    margin-bottom: 32px;
+    margin-top: 60px;
+}
+
+.past-events-btn .past-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #4285F4;
+}
+
+.card-rows {
+    margin-top: 50px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 1100px;
+}
+
+.card-past {
+    aspect-ratio: 3 / 4;
+    background-color: #d9d9d9;
+    border-radius: 12px;
+}
+
+.box-event {
+    width: 60%;
+    margin: 60px auto;
+    padding: 40px;
+    background: #fff;
+    border: 2px solid #1a1a1a;
+    border-radius: 20px;
+    text-align: center;
+    font-family: "Google Sans Flex", sans-serif;
+}
+
+.dots {
+    display: flex;
+    justify-content: left;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid black;
+}
+
+.dot-red    { background-color: #EA4335; }
+.dot-blue   { background-color: #4285F4; }
+.dot-green  { background-color: #34A853; }
+.dot-yellow { background-color: #FBBC05; }
+
+.box-event h2 {
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 51px;
+    font-weight: 400;
+    color: #1a1a1a;
+    margin: 30px 0 12px;
+    line-height: 1.5;
+}
+
+h2:nth-of-type(2) {
+    margin-top: -20px;
+}
+
+.box-event p {
+    font-family: "Google Sans Flex", sans-serif;
+    font-weight: 300;
+    font-size: 20px;
+    color: #666;
+    margin: 0 0 24px;
+    max-width: none;
+}
+
+.register {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 45px;
+  width: 200px;
+  background: #5ADB6C;
+  border-radius: 999px;
+  color: #1a1a1a;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 22px;
+  font-weight: 400;
+  text-decoration: none;
+  transition: background 0.2s ease;
+  border: 2px solid black;
+}
+
+.register:hover {
+  background: #3cd8a1;
+}
+
+.arrow-diagonal {
+    display: inline-block;
+    margin-top: -5px;
+    font-size: 33px;
+    transform: rotate(10deg);
+}
+
+.track-containers {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 24px;
+    padding: 40px 20px;
+}
+
+.track-one {
+    position: relative;
+    margin-top: 5px;
+    width: 260px;
+    height: 400px;
+    perspective: 1600px;
+    transition: transform 0.35s ease;
+}
+
+.track-flip-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    transform-style: preserve-3d;
+}
+
+.track-front,
+.track-back {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+}
+
+.track-back {
+    transform: rotateY(180deg);
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.track-back-list {
+    list-style: none;
+    padding: 0;
+    margin: 1px 0 5px;
+    text-align: center;
+}
+
+.track-back-list li {
+    padding: 3px 0;
+    font-size: 14px;
+    color: #1a1a1a;
+    font-family: 'Google Sans Flex', sans-serif;
+    line-height: 1;
+    font-weight: 300;
+    text-align: left;
+    justify-content: left;
+}
+
+.track-btn-back {
+    border: 2px solid #1a1a1a;
+    border-radius: 999px;
+    padding: 8px 20px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: 'Google Sans Flex', sans-serif;
+}
+
+.track-one.flipped .track-flip-inner {
+    transform: rotateY(180deg);
+}
+
+.track-one.zoomed {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 320px;
+    height: 480px;
+    z-index: 100;
+}
+
+.track-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 90;
+}
+.track-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.track-one-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.track-one-logo {
+    position: absolute;
+    top: 1px;             
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;               
+    height: 37px;             
+    width: 90px;
+}
+
+.track-one-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 50px 24px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+}
+
+.image-track-one {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-top: 20px;
+}
+
+.track-title {
+    font-family: 'Google Sans Flex', sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+.track-desc {
+    font-family: 'Google Sans Flex', sans-serif;
+    font-size: 16.5px;
+    color: #1a1a1a;
+    line-height: 1.6;
+    margin: 0;
+    flex-grow: 1;
+}
+
+.track-btn-one {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 35px;
+    width: 160px;
+    background: #5ADB6C;
+    border-radius: 999px;
+    color: #1a1a1a;
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    border: 2px solid black;
+    cursor: pointer;
+}
+
+.track-btn-one:hover {
+  background: #3cd8a1;
+}
+
+.track-btn-two:hover {
+  background: lightskyblue;
+}
+
+.track-btn-three:hover {
+  background: #FF7F7F;
+}
+
+.track-btn-four:hover {
+  background: #fbec5d;
+}
+
+.track-two-logo {
+    position: absolute;
+    top: 1px;             
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;               
+    height: 37px;             
+    width: 90px;
+}
+
+.track-two-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 50px 24px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+}
+
+.image-track-two {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-top: 20px;
+}
+
+.track-btn-two {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 35px;
+    width: 160px;
+    background: #4285F4;
+    border-radius: 999px;
+    color: #1a1a1a;
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    border: 2px solid black;
+    cursor: pointer;
+}
+
+.track-three-logo {
+    position: absolute;
+    top: 1px;             
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;               
+    height: 37px;             
+    width: 90px;
+}
+
+.track-three-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 50px 24px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+}
+
+.image-track-three {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-top: 20px;
+}
+
+.track-btn-three {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 35px;
+    width: 160px;
+    background: #EA4335;
+    border-radius: 999px;
+    color: #1a1a1a;
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    border: 2px solid black;
+    cursor: pointer;
+}
+
+.track-four-logo {
+    position: absolute;
+    top: 1px;             
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;               
+    height: 37px;             
+    width: 90px;
+}
+
+.track-four-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 50px 24px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+}
+
+.image-track-four {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-top: 20px;
+}
+
+.track-btn-four {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 35px;
+    width: 160px;
+    background: #F9AB00;
+    border-radius: 999px;
+    color: #1a1a1a;
+    font-family: "Google Sans Flex", sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    border: 2px solid black;
+    cursor: pointer;
+}
+
+.track-close {
+    display: none;
+    position: absolute;
+    top: -14px;
+    right: -14px;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 2px solid #1a1a1a;
+    background: #fff;
+    font-size: 15px;
+    font-family: 'Google Sans Flex', sans-serif;
+    cursor: pointer;
+    z-index: 101;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.track-one.zoomed .track-close {
+    display: flex;
+}
+
+.track-sub-title {
+    font-family: 'Google Sans Flex', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    color: #1a1a1a;
+    margin: -12px 0 0;
+}
+
+.tech-stack {
+    font-family: 'Google Sans Flex', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #444;
+    margin: 4px 0 0;
+    text-align: left;
+    align-self: stretch;
+    margin-left: 30px;
+}
+
+.tech-tools {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.tech-one,
+.tech-two,
+.tech-three {
+    border: 2px solid #1a1a1a;
+    border-radius: 999px;
+    padding: 3px 11px;
+    background: #fff;
+    font-size: 13px;
+    color: black;
+    font-family: 'Google Sans Flex', sans-serif;
+    cursor: default;
+}
+
+.track-one-content hr {
+    width: 85%;
+    margin: 6px 0;
+    border: none;
+    border-top: 1px solid #1a1a1a;
+}
+
+@media (max-width: 1024px) {
+    h1 { font-size: 56px; }
+
+    p { font-size: 18px; max-width: 90%; }
+
+    .carousel-wrapper { max-width: 90%; }
+
+    .card { width: 320px; height: 220px; }
+
+    .card-featured { width: 700px; height: 350px; }
+
+    .card-rows {
+        grid-template-columns: repeat(3, 1fr);
+        max-width: 90%;
+    }
+
+    .carousel-wrapper::before,
+    .carousel-wrapper::after {
+        width: 40px;
+    }
+
+    .box-event { width: 80%; padding: 30px; }
+
+    .box-event h2 { font-size: 36px; }
+
+    .card-past { height: 200px; width: 280px; }
+
+    .cta-btn {
+        width: 200px;
+        height: 90px;   
+        font-size: 20px;
+    }
+
+    .doodle-1 { top: 20px; left: 100px;  width: 80px; height: 80px; }
+    .doodle-2 { top: 20px; right: 100px; width: 100px; height: 100px; }
+    .doodle-3 { top: 200px; left: 20px;  width: 80px; height: 80px; }
+    .doodle-4 { top: 200px; right: 20px;  width: 80px; height: 80px; }
+
+    .register {
+        margin-bottom: 20px; font-size: 22px; width: 180px; height: 40px;
+    }
+}
+
+@media (max-width: 768px) {
+
+    h1 { font-size: 36px; }
+
+    .doodle-1 { top: 15px; left: 100px;  width: 35px; height: 35px; }
+    .doodle-2 { top: 10px; right: 100px; width: 45px; height: 45px; }
+    .doodle-3 { top: 220px; left: 100px;  width: 35px; height: 35px; }
+    .doodle-4 { top: 220px; right: 100px; width: 35px; height: 35px; }
+
+    .hero { padding: 40px 16px 60px; margin-top: 80px; }
+
+    p { font-size: 16px; }
+
+    .events-btn,
+    .past-events-btn {
+        font-size: 12px;
+        padding: 8px 16px;
+    }
+
+    .featured-events-btn {
+        margin-top: 40px;
+        font-size: 12px;
+    }
+
+    .cta-btn {
+        width: 40%;
+        height: 40px;
+        font-size: 15px;
+    }
+
+    hr { margin-top: 40px; }
+
+    .carousel-wrapper { max-width: 100%; padding: 0 30px; }
+
+    .card { width: 240px; height: 180px; }
+
+    .card-featured { margin-left: 5px; margin-top: 28px; width: 510px; height: 300px; }
+
+    .carousel-arrow-left,
+    .carousel-arrow-right {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+    }
+
+    .carousel-wrapper::before,
+    .carousel-wrapper::after {
+        width: 40px;
+    }
+
+    .card-rows {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .box-event {
+        width: 90%;
+        padding: 24px;
+        margin: 40px auto;
+    }
+
+    .box-event h2 { font-size: 26px; }
+
+    .box-event p { font-size: 16px; }
+
+    .register {
+        width: 160px;
+        height: 40px;
+        font-size: 16px;
+    }
+
+    .arrow-diagonal { font-size: 22px; }
+
+    .dot { width: 20px; height: 20px; }
+
+    .track-one.zoomed {
+        width: 260px;
+        height: 400px;
+    }
+}
+
+@media (max-width: 480px) {
+    .events-btn {
+        width: 88px;
+        height: 20px;
+        font-size: 9px;
+        margin-bottom: 15px;
+    }
+
+    .events-btn .dot {
+        width: 8px;
+        height: 8px;
+    }
+
+    h1 { font-size: 22px; }
+
+    p { font-size: 11.5px; }
+
+    .cta-btn {
+        width: 40%;
+        height: 30px;
+        font-size: 10px;
+        margin-top: 20px;
+    }
+
+    .arrow-down { font-size: 20px; }
+
+    .upcoming-events-btn {
+        margin-top: 20px;
+        width: 151px;
+        height: 20px;
+        font-size: 9px;
+        margin-bottom: 20px;
+    }
+
+    .upcoming-events-btn .up-dot {
+        width: 8px;
+        height: 8px;
+    }
+
+    .featured-events-btn {
+        margin-top: 20px;
+        width: 160px;
+        height: 20px;
+        font-size: 9px;
+        margin-bottom: 20px;
+    }
+
+    .card-featured {
+        width: 200px; height: 200px;
+    }
+
+    .past-events-btn {
+        margin-top: 10px;
+        width: 120px;
+        height: 20px;
+        font-size: 9px;
+        margin-bottom: 20px;
+    }
+
+    .card-rows {
+        margin-top: 20px;
+        width: 60px;
+        height: 60px;
+    }
+
+    .carousel-wrapper {
+        padding: 0 20px; 
+        margin-top: -10px;
+        max-width: 103%;
+        box-sizing: border-box;
+    }
+
+    .carousel {margin-top: -5px;}
+
+    .carousel-wrapper::before,
+    .carousel-wrapper::after {
+        width: 40px;
+    }
+
+    .carousel-arrow-left,
+    .carousel-arrow-right {
+        width: 15px;
+        height: 24px;
+        font-size: 12px;
+    }
+
+    .doodle-1 { top: 10px; left: 5%; width: 25px; height: 25px; }
+    .doodle-2 { top: 8px; right: 5%; width: 25px; height: 25px; }
+    .doodle-3 { margin-top: -90px; left: 5%; width: 25px; height: 25px; }
+    .doodle-4 { margin-top: -90px; right: 5%; width: 25px; height: 25px; }
+
+    .card { width: 200px; height: 150px; }
+
+    .card-rows { grid-template-columns: repeat(2, 1fr); }
+
+    .box-event h2 { font-size: 22px; }
+
+    .register { width: 140px; font-size: 14px; }
+
+    .track-one.zoomed {
+        width: 220px;
+        height: 340px;
+    }
+}
