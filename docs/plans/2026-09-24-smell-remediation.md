@@ -11,7 +11,7 @@
 - Run commands from touched side only. Backend: `npm run build` (=typecheck) + `npm run smoke` (build first) + `npm run db:generate`. Frontend: `npm run lint` + `npm run build`. No tests/typecheck script on frontend.
 - Use `logger`, not `console.log`. Validate input with Zod. Frontend calls via `apiFetch(path)` from `frontend/src/api/client.js` with `credentials:include`, read `error.status`/`error.body`.
 - Base path: all backend routes at `/GDGoC-CTU-Main/v0.0.1`. `VITE_API_URL` must include it. CORS `FR_ORIGIN` comma-allowlist, restart backend after env change, restart Vite after any `VITE_*` change.
-- Branches `feat|fix|docs|chore/<short-desc>` from `main`, commits `<type>: <summary>`. One small task per PR + link `UTCGDG` ticket. Never use GitHub Issues.
+- Branches `feat|fix|docs|chore/<short-desc>` from `main`, commits `<type>: <summary>`. One small task per PR + link GitHub issue.
 - Boot/Vercel: `api/index.ts` imports `backend/dist/app.js` per cold start — missing `BETTER_AUTH_SECRET/URL`/`FR_ORIGIN` fails import loudly; root `vercel.json` API rewrite before SPA fallback.
 
 Split suggestion: this covers 2 independent subsystems — execute as **Plan A (backend)** + **Plan B (frontend)** in parallel after Phase 0.
@@ -160,4 +160,4 @@ Split suggestion: this covers 2 independent subsystems — execute as **Plan A (
 
 ## Execution handoff
 
-Suggested `UTCGDG` tickets (one per task, `fix/` branch each): P0 = Tasks 1-7, P1 = Tasks 8-11, P2 = Tasks 12-14. CI gates `main` per AGENTS.md.
+Suggested GitHub issues (one per task, `fix/` branch each): P0 = Tasks 1-7, P1 = Tasks 8-11, P2 = Tasks 12-14. CI gates `main` per AGENTS.md.

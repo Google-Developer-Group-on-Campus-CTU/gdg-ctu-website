@@ -34,7 +34,6 @@ Two separate npm projects, no workspace (the minimal root `package.json` exists 
 
 ## Workflow
 
-- Tasks live in Jira project `UTCGDG` — never use GitHub Issues. See `docs/agents/issue-tracker.md`.
-- Branches `git checkout -b <type>/<short-desc>` from `main` (`feat/|fix/|docs/|chore/`, lowercase-dash); commits `<type>: <summary>`. One small task per PR, link the `UTCGDG` ticket, no secrets.
-- Triage labels (five, as-is): `needs-triage|needs-info|ready-for-agent|ready-for-human|wontfix`. See `docs/agents/triage-labels.md`.
+- Tasks live in GitHub Issues.
+- Branches `git checkout -b <type>/<short-desc>` from `main` (`feat/|fix/|docs/|chore/`, lowercase-dash); commits `<type>: <summary>`. One small task per PR, link the GitHub issue, no secrets.
 - Domain: single-context — read root `CONTEXT.md` + `docs/adr/` if present, use glossary terms verbatim, flag ADR conflicts. See `docs/agents/domain.md`.

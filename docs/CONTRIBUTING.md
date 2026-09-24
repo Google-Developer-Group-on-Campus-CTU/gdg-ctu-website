@@ -2,25 +2,11 @@
 
 Thanks for helping with the GDG-CTU website! This page explains how we work together. If any word is unfamiliar, ask — we'd rather explain than have you guess.
 
-## Where tasks live: Jira, not GitHub Issues
+## Where tasks live: GitHub Issues
 
-- **Tasks, bugs, and feature requests live in Jira, project `UTCGDG`.** (Site address: see `docs/agents/issue-tracker.md`.)
-- **Do NOT create or use GitHub Issues** — the GitHub repo (and its mirror) is for code only.
-- If someone reports a bug in chat, an officer will file it in Jira. Pick tasks from the Jira board, not from GitHub.
-
-## Triage labels (what each task's tag means)
-
-Every Jira task carries one of these five tags so everyone knows its state:
-
-| Tag | Meaning | What you should do |
-|---|---|---|
-| `needs-triage` | Nobody has reviewed this task yet | Wait for a maintainer to review it |
-| `needs-info` | We're waiting on the reporter for details | Add the missing details if you have them |
-| `ready-for-agent` | Fully described, an automated helper could do it | You (or a helper) can start work |
-| `ready-for-human` | Needs a person to think/implement it | A member picks it up and codes it |
-| `wontfix` | We decided not to do this | Don't work on it |
-
-Move tasks through these tags as you go (e.g. ask questions → `needs-info`, start coding → in progress, open a PR → link it on the task).
+- **Tasks, bugs, and feature requests live in GitHub Issues.**
+- If someone reports a bug in chat, an officer will file it as a GitHub issue. Pick tasks from the issue list, not from chat threads.
+- Maintainers triage issues as they come in; link your PR on the issue when you open one.
 
 ## Branch naming (name your work clearly)
 
@@ -62,7 +48,7 @@ A **pull request** is how you ask maintainers to review and merge your branch in
 - [ ] I ran `npm run lint` in `frontend/` if I changed frontend code, and fixed the warnings
 - [ ] I ran `npm run build` in the folder I changed (`backend/` or `frontend/`) to prove it still compiles
 - [ ] I didn't commit any `.env` files or secrets
-- [ ] I linked the Jira task (project `UTCGDG`) in the PR description
+- [ ] I linked the GitHub issue in the PR description
 - [ ] Screenshots included if I changed anything visual
 
 Keep PRs small (one task each) so review is fast. A maintainer will review; respond to comments and push fixes to the same branch.

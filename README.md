@@ -164,7 +164,7 @@ Never commit real `.env` files — they hold secrets like passwords and keys.
 
 ## Contributing
 
-We'd love your help! Please read [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) first. Quick note: **tasks live in Jira (project `UTCGDG`) — do NOT use GitHub Issues.** See `docs/agents/issue-tracker.md` for the Jira site address.
+We'd love your help! Please read [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) first. Quick note: **tasks live in GitHub Issues — pick one up there to get started.**
 
 ## Deploy (3 lines)
 
