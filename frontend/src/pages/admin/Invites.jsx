@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   adminInvitesApi,
@@ -8,7 +8,8 @@ import {
   inviteStatus,
 } from '../../api/admin-invites.js';
 import { timeAgo, useAdminList, useDebouncedValue } from '../../admin/editorial.js';
-import { AdminListPage, EmptyState, StatusPill } from '../../components/admin/shared.jsx';
+import { DataTable, DataTableColumnHeader } from '../../components/admin/data-table.jsx';
+import { EmptyState, StatusPill } from '../../components/admin/shared.jsx';
 
 /** Mirror of shared ErrorState wording for one-off action failures (create/revoke). */
 function actionErrorMessage(err, fallback) {
@@ -67,8 +68,76 @@ function RevokeConfirm({ invite, busy, error, onCancel, onConfirm }) {
   );
 }
 
+/* 44px action target on the shared link-button language (DataTable owns the brutal wrapper). */
+const REVOKE_BUTTON_CLASS =
+  'admin-link-btn admin-link-btn-danger inline-flex min-h-[44px] items-center';
+
+/* Static column defs: status · code · created · expires · role · used by ·
+   created by. The Revoke action column is appended in-component (needs the
+   `openRevoke` closure); no detail route exists for invites, so Revoke is
+   the only row action. */
+const baseColumns = [
+  {
+    id: 'status',
+    accessorFn: (invite) => inviteStatus(invite),
+    header: 'Status',
+    enableSorting: false,
+    cell: ({ row }) => <StatusPill status={inviteStatus(row.original)} />,
+  },
+  {
+    accessorKey: 'id',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />,
+    cell: ({ row }) => (
+      <code className="font-mono text-xs" title={row.original.id}>
+        {row.original.id}
+      </code>
+    ),
+  },
+  {
+    id: 'created',
+    accessorFn: (invite) => invite.createdAt ?? '',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+    cell: ({ row }) => (
+      <span title={formatWhen(row.original.createdAt)}>{timeAgo(row.original.createdAt)}</span>
+    ),
+  },
+  {
+    id: 'expires',
+    accessorFn: (invite) => invite.expiresAt ?? '',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Expires" />,
+    cell: ({ row }) => formatWhen(row.original.expiresAt),
+  },
+  {
+    id: 'role',
+    // GET /admin-invites returns no per-invite role; every invite redeems to
+    // an admin account, so the column renders that standing value.
+    accessorFn: (invite) => invite.role ?? 'admin',
+    header: 'Role',
+    enableSorting: false,
+    cell: ({ row }) => row.original.role ?? 'admin',
+  },
+  {
+    id: 'usedBy',
+    header: 'Used by',
+    enableSorting: false,
+    cell: ({ row }) => {
+      const invite = row.original;
+      return inviteStatus(invite) === 'used'
+        ? `${displayActor(invite.usedBy)} · ${timeAgo(invite.usedAt)}`
+        : '—';
+    },
+  },
+  {
+    id: 'createdBy',
+    accessorFn: (invite) => displayActor(invite.createdBy),
+    header: 'Created by',
+    enableSorting: false,
+    cell: ({ row }) => displayActor(row.original.createdBy),
+  },
+];
+
 export default function AdminInvites() {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const q = params.get('q') ?? '';
   const debounced = useDebouncedValue(q);
   const { data, loading, error, requestId, retry } = useAdminList(
@@ -101,6 +170,44 @@ export default function AdminInvites() {
         .includes(term),
     );
   }, [data, debounced]);
+
+  const setQuery = (value) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set('q', value);
+    else next.delete('q');
+    setParams(next, { replace: true });
+  };
+
+  const openRevoke = useCallback((invite) => {
+    setRevokeError(null);
+    setRevokeTarget(invite);
+  }, []);
+
+  // Static defs + one closure column: keeps table identity stable while the
+  // Revoke button reaches page state. (No detail route exists for invites —
+  // Revoke is the only row action.)
+  const columns = useMemo(() => [
+    ...baseColumns,
+    {
+      id: 'actions',
+      header: 'Actions',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const invite = row.original;
+        if (inviteStatus(invite) === 'used') return <span className="admin-muted">—</span>;
+        return (
+          <button
+            type="button"
+            className={REVOKE_BUTTON_CLASS}
+            onClick={() => openRevoke(invite)}
+            aria-label={`Revoke invite ${invite.id}`}
+          >
+            Revoke
+          </button>
+        );
+      },
+    },
+  ], [openRevoke]);
 
   const handleCreate = async () => {
     setCreating(true);
@@ -167,7 +274,7 @@ export default function AdminInvites() {
         </div>
         <button
           type="button"
-          className="gdg-btn gdg-btn-primary"
+          className="admin-new-btn"
           onClick={handleCreate}
           disabled={creating}
         >
@@ -219,72 +326,26 @@ export default function AdminInvites() {
         </div>
       ) : null}
 
-      <AdminListPage
+      <DataTable
+        columns={columns}
+        data={rows}
         loading={loading}
         loadingLabel="Loading invites…"
         error={error}
         requestId={requestId}
         onRetry={retry}
-        errorContext="load invites"
-        isEmpty={rows.length === 0}
-        empty={
+        searchColumnId="id"
+        searchPlaceholder="Search invites…"
+        searchValue={q}
+        onSearchChange={setQuery}
+        pageSizeOptions={[20, 10]}
+        renderEmptyState={
           <EmptyState
-            title="No invites yet"
+            title={(data ?? []).length === 0 ? 'No invites yet' : 'No invites match this filter'}
             hint="Create a single-use link so a new officer can set up their own admin account."
           />
         }
-      >
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th scope="col">Status</th>
-                <th scope="col">Created</th>
-                <th scope="col">Expires</th>
-                <th scope="col">Used by</th>
-                <th scope="col">Created by</th>
-                <th scope="col">
-                  <span className="admin-visually-hidden">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((invite) => {
-                const status = inviteStatus(invite);
-                return (
-                  <tr key={invite.id}>
-                    <td>
-                      <StatusPill status={status} />
-                    </td>
-                    <td title={formatWhen(invite.createdAt)}>{timeAgo(invite.createdAt)}</td>
-                    <td>{formatWhen(invite.expiresAt)}</td>
-                    <td>
-                      {status === 'used'
-                        ? `${displayActor(invite.usedBy)} · ${timeAgo(invite.usedAt)}`
-                        : '—'}
-                    </td>
-                    <td>{displayActor(invite.createdBy)}</td>
-                    <td>
-                      {status !== 'used' ? (
-                        <button
-                          type="button"
-                          className="admin-link-btn admin-link-btn-danger"
-                          onClick={() => {
-                            setRevokeError(null);
-                            setRevokeTarget(invite);
-                          }}
-                        >
-                          Revoke
-                        </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </AdminListPage>
+      />
 
       <RevokeConfirm
         invite={revokeTarget}
