@@ -8,10 +8,8 @@ import { ErrorState, LoadingSkeleton, StatusPill } from '../../components/admin/
 import { Skeleton } from '../../components/ui/skeleton';
 import { authClient } from '../../lib/auth-client';
 
-/* Quiet card contract — mirrors WRAPPER_CLASS in data-table.jsx
-   (data-table owns it; Dashboard reuses the same class string, never restyles). */
 const WRAPPER_CLASS =
-  'overflow-hidden rounded-md border border-border bg-card shadow-[0_1px_1px_rgba(9,30,66,0.13),0_0_1px_rgba(9,30,66,0.13)]';
+  'overflow-hidden rounded-[12px] border border-[var(--m3-outline-variant)] bg-[var(--m3-surface-container-lowest)]';
 
 /* Stat strip: one pill per section (red/blue/green/yellow), each linking its
    filtered list with total + draft/hidden splits. */

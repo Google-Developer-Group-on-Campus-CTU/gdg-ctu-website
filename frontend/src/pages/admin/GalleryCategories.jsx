@@ -10,7 +10,6 @@ import {
 } from '../../admin/editorial.js';
 import {
   DirtyGuardBanner,
-  EditorCard,
   EditorErrors,
   EditorField,
   focusEditorErrors,
@@ -34,12 +33,6 @@ function toForm(item = {}) {
   };
 }
 
-/**
- * Form state → CreateGalleryCategorySchema / UpdateGalleryCategorySchema
- * body (backend/src/modules/gallery-categories/gallery-category.validations.ts,
- * camelCase). Removing a category never orphans albums server-side
- * (ON DELETE SET NULL) — the confirm copy says so.
- */
 function toApiPayload(v = {}) {
   return {
     name: v.name,
@@ -61,6 +54,8 @@ export default function GalleryCategories() {
     'gallery-categories',
   );
   const summaryRef = useRef(null);
+  const dialogRef = useRef(null);
+  const triggerRef = useRef(null);
   const methods = useEditorForm({ schema: galleryCategoryEditorSchema, defaultValues: EMPTY });
   const {
     control, reset, watch, setValue, setError: setFieldError, handleSubmit,
@@ -73,18 +68,57 @@ export default function GalleryCategories() {
   const [slugTouched, setSlugTouched] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [toast, setToast] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const values = watch();
   const dirty = useMemo(() => JSON.stringify(values) !== JSON.stringify(original), [values, original]);
-  const blocker = useDirtyGuard(dirty && !saving);
+  const blocker = useDirtyGuard(dirty && !saving && !dialogOpen);
 
-  // Slug auto-fills from the name until touched (same contract as the entity editors).
   const name = watch('name');
   useEffect(() => {
     if (!slugTouched) setValue('slug', slugify(name ?? ''));
   }, [name, slugTouched, setValue]);
 
   const { slugDup, slugCheckError } = useSlugUniqueness(galleryCategoriesApi, watch('slug'), editingId);
+
+  // Dialog focus trap, Esc, and focus restore — M3 modal dialog 28dp surfaceContainerHigh scrim 40%
+  useEffect(() => {
+    if (!dialogOpen) return undefined;
+    const previouslyFocused = triggerRef.current;
+    const node = dialogRef.current;
+    // focus first input after mount
+    requestAnimationFrame(() => {
+      const first = node?.querySelector('input, select, textarea, button');
+      first?.focus();
+    });
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        // prevent stacking with TypedConfirm: close dialog cleanly
+        if (!confirmDelete) {
+          setDialogOpen(false);
+          setServerError(null);
+        }
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      if (!node) return;
+      const items = node.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
+      if (items.length === 0) return;
+      const first = items[0]; const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+      // focus restore to trigger
+      previouslyFocused?.focus();
+    };
+  }, [dialogOpen, confirmDelete]);
 
   const rows = useMemo(() => {
     const term = debounced.trim().toLowerCase();
@@ -104,22 +138,34 @@ export default function GalleryCategories() {
     setParams(next, { replace: true });
   };
 
-  const startCreate = () => {
+  const openCreate = (e) => {
+    triggerRef.current = e?.currentTarget ?? document.activeElement;
     setEditingId(null);
     setSlugTouched(false);
     setServerError(null);
     reset(EMPTY);
     setOriginal(EMPTY);
+    setDialogOpen(true);
   };
 
-  const startEdit = (category) => {
+  const openEdit = (category, e) => {
+    triggerRef.current = e?.currentTarget ?? document.activeElement;
     const next = toForm(category);
     setEditingId(getId(category));
     setSlugTouched(true);
     setServerError(null);
     reset(next);
     setOriginal(next);
-    focusEditorErrors(summaryRef);
+    setDialogOpen(true);
+    // focus will move to dialog first input via effect
+  };
+
+  const closeDialog = () => {
+    if (saving) return;
+    setDialogOpen(false);
+    setServerError(null);
+    // reset dirty check to original
+    reset(original);
   };
 
   const persist = async (next) => {
@@ -128,7 +174,6 @@ export default function GalleryCategories() {
       focusEditorErrors(summaryRef);
       return;
     }
-    // Slug-dup gates every save here (single-page CRUD has no draft/publish split).
     if (slugDup) {
       setFieldError('slug', { message: 'Slug is already in use.' });
       focusEditorErrors(summaryRef);
@@ -141,10 +186,15 @@ export default function GalleryCategories() {
       if (editingId) await galleryCategoriesApi.update(editingId, payload);
       else await galleryCategoriesApi.create(payload);
       setToast(editingId ? 'Category updated.' : 'Category created.');
-      startCreate();
+      setDialogOpen(false);
+      setEditingId(null);
+      setSlugTouched(false);
+      reset(EMPTY);
+      setOriginal(EMPTY);
       retry();
     } catch (err) {
       setServerError(err?.body?.message ?? err?.message ?? 'Save failed.');
+      focusEditorErrors(summaryRef);
     } finally {
       setSaving(false);
     }
@@ -157,14 +207,28 @@ export default function GalleryCategories() {
     try {
       await galleryCategoriesApi.remove(cid);
       setToast('Category deleted. Albums keep working (uncategorized).');
-      if (editingId && String(editingId) === String(cid)) startCreate();
+      if (editingId && String(editingId) === String(cid)) {
+        setEditingId(null);
+        setSlugTouched(false);
+        reset(EMPTY);
+        setOriginal(EMPTY);
+      }
       setConfirmDelete(null);
+      // ensure dialog closed to avoid stacking
+      setDialogOpen(false);
       retry();
     } catch (err) {
       setServerError(err?.body?.message ?? err?.message ?? 'Delete failed.');
       setSaving(false);
       setConfirmDelete(null);
     }
+  };
+
+  // Never stack modals: if delete confirm opens, ensure category dialog is not over it
+  const handleDeleteTrigger = (c, e) => {
+    triggerRef.current = e?.currentTarget ?? document.activeElement;
+    setConfirmDelete(c);
+    setDialogOpen(false);
   };
 
   return (
@@ -174,9 +238,15 @@ export default function GalleryCategories() {
           <h1>Categories</h1>
           <p className="admin-muted">Taxonomy for the public ?category= album filter. Deleting a category never orphans albums.</p>
         </div>
+        {/* Per-page primary create as extended FAB/text — no global +New in shell */}
+        <button type="button" className="admin-new-btn" onClick={openCreate} aria-haspopup="dialog" aria-expanded={dialogOpen}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+          New category
+        </button>
       </div>
 
       <DirtyGuardBanner blocker={blocker} />
+      {toast ? <p role="status" aria-live="polite" className="admin-muted" style={{ marginBottom: 12 }}>{toast}</p> : null}
 
       {loading ? <LoadingSkeleton label="Loading categories…" /> : null}
       {!loading && error ? (
@@ -199,7 +269,9 @@ export default function GalleryCategories() {
           {rows.length === 0 ? (
             <EmptyState
               title={q ? `No categories match “${q}”.` : 'No categories yet'}
-              hint="Create the first category below — albums link to it from the album editor."
+              hint="Create the first category — albums link to it from the album editor."
+              actionLabel="New category"
+              actionTo={undefined}
             />
           ) : (
             <div className="admin-table-wrap">
@@ -224,14 +296,15 @@ export default function GalleryCategories() {
                         <td>{c.display_order ?? c.displayOrder ?? 0}</td>
                         <td>{active ? 'Yes' : 'No'}</td>
                         <td>
-                          <button type="button" className="gdg-btn gdg-btn-secondary" onClick={() => startEdit(c)}>
+                          <button type="button" className="gdg-btn gdg-btn-secondary" onClick={(e) => openEdit(c, e)}>
                             Edit
                           </button>{' '}
                           <button
                             type="button"
                             className="gdg-btn gdg-btn-secondary admin-danger"
                             disabled={saving}
-                            onClick={() => setConfirmDelete(c)}
+                            onClick={(e) => handleDeleteTrigger(c, e)}
+                            aria-label={`Delete category ${c.name ?? c.slug}`}
                           >
                             Delete
                           </button>
@@ -243,15 +316,28 @@ export default function GalleryCategories() {
               </table>
             </div>
           )}
+          <p className="admin-muted" style={{ marginTop: 12 }}>
+            <a href={ADMIN_ENTITY_ROUTES.gallery.list}>← Back to albums</a>
+          </p>
+        </>
+      ) : null}
 
-          <Form {...methods}>
-            <form onSubmit={(e) => handleSubmit(persist, () => focusEditorErrors(summaryRef))(e)} noValidate>
-              <EditorCard
-                title={editingId ? 'Edit category' : 'New category'}
-                eyebrow="Gallery"
-              >
+      {/* M3 modal dialog 28dp surfaceContainerHigh scrim 40% — replaces hard-placed inline div */}
+      {dialogOpen ? (
+        <div className="admin-dialog-backdrop" role="presentation" onClick={closeDialog}>
+          <div
+            ref={dialogRef}
+            className="admin-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="category-dialog-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="category-dialog-title">{editingId ? 'Edit category' : 'New category'}</h3>
+            <p className="admin-muted" style={{ marginBottom: 16 }}>Taxonomy for ?category= filter. Deleting never orphans albums.</p>
+            <Form {...methods}>
+              <form onSubmit={(e) => handleSubmit(persist, () => focusEditorErrors(summaryRef))(e)} noValidate>
                 <EditorErrors errors={rhfErrors} serverError={serverError} summaryRef={summaryRef} />
-                {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
                 <div className="editor-grid">
                   <EditorField control={control} name="name" label="Name" required>
                     {(field) => <Input {...field} />}
@@ -276,8 +362,11 @@ export default function GalleryCategories() {
                     )}
                   </EditorField>
                 </div>
-                <div className="editor-btn-row">
-                  <button type="submit" className="editor-btn editor-btn-primary" disabled={saving}>
+                <div className="admin-dialog-actions" style={{ marginTop: 24 }}>
+                  <button type="button" className="gdg-btn gdg-btn-secondary" onClick={closeDialog} disabled={saving}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="gdg-btn gdg-btn-primary" disabled={saving} aria-busy={saving}>
                     {saving ? (
                       <>
                         <span className="editor-spinner" aria-hidden="true" />
@@ -287,19 +376,11 @@ export default function GalleryCategories() {
                       editingId ? 'Save changes' : 'Create category'
                     )}
                   </button>
-                  {editingId ? (
-                    <button type="button" className="editor-btn editor-btn-secondary" disabled={saving} onClick={startCreate}>
-                      Cancel
-                    </button>
-                  ) : null}
                 </div>
-                <p className="admin-muted">
-                  <a href={ADMIN_ENTITY_ROUTES.gallery.list}>← Back to albums</a>
-                </p>
-              </EditorCard>
-            </form>
-          </Form>
-        </>
+              </form>
+            </Form>
+          </div>
+        </div>
       ) : null}
 
       <TypedConfirm
@@ -309,7 +390,7 @@ export default function GalleryCategories() {
         expected={confirmDelete?.slug ?? ''}
         confirmLabel="Delete forever"
         busy={saving}
-        onCancel={() => setConfirmDelete(null)}
+        onCancel={() => { setConfirmDelete(null); triggerRef.current?.focus(); }}
         onConfirm={remove}
       />
     </section>

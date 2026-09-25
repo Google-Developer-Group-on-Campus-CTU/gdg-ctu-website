@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 export function LoadingSkeleton({ rows = 6, label = 'Loading…' }) {
   return (
-    <div role="status" aria-live="polite" aria-label={label} className="admin-skeleton">
+    <div role="status" aria-live="polite" aria-label={label} className="admin-skeleton" style={{ display: 'grid', gap: 8, padding: 16, background: 'var(--m3-surface-container)', borderRadius: 12 }}>
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="admin-skeleton-row" aria-hidden="true" />
       ))}
@@ -12,7 +12,6 @@ export function LoadingSkeleton({ rows = 6, label = 'Loading…' }) {
   );
 }
 
-/* Public feed skeleton — same loading concept, gdg grid language. Unified with LoadingSkeleton via shared tokens. */
 export function FeedSkeleton({ count = 3, label = 'Loading…' }) {
   return (
     <div className="gdg-grid" role="status" aria-live="polite" aria-label={label}>
@@ -39,13 +38,12 @@ export function friendlyFeedError(error) {
   return error?.body?.message ?? error?.message ?? 'Could not load this section.';
 }
 
-/* Public feed error — uses gdg-feed-error (resolved vs .feed-error). */
 export function FeedError({ message = 'Could not load this section.', onRetry }) {
   return (
-    <div className="gdg-feed-error" role="alert">
+    <div className="admin-notice admin-notice-error" role="alert" style={{ borderRadius: 12 }}>
       <p>{message}</p>
       {onRetry ? (
-        <button type="button" className="gdg-btn gdg-btn-secondary" onClick={onRetry}>
+        <button type="button" className="gdg-btn gdg-btn-secondary" onClick={onRetry} style={{ marginTop: 12 }}>
           Retry
         </button>
       ) : null}
@@ -57,8 +55,8 @@ export function StripHead({ badge, title, to, linkLabel = 'View all' }) {
   return (
     <div className="gdg-strip-head">
       <div>
-        {badge ? <span className="gdg-badge">{badge}</span> : null}
-        <h2>{title}</h2>
+        {badge ? <span className="admin-eyebrow">{badge}</span> : null}
+        <h2 style={{ fontFamily: '"Google Sans", Roboto, sans-serif', fontSize: 22, fontWeight: 400 }}>{title}</h2>
       </div>
       {to ? <Link to={to} className="gdg-btn gdg-btn-secondary">{linkLabel}</Link> : null}
     </div>
@@ -68,9 +66,14 @@ export function StripHead({ badge, title, to, linkLabel = 'View all' }) {
 export function EmptyState({ title, hint, actionLabel, actionTo, docsHref }) {
   return (
     <div className="admin-empty">
+      <div className="flex justify-center mb-3" aria-hidden="true">
+        <span className="inline-flex size-12 items-center justify-center rounded-full bg-[var(--m3-secondary-container)] text-[var(--m3-on-secondary-container)]">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM20 8h-2l-2-3H8L6 8H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Z" stroke="currentColor" strokeWidth="1.5"/></svg>
+        </span>
+      </div>
       <h3>{title}</h3>
       {hint ? <p>{hint}</p> : null}
-      <div className="gdg-btn-row">
+      <div className="gdg-btn-row justify-center">
         {actionTo ? (
           <Link className="gdg-btn gdg-btn-primary" to={actionTo}>
             {actionLabel ?? 'Create new'}
@@ -101,7 +104,7 @@ export function ErrorState({ error, requestId, onRetry, context = 'load this con
       <p>{message}</p>
       {requestId ? <p className="admin-muted">Request ID: {requestId}</p> : null}
       {onRetry ? (
-        <button type="button" className="gdg-btn gdg-btn-secondary" onClick={onRetry}>
+        <button type="button" className="gdg-btn gdg-btn-secondary" onClick={onRetry} style={{ marginTop: 12 }}>
           Retry
         </button>
       ) : null}
@@ -111,7 +114,6 @@ export function ErrorState({ error, requestId, onRetry, context = 'load this con
 
 export function StatusPill({ status, active }) {
   let raw = status;
-  // tri-state: status wins if present; otherwise derive from active boolean; never mask real status as draft
   if (typeof raw !== 'string' || !raw.trim()) {
     if (active === false) raw = 'archived';
     else if (active === true) raw = 'published';
@@ -128,9 +130,11 @@ export function StatusPill({ status, active }) {
           : normalized === 'new'
             ? 'lozenge-new'
             : 'lozenge-default';
+  // Non-color cue: icon dot
+  const dot = variant === 'lozenge-success' ? '●' : variant === 'lozenge-warning' ? '◐' : variant === 'lozenge-removed' ? '■' : '○';
   return (
     <span className={`lozenge ${variant}`} aria-label={`Status: ${normalized}`}>
-      {normalized}
+      <span aria-hidden="true" style={{ marginRight: 6 }}>{dot}</span>{normalized}
     </span>
   );
 }
@@ -139,7 +143,7 @@ export function Field({ label, hint, error, htmlFor, children, required }) {
   return (
     <div className="admin-field">
       <label htmlFor={htmlFor}>
-        {label} {required ? <span aria-hidden="true">*</span> : null}
+        {label} {required ? <span aria-hidden="true" style={{ color: 'var(--m3-error)' }}>*</span> : null}
       </label>
       {hint ? <p className="admin-hint" id={`${htmlFor}-hint`}>{hint}</p> : null}
       {children}
@@ -181,7 +185,6 @@ export function focusSummary(ref) {
   requestAnimationFrame(() => ref?.current?.focus?.());
 }
 
-/** Archive-preferred typed confirm: caller decides archive vs hard delete; hard delete needs typed slug. */
 export function TypedConfirm({ open, title, body, expected, confirmLabel = 'Confirm', onConfirm, onCancel, busy }) {
   const [typed, setTyped] = useState('');
   const inputRef = useRef(null);
@@ -205,7 +208,7 @@ export function TypedConfirm({ open, title, body, expected, confirmLabel = 'Conf
         <h3>{title}</h3>
         <p className="admin-muted">{body}</p>
         <label htmlFor="typed-confirm" className="gdg-confirm-label">
-          Type <code>{expected}</code> to confirm
+          Type <code className="gdg-code-muted">{expected}</code> to confirm
         </label>
         <input
           id="typed-confirm"
@@ -242,10 +245,6 @@ export function Toggle({ id, label, checked, onChange, hint }) {
   );
 }
 
-/**
- * Shared admin list shell: loading → error → empty → table/content.
- * Uses public DS utilities (gdg-btn, admin-table inside admin-table-wrap card).
- */
 export function AdminListPage({
   loading,
   loadingLabel = 'Loading…',

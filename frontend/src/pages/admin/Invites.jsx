@@ -68,9 +68,8 @@ function RevokeConfirm({ invite, busy, error, onCancel, onConfirm }) {
   );
 }
 
-/* 32px action target on the shared row-button language. */
 const REVOKE_BUTTON_CLASS =
-  'inline-flex h-8 items-center px-3 rounded-[3px] border border-[#DFE1E6] bg-[#FAFBFC] text-sm font-medium text-[#DE350B] hover:bg-[#FFEBE6]';
+  'inline-flex h-10 items-center px-6 rounded-full border border-[var(--m3-error)] bg-transparent text-[14px] font-medium tracking-[0.1px] text-[var(--m3-error)] hover:bg-[rgba(186,26,26,0.08)]';
 
 /* Static column defs: status · code · created · expires · role · used by ·
    created by. The Revoke action column is appended in-component (needs the

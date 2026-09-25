@@ -24,9 +24,8 @@ const SCOPES = [
   { value: 'past', label: 'Past (endAt < now)' },
 ];
 
-/* 32px row-action targets — quiet bordered buttons, no extra card borders (DataTable owns the wrapper). */
 const ACTION_LINK_CLASS =
-  'inline-flex h-8 items-center px-3 rounded-[3px] border border-[#DFE1E6] bg-[#FAFBFC] text-sm font-medium text-[#42526E] hover:bg-[#EBECF0] hover:text-[#172B4D]';
+  'inline-flex h-10 items-center px-6 rounded-full border border-[var(--m3-outline)] bg-transparent text-[14px] font-medium tracking-[0.1px] text-[var(--m3-primary)] hover:bg-[rgba(11,87,208,0.08)]';
 
 /* Static column defs: title (detail link) · status badge · updated · scope · row actions. */
 function useColumns({ onArchive }) {

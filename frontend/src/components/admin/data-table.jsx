@@ -1,9 +1,5 @@
 import { useEffect, useState } from 'react';
 import { flexRender } from '@tanstack/react-table';
-// v9 moved the v8-style API to a compat layer: `useLegacyTable` accepts the
-// same options object (state/onXChange/manual*/pageCount) and the get*RowModel
-// stubs act as feature markers. Keep this import pinned to /legacy until a
-// deliberate migration to the `useTable` + `features` API.
 import {
   getCoreRowModel,
   getFilteredRowModel,
@@ -32,17 +28,8 @@ import {
   TableRow,
 } from '../ui/table';
 
-/**
- * Shared admin DataTable — shadcn Table primitives + TanStack Table.
- *
- * Quiet Jira-style card treatment (1px border + subtle shadow + rounded-md
- * clip). Do NOT restyle Table/TableHeader/TableBody themselves.
- * The table scrolls inside an explicit `overflow-x-auto` child div so <640px
- * viewports scroll horizontally while the card keeps its rounded-md clip +
- * quiet shadow.
- */
 const WRAPPER_CLASS =
-  'overflow-hidden rounded-md border border-border bg-card shadow-[0_1px_1px_rgba(9,30,66,0.13),0_0_1px_rgba(9,30,66,0.13)]';
+  'overflow-hidden rounded-[12px] border border-[var(--m3-outline-variant)] bg-[var(--m3-surface-container-lowest)]';
 
 const ALL = 'all';
 
@@ -54,12 +41,8 @@ function friendlyTableError(error) {
   return error?.body?.message ?? error?.message ?? 'Could not load this content.';
 }
 
-/**
- * Compact sortable header button. Use as a column `header`:
- *   header: ({ column }) => <DataTableColumnHeader column={column} title="Title" />
- */
 export function DataTableColumnHeader({ column, title }) {
-  if (!column.getCanSort()) return <span>{title}</span>;
+  if (!column.getCanSort()) return <span className="text-[11px] font-medium tracking-[0.5px] uppercase text-[var(--m3-on-surface-variant)]">{title}</span>;
   const sorted = column.getIsSorted();
   const Icon = sorted === 'asc' ? ArrowUp : sorted === 'desc' ? ArrowDown : ArrowUpDown;
   return (
@@ -68,7 +51,7 @@ export function DataTableColumnHeader({ column, title }) {
       variant="ghost"
       size="sm"
       onClick={() => column.toggleSorting(sorted === 'asc')}
-      className="-ml-2 h-6 rounded-[3px]"
+      className="-ml-2 h-8 rounded-full px-2 text-[14px]"
       aria-label={`Sort by ${title}${sorted === 'asc' ? ' (sorted ascending)' : sorted === 'desc' ? ' (sorted descending)' : ''}`}
     >
       {title}
@@ -80,15 +63,15 @@ export function DataTableColumnHeader({ column, title }) {
 function DefaultEmptyState({ title, hint }) {
   return (
     <Card className={WRAPPER_CLASS}>
-      <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
+      <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
         <span
-          className="flex size-8 items-center justify-center rounded-[3px] bg-[#DEEBFF] text-sm font-bold text-[#0747A6]"
+          className="flex size-12 items-center justify-center rounded-full bg-[var(--m3-secondary-container)] text-[var(--m3-on-secondary-container)]"
           aria-hidden="true"
         >
-          G
+          <Search className="size-6" />
         </span>
-        <p className="font-heading text-base font-medium">{title}</p>
-        {hint ? <p className="text-sm text-muted-foreground">{hint}</p> : null}
+        <p className="font-heading text-[22px] leading-7 font-normal text-[var(--m3-on-surface)]">{title}</p>
+        {hint ? <p className="text-sm text-[var(--m3-on-surface-variant)] max-w-[40ch]">{hint}</p> : null}
       </CardContent>
     </Card>
   );
@@ -99,14 +82,14 @@ function DefaultErrorState({ error, onRetry, requestId }) {
     <Card className={WRAPPER_CLASS}>
       <CardContent className="flex flex-col items-start gap-3 py-8">
         <div role="alert" className="flex flex-col gap-1">
-          <p className="font-heading text-base font-medium">Something went wrong</p>
-          <p className="text-sm text-muted-foreground">{friendlyTableError(error)}</p>
+          <p className="font-heading text-[16px] font-medium text-[var(--m3-on-surface)]">Something went wrong</p>
+          <p className="text-sm text-[var(--m3-on-surface-variant)]">{friendlyTableError(error)}</p>
           {requestId ? (
-            <p className="text-xs text-muted-foreground">Request ID: {requestId}</p>
+            <p className="text-xs text-[var(--m3-on-surface-variant)]">Request ID: {requestId}</p>
           ) : null}
         </div>
         {onRetry ? (
-          <Button type="button" variant="outline" size="sm" className="h-8 rounded-[3px]" onClick={onRetry}>
+          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onRetry}>
             Retry
           </Button>
         ) : null}
@@ -115,33 +98,22 @@ function DefaultErrorState({ error, onRetry, requestId }) {
   );
 }
 
-/**
- * <DataTable columns data ... />
- *
- * Client-side by default (sorting/filtering/pagination in-memory).
- * For server-backed Express lists, pass manualSorting/manualFiltering/
- * manualPagination + rowCount and drive fetching from the state you hold
- * (query-key driven — see docs/admin-data-table.md).
- */
 export function DataTable({
   columns,
   data = [],
   loading = false,
   error = null,
   onRetry,
-  // toolbar — search
   searchColumnId = 'title',
   searchPlaceholder = 'Search…',
   searchValue,
   onSearchChange,
-  // toolbar — scope
   scopes = [],
   scopeColumnId = 'scope',
   scopeValue,
   onScopeChange,
   scopePlaceholder = 'All scopes',
   scopeLabel = 'Filter by scope',
-  // table state (controlled in manual modes)
   sorting: controlledSorting,
   onSortingChange,
   columnFilters: controlledColumnFilters,
@@ -154,7 +126,6 @@ export function DataTable({
   rowCount,
   pageCount,
   pageSizeOptions = [10, 20],
-  // states render
   loadingLabel = 'Loading…',
   renderEmptyState,
   renderError,
@@ -170,11 +141,6 @@ export function DataTable({
     pageSize: pageSizeOptions[0] ?? 10,
   });
 
-  // Reset to the first page when controlled search/filter props change so a
-  // heavily filtered list never strands the user on a stale (empty) page.
-  // Uncontrolled typing already resets via handleSearch/handleScope below;
-  // this covers the controlled path (e.g. Events pilot drives search/scope
-  // from URL params while pagination stays internal).
   const paginationIsControlled = controlledPagination !== undefined;
   useEffect(() => {
     if (paginationIsControlled) {
@@ -189,8 +155,6 @@ export function DataTable({
         prev.pageIndex === 0 ? prev : { ...prev, pageIndex: 0 },
       );
     }
-    // Intentionally keyed on controlled filter inputs only — not on the
-    // pagination state/setters themselves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchValue, scopeValue, controlledColumnFilters]);
 
@@ -264,10 +228,10 @@ export function DataTable({
 
   return (
     <div className={className}>
-      <div className="mb-3 flex flex-wrap items-center gap-2" role="search">
-        <div className="relative min-w-52 flex-1 sm:max-w-xs">
+      <div className="mb-4 flex flex-wrap items-center gap-3" role="search">
+        <div className="relative min-w-52 flex-1 sm:max-w-[320px]">
           <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[var(--m3-on-surface-variant)]"
             aria-hidden="true"
           />
           <label className="sr-only" htmlFor={`datatable-search-${searchColumnId}`}>
@@ -276,7 +240,7 @@ export function DataTable({
           <Input
             id={`datatable-search-${searchColumnId}`}
             type="search"
-            className="h-8 rounded-[3px] bg-[#FAFBFC] pr-3 pl-9"
+            className="h-10 rounded-full bg-[var(--m3-surface-container-high)] border-transparent pr-4 pl-12 text-[14px] placeholder:text-[var(--m3-on-surface-variant)]"
             placeholder={searchPlaceholder}
             value={activeSearch}
             onChange={(e) => handleSearch(e.target.value)}
@@ -291,7 +255,7 @@ export function DataTable({
             <Select value={activeScope} onValueChange={handleScope} disabled={loading}>
               <SelectTrigger
                 id="datatable-scope"
-                className="h-8 rounded-[3px]"
+                className="h-10 rounded-full border-[var(--m3-outline)] bg-transparent px-4"
               >
                 <SelectValue placeholder={scopePlaceholder} />
               </SelectTrigger>
@@ -305,8 +269,8 @@ export function DataTable({
             </Select>
           </>
         ) : null}
-        <span className="text-xs text-muted-foreground" aria-live="polite">
-          {loading ? loadingLabel : `${total} result(s)`}
+        <span className="text-[12px] font-medium tracking-[0.5px] text-[var(--m3-on-surface-variant)]" aria-live="polite">
+          {loading ? loadingLabel : `${total} result${total === 1 ? '' : 's'}`}
         </span>
       </div>
 
@@ -316,9 +280,9 @@ export function DataTable({
         <div className={WRAPPER_CLASS}>
           <div className="overflow-x-auto">
             <Table>
-            <TableHeader className="border-b border-[#EBECF0] bg-[#FAFBFC]">
+            <TableHeader className="border-b border-[var(--m3-outline-variant)] bg-[var(--m3-surface-container)]">
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
+                <TableRow key={headerGroup.id} className="hover:bg-transparent">
                   {headerGroup.headers.map((header) => {
                     const sortable = header.column.getCanSort();
                     const sorted = header.column.getIsSorted();
@@ -326,7 +290,7 @@ export function DataTable({
                       <TableHead
                         key={header.id}
                         scope="col"
-                        className="h-8 px-3 text-[11px] font-semibold uppercase text-muted-foreground"
+                        className="h-10 px-4 text-[12px] font-medium tracking-[0.5px] uppercase text-[var(--m3-on-surface-variant)]"
                         aria-sort={
                           sortable
                             ? sorted
@@ -349,10 +313,10 @@ export function DataTable({
             <TableBody>
               {loading
                 ? Array.from({ length: skeletonRows }).map((_, rowIndex) => (
-                    <TableRow key={`skeleton-${rowIndex}`} className="hover:bg-[#F4F5F7]">
+                    <TableRow key={`skeleton-${rowIndex}`} className="hover:bg-transparent">
                       {Array.from({ length: columnCount }).map((_, cellIndex) => (
-                        <TableCell key={`skeleton-${rowIndex}-${cellIndex}`} className="px-3 py-2 text-sm">
-                          <Skeleton className="h-5 w-full" aria-hidden="true" />
+                        <TableCell key={`skeleton-${rowIndex}-${cellIndex}`} className="px-4 py-3">
+                          <Skeleton className="h-4 w-full rounded-full" aria-hidden="true" />
                         </TableCell>
                       ))}
                     </TableRow>
@@ -361,10 +325,10 @@ export function DataTable({
                     <TableRow
                       key={row.id}
                       data-state={row.getIsSelected?.() && 'selected'}
-                      className="hover:bg-[#F4F5F7] data-[state=selected]:bg-[#DEEBFF]"
+                      className="hover:bg-[rgba(29,27,32,0.04)] data-[state=selected]:bg-[var(--m3-secondary-container)] border-b border-[var(--m3-outline-variant)] last:border-0"
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="px-3 py-2 text-sm">
+                        <TableCell key={cell.id} className="px-4 py-3 text-[14px] leading-5 text-[var(--m3-on-surface)]">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}
@@ -376,8 +340,8 @@ export function DataTable({
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <p className="text-sm text-muted-foreground" aria-live="polite">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <p className="text-[12px] font-medium tracking-[0.5px] text-[var(--m3-on-surface-variant)]" aria-live="polite">
           Showing {from}–{to} of {total}
         </p>
         <div className="ml-auto flex items-center gap-2">
@@ -389,7 +353,7 @@ export function DataTable({
             onValueChange={(value) => table.setPageSize(Number(value))}
             disabled={loading}
           >
-            <SelectTrigger id="datatable-pagesize" className="h-8 rounded-[3px]">
+            <SelectTrigger id="datatable-pagesize" className="h-10 rounded-full border-[var(--m3-outline)]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -404,7 +368,7 @@ export function DataTable({
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 rounded-[3px]"
+            className="rounded-full"
             onClick={() => table.previousPage()}
             disabled={loading || !table.getCanPreviousPage()}
           >
@@ -414,7 +378,7 @@ export function DataTable({
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 rounded-[3px]"
+            className="rounded-full"
             onClick={() => table.nextPage()}
             disabled={loading || !table.getCanNextPage()}
           >

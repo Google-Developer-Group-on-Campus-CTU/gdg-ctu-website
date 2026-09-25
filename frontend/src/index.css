@@ -743,6 +743,111 @@ a {
   --shadow-2xl: 0 25px 50px -12px rgb(244 244 244 / 0.45);
 }
 
+/* ── Material 3 semantic tokens — admin scope (web reproduction, not Android library)
+   Public .gdg-* DS untouched. Admin components map to these roles. */
+:root {
+  --m3-primary: #0B57D0;
+  --m3-on-primary: #FFFFFF;
+  --m3-primary-container: #D3E3FD;
+  --m3-on-primary-container: #041E49;
+  --m3-secondary: #575E71;
+  --m3-on-secondary: #FFFFFF;
+  --m3-secondary-container: #DBE2F9;
+  --m3-on-secondary-container: #111C2B;
+  --m3-tertiary: #6E5675;
+  --m3-on-tertiary: #FFFFFF;
+  --m3-tertiary-container: #F5D8FF;
+  --m3-on-tertiary-container: #2D152E;
+  --m3-error: #BA1A1A;
+  --m3-on-error: #FFFFFF;
+  --m3-error-container: #FFDAD6;
+  --m3-on-error-container: #410002;
+  --m3-surface: #FEF7FF;
+  --m3-surface-dim: #DED8E1;
+  --m3-surface-bright: #FEF7FF;
+  --m3-surface-container-lowest: #FFFFFF;
+  --m3-surface-container-low: #F7F2FA;
+  --m3-surface-container: #F3EDF7;
+  --m3-surface-container-high: #ECE6F0;
+  --m3-surface-container-highest: #E6E0E9;
+  --m3-on-surface: #1D1B20;
+  --m3-on-surface-variant: #49454E;
+  --m3-outline: #79747E;
+  --m3-outline-variant: #CAC4D0;
+  --m3-scrim: #000000;
+  --m3-inverse-surface: #322F35;
+  --m3-inverse-on-surface: #F5EFF7;
+  --m3-inverse-primary: #A8C7FA;
+  --m3-surface-tint: #6750A4;
+  --m3-shape-corner-xs: 4px;
+  --m3-shape-corner-sm: 8px;
+  --m3-shape-corner-md: 12px;
+  --m3-shape-corner-lg: 16px;
+  --m3-shape-corner-xl: 20px;
+  --m3-shape-corner-2xl: 28px;
+  --m3-shape-corner-full: 9999px;
+  --m3-elevation-1: 0 1px 2px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.08);
+  --m3-elevation-2: 0 1px 2px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.10);
+  --m3-elevation-3: 0 4px 8px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.08);
+  --m3-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --m3-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --m3-motion-duration-short: 150ms;
+  --m3-motion-duration-medium: 300ms;
+  /* M3 Type Scale — semantic roles (Google Sans + Roboto) */
+  --m3-typescale-display-large-size: 57px; --m3-typescale-display-large-line: 64px; --m3-typescale-display-large-weight: 400; --m3-typescale-display-large-tracking: -0.25px;
+  --m3-typescale-headline-large-size: 32px; --m3-typescale-headline-large-line: 40px; --m3-typescale-headline-large-weight: 400;
+  --m3-typescale-headline-medium-size: 28px; --m3-typescale-headline-medium-line: 36px; --m3-typescale-headline-medium-weight: 400;
+  --m3-typescale-headline-small-size: 24px; --m3-typescale-headline-small-line: 32px; --m3-typescale-headline-small-weight: 400;
+  --m3-typescale-title-large-size: 22px; --m3-typescale-title-large-line: 28px; --m3-typescale-title-large-weight: 400;
+  --m3-typescale-title-medium-size: 16px; --m3-typescale-title-medium-line: 24px; --m3-typescale-title-medium-weight: 500; --m3-typescale-title-medium-tracking: 0.15px;
+  --m3-typescale-title-small-size: 14px; --m3-typescale-title-small-line: 20px; --m3-typescale-title-small-weight: 500; --m3-typescale-title-small-tracking: 0.1px;
+  --m3-typescale-body-large-size: 16px; --m3-typescale-body-large-line: 24px; --m3-typescale-body-large-weight: 400; --m3-typescale-body-large-tracking: 0.5px;
+  --m3-typescale-body-medium-size: 14px; --m3-typescale-body-medium-line: 20px; --m3-typescale-body-medium-weight: 400; --m3-typescale-body-medium-tracking: 0.25px;
+  --m3-typescale-body-small-size: 12px; --m3-typescale-body-small-line: 16px; --m3-typescale-body-small-weight: 400; --m3-typescale-body-small-tracking: 0.4px;
+  --m3-typescale-label-large-size: 14px; --m3-typescale-label-large-line: 20px; --m3-typescale-label-large-weight: 500; --m3-typescale-label-large-tracking: 0.1px;
+  --m3-typescale-label-medium-size: 12px; --m3-typescale-label-medium-line: 16px; --m3-typescale-label-medium-weight: 500; --m3-typescale-label-medium-tracking: 0.5px;
+  --m3-typescale-label-small-size: 11px; --m3-typescale-label-small-line: 16px; --m3-typescale-label-small-weight: 500; --m3-typescale-label-small-tracking: 0.5px;
+  /* M3 Spacing — 4dp baseline */
+  --m3-spacing-1: 4px; --m3-spacing-2: 8px; --m3-spacing-3: 12px; --m3-spacing-4: 16px; --m3-spacing-5: 20px; --m3-spacing-6: 24px; --m3-spacing-7: 28px; --m3-spacing-8: 32px;
+}
+
+.dark {
+  --m3-primary: #A8C7FA;
+  --m3-on-primary: #003060;
+  --m3-primary-container: #0842A0;
+  --m3-on-primary-container: #D3E3FD;
+  --m3-secondary: #BFC6DC;
+  --m3-on-secondary: #283141;
+  --m3-secondary-container: #3E4759;
+  --m3-on-secondary-container: #DBE2F9;
+  --m3-tertiary: #DEBDE3;
+  --m3-on-tertiary: #3D2845;
+  --m3-tertiary-container: #553E5C;
+  --m3-on-tertiary-container: #FAD8FF;
+  --m3-error: #FFB4AB;
+  --m3-on-error: #690005;
+  --m3-error-container: #93000A;
+  --m3-on-error-container: #FFDAD6;
+  --m3-surface: #141218;
+  --m3-surface-dim: #141218;
+  --m3-surface-bright: #3B383E;
+  --m3-surface-container-lowest: #0F0D13;
+  --m3-surface-container-low: #1D1B20;
+  --m3-surface-container: #211F26;
+  --m3-surface-container-high: #2B2930;
+  --m3-surface-container-highest: #36343B;
+  --m3-on-surface: #E6E0E9;
+  --m3-on-surface-variant: #CAC4D0;
+  --m3-outline: #938F99;
+  --m3-outline-variant: #49454F;
+  --m3-scrim: #000000;
+  --m3-inverse-surface: #E6E0E9;
+  --m3-inverse-on-surface: #322F35;
+  --m3-inverse-primary: #0B57D0;
+}
+
+/* Shadcn aliases inside admin scope will remap to M3 roles via admin.css */
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

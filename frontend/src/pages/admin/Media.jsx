@@ -16,9 +16,8 @@ function fileLabel(m) {
   return m.filename ?? m.originalName ?? String(getId(m) ?? '');
 }
 
-/* 32px row-action targets on the shared quiet button language. */
-const ROW_BUTTON_CLASS = 'inline-flex h-8 items-center px-3 rounded-[3px] border border-[#DFE1E6] bg-[#FAFBFC] text-sm font-medium text-[#42526E] hover:bg-[#EBECF0] hover:text-[#172B4D]';
-const ROW_BUTTON_DANGER_CLASS = 'inline-flex h-8 items-center px-3 rounded-[3px] border border-[#DFE1E6] bg-[#FAFBFC] text-sm font-medium text-[#DE350B] hover:bg-[#FFEBE6]';
+const ROW_BUTTON_CLASS = 'inline-flex h-10 items-center px-6 rounded-full border border-[var(--m3-outline)] bg-transparent text-[14px] font-medium tracking-[0.1px] text-[var(--m3-primary)] hover:bg-[rgba(11,87,208,0.08)]';
+const ROW_BUTTON_DANGER_CLASS = 'inline-flex h-10 items-center px-6 rounded-full border border-[var(--m3-error)] bg-transparent text-[14px] font-medium tracking-[0.1px] text-[var(--m3-error)] hover:bg-[rgba(186,26,26,0.08)]';
 
 export default function AdminMedia() {
   const [params, setParams] = useSearchParams();

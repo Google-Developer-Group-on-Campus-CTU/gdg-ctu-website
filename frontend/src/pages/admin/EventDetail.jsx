@@ -489,6 +489,8 @@ export default function EventDetail() {
 
       <DirtyGuardBanner blocker={blocker} />
 
+      <div className="m3-detail-grid">
+        <div className="m3-detail-main">
       <Form {...methods}>
         {/* persist(false) is created in the submit handler (not during render)
             so the summaryRef focus path never runs at render time. */}
@@ -601,6 +603,35 @@ export default function EventDetail() {
           </EditorCard>
         </form>
       </Form>
+        </div>
+        <aside className="m3-detail-pane" aria-label="Supporting details">
+          <h3>Preview &amp; status</h3>
+          <p className="admin-muted" style={{ wordBreak: 'break-all' }} aria-live="polite">
+            {previewSlug ? `/events/${previewSlug}` : 'Slug generated from title'}
+          </p>
+          <p>
+            <a className="gdg-btn gdg-btn-secondary" href={previewSlug ? publicPreview.eventSlug(previewSlug) : publicPreview.events()} target="_blank" rel="noreferrer">
+              Open public preview ↗
+            </a>
+          </p>
+          <hr style={{ border: 'none', borderTop: '1px solid var(--m3-outline-variant)', margin: '8px 0' }} />
+          <p style={{ fontSize: 'var(--m3-typescale-label-medium-size)', fontWeight: 500, color: 'var(--m3-on-surface)' }}>
+            {Object.keys(publishGate).length > 0 ? `Fix ${Object.keys(publishGate).length} fields to publish` : 'Ready to publish'}
+          </p>
+          <p className="admin-muted" style={{ fontSize: 'var(--m3-typescale-body-small-size)' }}>
+            Status: {values.status} · {values.is_active ? 'Visible publicly' : 'Hidden publicly'}
+          </p>
+          {embedUrl ? (
+            <div style={{ display: 'grid', gap: 8 }}>
+              <p style={{ fontSize: 'var(--m3-typescale-label-medium-size)', fontWeight: 500 }}>Location preview</p>
+              <iframe title={`Map preview for ${locationText.trim()}`} src={embedUrl} loading="lazy" style={{ width: '100%', height: 220, border: 0, borderRadius: 'var(--m3-shape-corner-md)' }} />
+              <a className="admin-muted" href={searchUrl} target="_blank" rel="noreferrer" style={{ fontSize: 'var(--m3-typescale-body-small-size)' }}>Open in Google Maps ↗</a>
+            </div>
+          ) : (
+            <p className="admin-muted" style={{ fontSize: 'var(--m3-typescale-body-small-size)' }}>Add a location to see map preview here.</p>
+          )}
+        </aside>
+      </div>
 
       <TypedConfirm open={confirmDelete} title="Delete draft?" body="Hard delete is only for never-published drafts. This cannot be undone." expected={values.title} confirmLabel="Delete forever" busy={saving} onCancel={() => setConfirmDelete(false)} onConfirm={hardDelete} />
     </section>
