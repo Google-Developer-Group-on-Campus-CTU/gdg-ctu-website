@@ -26,9 +26,10 @@ import { parseJsonField } from "../../utils/multiPartPayloadHelper.js";
 /**
  * Create a new partner.
  * • Requires a valid admin (user) ID.
- * • Expects multipart payload with `partner` JSON and a required logo image file.
- * • The logo image is mandatory; missing image results in a 400 error.
- * • Image is uploaded via Cloudinary and linked via `logoMediaId`.
+ * • Accepts (a) multipart payload with `partner` JSON or (b) flat JSON body.
+ * • The logo image file is optional: when provided it is uploaded via
+ *   Cloudinary and linked via `logoMediaId`; otherwise the `logoMediaId`
+ *   from the body (MediaPicker-selected media) is used.
  */
 export const createPartner = async (req: Request, res: Response) => {
       try {
@@ -38,20 +39,34 @@ export const createPartner = async (req: Request, res: Response) => {
                   throw new AppError(401, "Unauthorized: Missing userId");
             }
 
-            // 2. Payload Presence Validations
-            const partnerJson = req.body.partner;
-            if (!partnerJson) {
-                  throw new AppError(400, "'partner' JSON payload missing");
-            }
+            // 2. Payload Presence Validations (file is optional)
+            const file = (req as any).file?.buffer as Buffer | undefined;
 
-            const file = (req as any).file?.buffer;
-            if (!file) {
-                  throw new AppError(400, "Partner logo image is required");
+            const hasPartnerWrapper =
+                  req.body?.partner !== undefined &&
+                  req.body.partner !== null &&
+                  req.body.partner !== "";
+            let rawPartnerData: Record<string, unknown>;
+            if (hasPartnerWrapper) {
+                  rawPartnerData =
+                        typeof req.body.partner === "string"
+                              ? parseJsonField(req.body.partner, "partner")
+                              : {
+                                      ...(req.body.partner as Record<
+                                            string,
+                                            unknown
+                                      >),
+                                };
+            } else {
+                  rawPartnerData = { ...req.body };
+                  delete rawPartnerData.file;
             }
 
             // 3. Shape/Type Validation
-            const partnerData = parseJsonField(partnerJson, "partner");
-            const validData = validateBody(CreatePartnerSchema, partnerData);
+            const validData = validateBody(
+                  CreatePartnerSchema,
+                  rawPartnerData,
+            );
 
             // 4. Pass to Service Layer
             const partner = await createPartnerService(

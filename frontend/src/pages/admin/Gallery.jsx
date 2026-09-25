@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { albumsApi, albumItemsApi, getId } from '../../api/resources.js';
+import { albumsApi, albumItemsApi } from '../../api/resources.js';
 import { ADMIN_ENTITY_ROUTES, adminNewTargetFor, useAdminList, useDebouncedValue } from '../../admin/editorial.js';
 import { DataTable, DataTableColumnHeader } from '../../components/admin/data-table.jsx';
 import { EmptyState, StatusPill } from '../../components/admin/shared.jsx';
@@ -18,7 +18,7 @@ const columns = [
     cell: ({ row }) => {
       const album = row.original;
       const src = album.cover_url ?? album.coverUrl ?? '';
-      const label = album.title ?? '(untitled)';
+      const label = album.title ?? album.name ?? '(untitled)';
       return src ? (
         <img src={src} alt="" aria-label={`Cover of ${label}`} className="admin-thumb" loading="lazy" />
       ) : (
@@ -31,13 +31,19 @@ const columns = [
     header: ({ column }) => <DataTableColumnHeader column={column} title="Title" />,
     cell: ({ row }) => {
       const album = row.original;
-      const id = getId(album) ?? album.slug;
+      // Albums use title (backend `name` maps to form `title`); `key`
+      // (id ?? slug) is for Links only — data calls require the UUID.
+      const id = album?.id ?? album?._id ?? album?.uuid;
+      const slug = album?.slug;
+      const key = id ?? slug;
+      const label = album.title ?? album.name ?? '(untitled)';
+      if (!key) return <span className="font-medium">{label}</span>;
       return (
         <Link
-          to={ADMIN_ENTITY_ROUTES.gallery.detail(id)}
+          to={ADMIN_ENTITY_ROUTES.gallery.detail(key)}
           className="font-medium underline-offset-4 hover:underline"
         >
-          {album.title ?? '(untitled)'}
+          {label}
         </Link>
       );
     },
@@ -78,11 +84,14 @@ const columns = [
     enableSorting: false,
     cell: ({ row }) => {
       const album = row.original;
-      const id = getId(album) ?? album.slug;
+      const id = album?.id ?? album?._id ?? album?.uuid;
+      const slug = album?.slug;
+      const key = id ?? slug;
       // No standalone edit route: the detail page IS the editor (view+edit),
-      // so a single Manage pill opens it.
-      const detail = ADMIN_ENTITY_ROUTES.gallery.detail(id);
-      const label = album.title ?? '(untitled)';
+      // so a single Manage pill opens it. Hidden when neither id nor slug exists.
+      if (!key) return <span className="admin-muted" aria-hidden="true">—</span>;
+      const detail = ADMIN_ENTITY_ROUTES.gallery.detail(key);
+      const label = album.title ?? album.name ?? '(untitled)';
       return (
         <Link to={detail} className={ACTION_LINK_CLASS} aria-label={`Manage ${label}`}>
           Manage
@@ -117,12 +126,14 @@ export default function AdminGallery() {
   const rows = useMemo(() => {
     const term = debounced.trim().toLowerCase();
     const withCounts = (albums.data ?? []).map((a) => {
-      const id = getId(a) ?? a.slug;
-      return { ...a, _photoCount: counts[id] ?? counts[a.id] ?? 0 };
+      const id = a?.id ?? a?._id ?? a?.uuid;
+      const slug = a?.slug;
+      const key = id ?? slug;
+      return { ...a, _photoCount: (key ? counts[key] : undefined) ?? counts[a.id] ?? 0 };
     });
     if (!term) return withCounts;
     return withCounts.filter((a) =>
-      [a.title, a.slug].filter(Boolean).join(' ').toLowerCase().includes(term),
+      [a.title ?? a.name, a.slug].filter(Boolean).join(' ').toLowerCase().includes(term),
     );
   }, [albums.data, counts, debounced]);
 

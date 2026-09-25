@@ -1,6 +1,7 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { PARTNER_TIERS, partners } from "./models/partner.js";
+import { nullableUuid } from "../../utils/zodHelpers.js";
 
 export const PartnerSchema = createSelectSchema(partners);
 
@@ -9,13 +10,11 @@ export const CreatePartnerSchema = createInsertSchema(partners)
       .extend({
             name: z.string().trim().min(1, { message: "Name is required." }),
             slug: z.string().trim().min(1, { message: "Slug is required." }),
-            logoMediaId: z
-                  .uuid()
-                  .nullable()
-                  .optional()
-                  .refine((val) => !val || val.length > 0, {
-                        message: "Logo media ID must be a valid UUID if provided.",
-                  }),
+            logoMediaId: nullableUuid(
+                  "Logo media ID must be a valid UUID if provided.",
+            ).refine((val) => !val || val.length > 0, {
+                  message: "Logo media ID must be a valid UUID if provided.",
+            }),
             websiteUrl: z
                   .string()
                   .trim()

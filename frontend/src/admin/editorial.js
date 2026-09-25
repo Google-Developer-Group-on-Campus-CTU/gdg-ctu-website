@@ -187,6 +187,18 @@ export function useDebouncedValue(value, delay = 250) {
 }
 
 /**
+ * Detail-path guard: a missing id (undefined/null/'') or the literal string
+ * 'undefined' falls back to the entity list path instead of producing a
+ * .../undefined URL (which would 400 "Invalid id" on the UUID-routed GET).
+ * Route-pattern placeholders (':id', ':sectionKey') pass through untouched so
+ * App.jsx can still derive `/admin/<entity>/:param` patterns.
+ */
+function safeDetailPath(list, id) {
+  if (!id || id === 'undefined') return list;
+  return `${list}/${id}`;
+}
+
+/**
  * Canonical admin entity→route map (spec v0.4 §3). Single source of truth for
  * the App.jsx admin route table, the shell NAV, Dashboard item links and the
  * +New target — do not hardcode admin entity paths elsewhere.
@@ -197,11 +209,11 @@ export function useDebouncedValue(value, delay = 250) {
  *   (App.jsx derives the route pattern via `detail(':' + param)`).
  */
 export const ADMIN_ENTITY_ROUTES = {
-  events: { label: 'Events', list: '/admin/events', new: '/admin/events/new', detail: (id) => `/admin/events/${id}`, param: 'id' },
-  team: { label: 'Team', list: '/admin/team', new: '/admin/team/new', detail: (id) => `/admin/team/${id}`, param: 'id' },
-  partners: { label: 'Partners', list: '/admin/partners', new: '/admin/partners/new', detail: (id) => `/admin/partners/${id}`, param: 'id' },
-  gallery: { label: 'Gallery', list: '/admin/gallery', new: '/admin/gallery/albums/new', detail: (id) => `/admin/gallery/albums/${id}`, param: 'id' },
-  content: { label: 'Content', list: '/admin/content', new: '/admin/content', detail: (key) => `/admin/content/${key}`, param: 'sectionKey' },
+  events: { label: 'Events', list: '/admin/events', new: '/admin/events/new', detail: (id) => safeDetailPath('/admin/events', id), param: 'id' },
+  team: { label: 'Team', list: '/admin/team', new: '/admin/team/new', detail: (id) => safeDetailPath('/admin/team', id), param: 'id' },
+  partners: { label: 'Partners', list: '/admin/partners', new: '/admin/partners/new', detail: (id) => safeDetailPath('/admin/partners', id), param: 'id' },
+  gallery: { label: 'Gallery', list: '/admin/gallery', new: '/admin/gallery/albums/new', detail: (id) => safeDetailPath('/admin/gallery/albums', id), param: 'id' },
+  content: { label: 'Content', list: '/admin/content', new: '/admin/content', detail: (key) => safeDetailPath('/admin/content', key), param: 'sectionKey' },
   media: { label: 'Media', list: '/admin/media', new: '/admin/media', detail: null, param: null },
 };
 
@@ -217,8 +229,14 @@ export function adminDetailPathFor(kind, item) {
     console.warn(`[admin] adminDetailPathFor: unknown kind "${kind}" — falling back to /admin.`);
     return '/admin';
   }
-  if (kind === 'content') return entry.detail(item?.section_key ?? item?.sectionKey);
-  return entry.detail(item?.id ?? item?._id ?? item?.uuid ?? item?.slug);
+  if (kind === 'content') {
+    const key = item?.section_key ?? item?.sectionKey;
+    if (!key || key === 'undefined') return entry.list;
+    return entry.detail(key);
+  }
+  const id = item?.id ?? item?._id ?? item?.uuid ?? item?.slug;
+  if (!id || id === 'undefined') return entry.list;
+  return entry.detail(id);
 }
 
 /** Longest-prefix match of the current admin path to its section's "new" target. */

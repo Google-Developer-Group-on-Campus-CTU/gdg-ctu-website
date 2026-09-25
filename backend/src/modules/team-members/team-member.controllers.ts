@@ -30,32 +30,80 @@ export const createTeamMemberWithImage = async (
       res: Response,
 ) => {
       try {
-            const file = (req as any).file?.buffer;
-            if (!file) {
-                  throw new AppError(400, "Profile image is required");
+            // File is optional: when present its buffer is uploaded and
+            // becomes the profile photo; otherwise `profileMediaId` /
+            // `photoMediaId` from the body (MediaPicker-selected media) is
+            // used.
+            const file = (req as any).file?.buffer as Buffer | undefined;
+
+            // Accept both contracts:
+            // (a) multipart with a JSON-string `member` field, or
+            // (b) flat JSON body with the member fields directly.
+            const hasMemberWrapper =
+                  req.body?.member !== undefined &&
+                  req.body.member !== null &&
+                  req.body.member !== "";
+            let rawMemberData: Record<string, unknown>;
+            if (hasMemberWrapper) {
+                  rawMemberData =
+                        typeof req.body.member === "string"
+                              ? parseJsonField(req.body.member, "member")
+                              : {
+                                      ...(req.body.member as Record<
+                                            string,
+                                            unknown
+                                      >),
+                                };
+            } else {
+                  rawMemberData = { ...req.body };
+                  delete rawMemberData.file;
             }
 
-            const memberJson = req.body.member;
-            if (!memberJson) {
-                  throw new AppError(400, "`member` JSON payload missing");
+            // `photoMediaId` is the flat-JSON alias for the
+            // `profileMediaId` column — fold it before Zod.
+            if (
+                  rawMemberData.profileMediaId == null &&
+                  rawMemberData.photoMediaId != null
+            ) {
+                  rawMemberData.profileMediaId = rawMemberData.photoMediaId;
             }
+            delete rawMemberData.photoMediaId;
+
+            // termId / role may arrive top-level (multipart fields) or
+            // nested inside the member payload (flat JSON).
+            const rawTermId =
+                  req.body?.termId ?? rawMemberData.termId ?? rawMemberData.term_id;
+            const rawRole = req.body?.role ?? rawMemberData.role;
+            const termId =
+                  typeof rawTermId === "string" && rawTermId.trim() !== ""
+                        ? rawTermId.trim()
+                        : typeof rawTermId === "number"
+                              ? String(rawTermId)
+                              : undefined;
+            const role =
+                  typeof rawRole === "string" && rawRole.trim() !== ""
+                        ? rawRole.trim()
+                        : undefined;
+            delete rawMemberData.termId;
+            delete rawMemberData.term_id;
+            // `role` is term-assignment data, not a team_members column.
+            delete rawMemberData.role;
+
             const memberData = validateBody(
                   CreateTeamMemberSchema,
-                  parseJsonField(memberJson, "member"),
+                  rawMemberData,
             );
 
-            if (!req.body.termId) {
+            if (!termId) {
                   throw new AppError(400, "termId missing");
             }
-            const termId = String(req.body.termId);
 
-            if (!req.body.role) {
+            if (!role) {
                   throw new AppError(
                         400,
                         "Cannot Proceed: Member Role is missing",
                   );
             }
-            const role = String(req.body.role);
 
             const userId = getUserIdFromRequest(req);
             if (!userId) {

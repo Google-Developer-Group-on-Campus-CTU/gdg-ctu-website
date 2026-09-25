@@ -30,7 +30,7 @@ import { assertAdminExists } from "../auth/assertAdminExistsHelper.js";
 // DTO for the multipart "create with image" endpoint.
 interface CreateTeamMemberWithImageDTO {
       memberData: NewTeamMemberRecord;
-      file: Buffer;
+      file?: Buffer;
       uploadedBy: string;
 }
 // DTO for fetching term data from controller
@@ -75,25 +75,37 @@ export const createTeamMemberService = async (
 
       let uploadResult: CloudinaryUploadResult | null = null;
       try {
-            // Upload the profile image to cloudinary + normalize for DB storage
-            const recorded = await recordUpload({
-                  file: data.file,
-                  meta: {
-                        folder: DEFAULT_MEMBER_MEDIA_FOLDER,
-                        uploadedBy: data.uploadedBy,
-                  },
-            });
-            uploadResult = recorded.uploadResult;
+            // If a profile image file is supplied, upload to Cloudinary and
+            // use the new media id; otherwise keep the `profileMediaId`
+            // from the body (MediaPicker-selected media). The file is
+            // optional.
+            let profileMediaId =
+                  (data.memberData as { profileMediaId?: string | null })
+                        .profileMediaId ?? undefined;
+            if (data.file) {
+                  const recorded = await recordUpload({
+                        file: data.file,
+                        meta: {
+                              folder: DEFAULT_MEMBER_MEDIA_FOLDER,
+                              uploadedBy: data.uploadedBy,
+                        },
+                  });
+                  uploadResult = recorded.uploadResult;
+                  profileMediaId = recorded.mediaId;
+            }
+
+            const { photoMediaId: _photoAlias, ...memberColumns } =
+                  data.memberData as Record<string, unknown>;
 
             const teamMember = await insertTeamMember(
-                  data.memberData,
-                  recorded.mediaId,
+                  memberColumns as NewTeamMemberRecord,
+                  (profileMediaId ?? null) as string | null,
             );
 
             await createMemberTermService({
                   ...termData,
                   memberId: teamMember.id,
-                  profileMediaId: recorded.mediaId,
+                  profileMediaId: profileMediaId ?? null,
             });
 
             return teamMember;

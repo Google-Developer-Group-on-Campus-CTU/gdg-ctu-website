@@ -1,6 +1,7 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { EVENT_STATUSES, events } from "./models/event.js";
+import { emptyToNull, nullableUuid } from "../../utils/zodHelpers.js";
 
 const eventDateRule = <
       T extends {
@@ -37,21 +38,20 @@ const BaseCreateEventSchema = createInsertSchema(events)
             slug: z.string().trim().min(1, { message: "Slug is required." }),
             shortDescription: z.string().nullable().optional(),
             description: z.string().nullable().optional(),
-            coverMediaId: z
-                  .uuid()
-                  .nullable()
-                  .optional()
-                  .refine((val) => !val || val.length > 0, {
-                        message: "Cover media ID must be a valid UUID if provided.",
-                  }),
+            coverMediaId: nullableUuid(
+                  "Cover media ID must be a valid UUID if provided.",
+            ).refine((val) => !val || val.length > 0, {
+                  message: "Cover media ID must be a valid UUID if provided.",
+            }),
             location: z.string().trim().nullable().optional(),
-            locationEmbedUrl: z
-                  .url()
-                  .nullable()
-                  .optional()
-                  .refine((val) => !val || val.length > 0, {
-                        message: "Location embed URL must be a valid URL if provided.",
-                  }),
+            locationEmbedUrl: emptyToNull(
+                  z
+                        .url()
+                        .nullable()
+                        .optional(),
+            ).refine((val) => !val || val.length > 0, {
+                  message: "Location embed URL must be a valid URL if provided.",
+            }),
             registrationEnabled: z.boolean().optional().default(false),
             registrationUrl: z
                   .string()

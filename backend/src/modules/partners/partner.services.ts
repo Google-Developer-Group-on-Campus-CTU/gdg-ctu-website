@@ -40,7 +40,9 @@ export const createPartnerService = async (
 
       let uploadResult: CloudinaryUploadResult | null = null;
       try {
-            // If a logo image is supplied, upload to Cloudinary and create media record
+            // If a logo image is supplied, upload to Cloudinary and create
+            // media record; otherwise keep the `logoMediaId` from the body
+            // (MediaPicker-selected media). The file is optional.
             let logoMediaId = data.logoMediaId ?? undefined;
             if (file) {
                   const recorded = await recordUpload({
@@ -52,11 +54,6 @@ export const createPartnerService = async (
                   });
                   uploadResult = recorded.uploadResult;
                   logoMediaId = recorded.mediaId;
-            } else {
-                  throw new AppError(
-                        400,
-                        "Partner Logo/Cover Image is required",
-                  );
             }
 
             const partner = await insertPartner({
@@ -77,6 +74,10 @@ export const createPartnerService = async (
                   message: error.message,
                   stack: error.stack,
             });
+
+            if (error instanceof AppError) {
+                  throw error;
+            }
 
             throw new AppError(
                   400,

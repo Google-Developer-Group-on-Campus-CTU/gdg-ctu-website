@@ -1,6 +1,7 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { teamMembers } from "./models/team-member.js";
+import { emptyToNull, nullableUuid } from "../../utils/zodHelpers.js";
 
 export const TeamMemberSchema = createSelectSchema(teamMembers);
 export const CreateTeamMemberSchema = createInsertSchema(teamMembers)
@@ -23,27 +24,33 @@ export const CreateTeamMemberSchema = createInsertSchema(teamMembers)
             department: z.string().trim().nullable().optional(),
             program: z.string().trim().nullable().optional(),
             yearSection: z.string().trim().nullable().optional(),
-            linkedinUrl: z
-                  .url()
-                  .nullable()
-                  .optional()
-                  .refine((val) => !val || val.length > 0, {
-                        message: "LinkedIn URL must be a valid URL if provided.",
-                  }),
-            githubUrl: z
-                  .url()
-                  .nullable()
-                  .optional()
-                  .refine((val) => !val || val.length > 0, {
-                        message: "GitHub URL must be a valid URL if provided.",
-                  }),
-            websiteUrl: z
-                  .url()
-                  .nullable()
-                  .optional()
-                  .refine((val) => !val || val.length > 0, {
-                        message: "Website URL must be a valid URL if provided.",
-                  }),
+            linkedinUrl: emptyToNull(
+                  z
+                        .url()
+                        .nullable()
+                        .optional(),
+            ).refine((val) => !val || val.length > 0, {
+                  message: "LinkedIn URL must be a valid URL if provided.",
+            }),
+            githubUrl: emptyToNull(
+                  z
+                        .url()
+                        .nullable()
+                        .optional(),
+            ).refine((val) => !val || val.length > 0, {
+                  message: "GitHub URL must be a valid URL if provided.",
+            }),
+            websiteUrl: emptyToNull(
+                  z
+                        .url()
+                        .nullable()
+                        .optional(),
+            ).refine((val) => !val || val.length > 0, {
+                  message: "Website URL must be a valid URL if provided.",
+            }),
+            profileMediaId: nullableUuid(
+                  "Profile media ID must be a valid UUID if provided.",
+            ),
             displayOrder: z.number().int().nonnegative().optional(),
             isFeatured: z.boolean().optional(),
             isActive: z.boolean().optional(),

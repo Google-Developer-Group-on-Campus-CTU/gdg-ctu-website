@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { getId, partnersApi } from '../../api/resources.js';
+import { partnersApi } from '../../api/resources.js';
 import { pickImage } from '../../api/public.js';
 import {
   ADMIN_ENTITY_ROUTES,
@@ -27,16 +27,32 @@ const ACTION_LINK_CLASS =
 
 function PartnerStatusCell({ row }) {
   const partner = row.original;
-  const id = getId(partner) ?? partner.slug;
+  // UUID only for data calls — PATCH /partners/:id requires a UUID, so a
+  // slug fallback here would 400 "Invalid id". `key` (id ?? slug) is for
+  // React keys / element ids only.
+  const id = partner?.id ?? partner?._id ?? partner?.uuid;
+  const slug = partner?.slug;
+  const key = id ?? slug;
   const [active, setActive] = useState(!!partner.is_active);
+  if (!key) {
+    return (
+      <div className="flex min-h-[32px] flex-wrap items-center gap-x-3 gap-y-1">
+        <StatusPill status={partner.status} active={partner.is_active} />
+      </div>
+    );
+  }
   return (
     <div className="flex min-h-[32px] flex-wrap items-center gap-x-3 gap-y-1">
       <StatusPill status={partner.status} active={partner.is_active} />
       <Toggle
-        id={`partner-active-${id}`}
+        id={`partner-active-${key}`}
         label="Active"
         checked={active}
         onChange={(next) => {
+          if (!id || id === 'undefined') {
+            console.warn('[admin] partners toggle skipped: missing id', slug);
+            return;
+          }
           setActive(next); // optimistic
           partnersApi.update(id, { is_active: next }).catch(() => setActive(!next));
         }}
@@ -68,10 +84,13 @@ const columns = [
     header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
     cell: ({ row }) => {
       const partner = row.original;
-      const id = getId(partner) ?? partner.slug;
+      const id = partner?.id ?? partner?._id ?? partner?.uuid;
+      const slug = partner?.slug;
+      const key = id ?? slug;
+      if (!key) return <span className="font-medium">{partner.name ?? '(unnamed)'}</span>;
       return (
         <Link
-          to={ADMIN_ENTITY_ROUTES.partners.detail(id)}
+          to={ADMIN_ENTITY_ROUTES.partners.detail(key)}
           className="font-medium underline-offset-4 hover:underline"
         >
           {partner.name ?? '(unnamed)'}
@@ -102,10 +121,13 @@ const columns = [
     enableSorting: false,
     cell: ({ row }) => {
       const partner = row.original;
-      const id = getId(partner) ?? partner.slug;
+      const id = partner?.id ?? partner?._id ?? partner?.uuid;
+      const slug = partner?.slug;
+      const key = id ?? slug;
       // No standalone edit route: the detail page IS the editor (view+edit),
-      // so a single Manage pill opens it.
-      const detail = ADMIN_ENTITY_ROUTES.partners.detail(id);
+      // so a single Manage pill opens it. Hidden when neither id nor slug exists.
+      if (!key) return <span className="admin-muted" aria-hidden="true">—</span>;
+      const detail = ADMIN_ENTITY_ROUTES.partners.detail(key);
       const label = partner.name ?? '(unnamed)';
       return (
         <Link to={detail} className={ACTION_LINK_CLASS} aria-label={`Manage ${label}`}>

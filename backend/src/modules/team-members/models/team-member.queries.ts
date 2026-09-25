@@ -13,7 +13,7 @@ export type NewTeamMemberRecord = typeof teamMembers.$inferInsert;
 
 export const insertTeamMember = async (
       data: NewTeamMemberRecord,
-      profilePictureId: string,
+      profilePictureId?: string | null,
 ) => {
       const [teamMember] = await db
             .insert(teamMembers)

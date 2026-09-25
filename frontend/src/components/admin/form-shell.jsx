@@ -208,13 +208,23 @@ export function useSlugUniqueness(api, slug, currentId = null) {
 }
 
 /**
- * Save payload normalizer: display_order numeric coercion + nullable trio
- * ('' → null). Registration URL gating (enabled ? url : null) stays in the
- * page — it is event-specific, not shell policy.
+ * Save payload normalizer: display_order numeric coercion + empty→null for
+ * UUID/FK fields. Backend `z.uuid().nullable()` rejects '' — so every key
+ * ending in MediaId/AlbumId (logoMediaId, coverMediaId, profileMediaId,
+ * galleryAlbumId, mediaId, …) maps '' → null, plus any caller-passed
+ * `nullable[]` keys (department trio, etc.). Registration URL gating
+ * (enabled ? url : null) stays in the page — it is event-specific, not shell
+ * policy.
  */
+const FK_NULLABLE_PATTERN = /(MediaId|AlbumId)$/i;
+
 export function toEditorPayload(values, { nullable = [] } = {}) {
   const out = { ...values, display_order: Number(values.display_order) || 0 };
-  for (const key of nullable) {
+  const keys = new Set([
+    ...Object.keys(out).filter((key) => FK_NULLABLE_PATTERN.test(key)),
+    ...nullable,
+  ]);
+  for (const key of keys) {
     if (out[key] === '') out[key] = null;
   }
   return out;

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { getId, teamApi } from '../../api/resources.js';
+import { teamApi } from '../../api/resources.js';
 import { pickImage } from '../../api/public.js';
 import {
   ADMIN_ENTITY_ROUTES,
@@ -25,16 +25,31 @@ const ACTION_LINK_CLASS =
 
 function MemberStatusCell({ row }) {
   const member = row.original;
-  const id = getId(member) ?? member.slug;
+  // UUID only for data calls — PATCH /team-members/:id requires a UUID.
+  // `key` (id ?? slug) is for React keys / element ids only.
+  const id = member?.id ?? member?._id ?? member?.uuid;
+  const slug = member?.slug;
+  const key = id ?? slug;
   const [active, setActive] = useState(!!member.is_active);
+  if (!key) {
+    return (
+      <div className="flex min-h-[32px] flex-wrap items-center gap-x-3 gap-y-1">
+        <StatusPill status={member.status} active={member.is_active} />
+      </div>
+    );
+  }
   return (
     <div className="flex min-h-[32px] flex-wrap items-center gap-x-3 gap-y-1">
       <StatusPill status={member.status} active={member.is_active} />
       <Toggle
-        id={`team-active-${id}`}
+        id={`team-active-${key}`}
         label="Active"
         checked={active}
         onChange={(next) => {
+          if (!id || id === 'undefined') {
+            console.warn('[admin] team toggle skipped: missing id', slug);
+            return;
+          }
           setActive(next); // optimistic
           teamApi.update(id, { is_active: next }).catch(() => setActive(!next));
         }}
@@ -66,10 +81,13 @@ const columns = [
     header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
     cell: ({ row }) => {
       const member = row.original;
-      const id = getId(member) ?? member.slug;
+      const id = member?.id ?? member?._id ?? member?.uuid;
+      const slug = member?.slug;
+      const key = id ?? slug;
+      if (!key) return <span className="font-medium">{memberName(member)}{member.is_featured ? ' ★' : ''}</span>;
       return (
         <Link
-          to={ADMIN_ENTITY_ROUTES.team.detail(id)}
+          to={ADMIN_ENTITY_ROUTES.team.detail(key)}
           className="font-medium underline-offset-4 hover:underline"
         >
           {memberName(member)}{member.is_featured ? ' ★' : ''}
@@ -108,10 +126,13 @@ const columns = [
     enableSorting: false,
     cell: ({ row }) => {
       const member = row.original;
-      const id = getId(member) ?? member.slug;
+      const id = member?.id ?? member?._id ?? member?.uuid;
+      const slug = member?.slug;
+      const key = id ?? slug;
       // No standalone edit route: the detail page IS the editor (view+edit),
-      // so a single Manage pill opens it.
-      const detail = ADMIN_ENTITY_ROUTES.team.detail(id);
+      // so a single Manage pill opens it. Hidden when neither id nor slug exists.
+      if (!key) return <span className="admin-muted" aria-hidden="true">—</span>;
+      const detail = ADMIN_ENTITY_ROUTES.team.detail(key);
       const label = memberName(member);
       return (
         <Link to={detail} className={ACTION_LINK_CLASS} aria-label={`Manage ${label}`}>

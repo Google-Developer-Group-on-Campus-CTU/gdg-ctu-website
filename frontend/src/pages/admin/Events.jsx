@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { eventsApi, getId } from '../../api/resources.js';
+import { eventsApi } from '../../api/resources.js';
 import {
   ADMIN_ENTITY_ROUTES,
   adminNewTargetFor,
@@ -38,10 +38,15 @@ const columns = [
     header: ({ column }) => <DataTableColumnHeader column={column} title="Title" />,
     cell: ({ row }) => {
       const event = row.original;
-      const id = getId(event) ?? event.slug;
+      // UUID preferred; `key` (id ?? slug) is for Links only — never for
+      // api.get/update/remove, which require a UUID on /:id routes.
+      const id = event?.id ?? event?._id ?? event?.uuid;
+      const slug = event?.slug;
+      const key = id ?? slug;
+      if (!key) return <span className="font-medium">{event.title ?? '(untitled)'}</span>;
       return (
         <Link
-          to={ADMIN_ENTITY_ROUTES.events.detail(id)}
+          to={ADMIN_ENTITY_ROUTES.events.detail(key)}
           className="font-medium underline-offset-4 hover:underline"
         >
           {event.title ?? '(untitled)'}
@@ -77,10 +82,13 @@ const columns = [
     enableSorting: false,
     cell: ({ row }) => {
       const event = row.original;
-      const id = getId(event) ?? event.slug;
+      const id = event?.id ?? event?._id ?? event?.uuid;
+      const slug = event?.slug;
+      const key = id ?? slug;
       // No standalone edit route: the detail page IS the editor (view+edit),
-      // so a single Manage pill opens it.
-      const detail = ADMIN_ENTITY_ROUTES.events.detail(id);
+      // so a single Manage pill opens it. Hidden when neither id nor slug exists.
+      if (!key) return <span className="admin-muted" aria-hidden="true">—</span>;
+      const detail = ADMIN_ENTITY_ROUTES.events.detail(key);
       const label = event.title ?? '(untitled)';
       return (
         <Link to={detail} className={ACTION_LINK_CLASS} aria-label={`Manage ${label}`}>

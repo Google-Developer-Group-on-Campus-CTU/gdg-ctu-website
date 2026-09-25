@@ -24,10 +24,10 @@ import {
 
 export const createEvent = async (req: Request, res: Response) => {
       try {
-            const file = (req as any).file?.buffer;
-            if (!file) {
-                  throw new AppError(400, "Event cover image is required");
-            }
+            // File is optional: when present its buffer is uploaded and
+            // becomes the cover; otherwise `coverMediaId` from the body
+            // (MediaPicker-selected media) is used.
+            const file = (req as any).file?.buffer as Buffer | undefined;
 
             // Session is guaranteed by requireAuth on the protected /events
             // mount — no per-controller 401 here. A missing user still fails
@@ -35,15 +35,26 @@ export const createEvent = async (req: Request, res: Response) => {
             // and createEventService throws 401 "Admin ID missing".
             const userId = getUserIdFromRequest(req);
 
-            const eventJson = req.body.event;
-            if (!eventJson) {
-                  throw new AppError(400, "'event' JSON payload missing");
+            // Accept both contracts:
+            // (a) multipart with a JSON-string `event` field, or
+            // (b) flat JSON body with the event fields directly.
+            const hasEventWrapper =
+                  req.body?.event !== undefined &&
+                  req.body.event !== null &&
+                  req.body.event !== "";
+            let rawEventData: Record<string, unknown>;
+            if (hasEventWrapper) {
+                  rawEventData =
+                        typeof req.body.event === "string"
+                              ? parseJsonField(req.body.event, "event")
+                              : { ...(req.body.event as Record<string, unknown>) };
+            } else {
+                  rawEventData = { ...req.body };
+                  delete (rawEventData as Record<string, unknown>).file;
             }
-
-            const rawEventData = parseJsonField(eventJson, "event");
             rawEventData.createdBy = userId;
 
-            const eventData = CreateEventSchema.parse(rawEventData);
+            const eventData = validateBody(CreateEventSchema, rawEventData);
 
             const event = await createEventService({
                   eventData,

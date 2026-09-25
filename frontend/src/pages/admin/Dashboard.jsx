@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { albumsApi, contentApi, eventsApi, getId, getStatus, getUpdatedAt, mediaApi, partnersApi, teamApi } from '../../api/resources.js';
+import { albumsApi, contentApi, eventsApi, getStatus, getUpdatedAt, mediaApi, partnersApi, teamApi } from '../../api/resources.js';
 import { toArray } from '../../api/resources.js';
 import { ADMIN_ENTITY_ROUTES, adminDetailPathFor, adminItemLabel, timeAgo } from '../../admin/editorial.js';
 import { EditorCard } from '../../components/admin/form-shell.jsx';
@@ -183,7 +183,7 @@ export default function AdminDashboard() {
           ) : (
             <ul>
               {drafts.map(({ kind, item }, i) => (
-                <li key={`${kind}-${getId(item) ?? adminItemLabel(item, `draft-${i}`)}`}>
+                <li key={`${kind}-${item?.id ?? item?._id ?? item?.uuid ?? item?.slug ?? adminItemLabel(item, `draft-${i}`)}`}>
                   <Link to={adminDetailPathFor(kind, item)}>{adminItemLabel(item)}</Link>{' '}
                   <StatusPill status={getStatus(item)} active={item?.is_active} />{' '}
                   <span className="admin-muted">{kind} · {timeAgo(getUpdatedAt(item))}</span>
@@ -198,7 +198,7 @@ export default function AdminDashboard() {
           ) : (
             <ul>
               {recent.map(({ kind, item }, i) => (
-                <li key={`r-${kind}-${getId(item) ?? adminItemLabel(item, `recent-${i}`)}`}>
+                <li key={`r-${kind}-${item?.id ?? item?._id ?? item?.uuid ?? item?.slug ?? adminItemLabel(item, `recent-${i}`)}`}>
                   <Link to={adminDetailPathFor(kind, item)}>{adminItemLabel(item)}</Link>{' '}
                   <span className="admin-muted">
                     {kind} · edited {timeAgo(getUpdatedAt(item))}
