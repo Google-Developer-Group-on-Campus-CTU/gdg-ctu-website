@@ -10,13 +10,11 @@ import { useFeed } from '../api/feed.js';
  *
  *   EVENT_STATUSES ← backend/src/modules/events/models/event.ts         (EVENT_STATUSES)
  *   PARTNER_TIERS  ← backend/src/modules/partners/models/partner.ts    (PARTNER_TIERS)
- *   CONTENT_KEYS   ← backend/src/modules/site-content/section-keys.ts  (SECTION_KEYS — renamed CONTENT_KEYS here)
  *
  * Source snapshot date: 2026-09-24
  * ========================================================================= */
 export const EVENT_STATUSES = ['draft', 'published', 'archived', 'cancelled'];
 export const PARTNER_TIERS = ['platinum', 'gold', 'silver', 'community'];
-export const CONTENT_KEYS = ['hero', 'about', 'community', 'cta', 'footer'];
 
 /* ---------------------------------------------------------------------------
  * Frontend-only constants — no backend contract behind these: reserved route
@@ -96,13 +94,24 @@ function required(value) {
 export function validateEvent(v) {
   const errors = {};
   if (!required(v.title)) errors.title = 'Title is required.';
-  if (!required(v.slug)) errors.slug = 'Slug is required.';
-  else if (isReservedSlug(v.slug)) errors.slug = 'This slug is reserved.';
+  // Slug is auto-derived from the title (there is no slug input) — a title
+  // that produces a reserved URL still blocks the publish gate.
+  if (required(v.title) && isReservedSlug(slugify(v.title ?? ''))) {
+    errors.title = 'This title produces a reserved link — please change it.';
+  }
   if (!required(v.startAt)) errors.startAt = 'Start date/time is required.';
   if (!required(v.endAt)) errors.endAt = 'End date/time is required.';
-  if (v.registrationEnabled && !isHttpsUrl(v.registrationUrl)) {
-    errors.registrationUrl = 'Registration URL must be a valid https:// URL when registration is enabled.';
+  if (required(v.startAt) && required(v.endAt)) {
+    const start = new Date(v.startAt);
+    const end = new Date(v.endAt);
+    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end < start) {
+      errors.endAt = 'Ends at must be the same as or after Starts at.';
+    }
   }
+  if (!isHttpsUrl(v.externalUrl)) {
+    errors.externalUrl = 'External URL must be a valid https:// URL.';
+  }
+  if (!required(v.timezone)) errors.timezone = 'Timezone is required.';
   return errors;
 }
 
@@ -135,12 +144,6 @@ export function validateAlbum(v) {
   // missing `name` is surfaced via serverError.
   if (!required(v.slug)) errors.slug = 'Slug is required.';
   else if (isReservedSlug(v.slug)) errors.slug = 'This slug is reserved.';
-  return errors;
-}
-
-export function validateContent(v) {
-  const errors = {};
-  if (v.buttonUrl && !isAnyUrl(v.buttonUrl)) errors.buttonUrl = 'Button URL must be valid.';
   return errors;
 }
 
@@ -213,7 +216,8 @@ export const ADMIN_ENTITY_ROUTES = {
   team: { label: 'Team', list: '/admin/team', new: '/admin/team/new', detail: (id) => safeDetailPath('/admin/team', id), param: 'id' },
   partners: { label: 'Partners', list: '/admin/partners', new: '/admin/partners/new', detail: (id) => safeDetailPath('/admin/partners', id), param: 'id' },
   gallery: { label: 'Gallery', list: '/admin/gallery', new: '/admin/gallery/albums/new', detail: (id) => safeDetailPath('/admin/gallery/albums', id), param: 'id' },
-  content: { label: 'Content', list: '/admin/content', new: '/admin/content', detail: (key) => safeDetailPath('/admin/content', key), param: 'sectionKey' },
+  galleryCategories: { label: 'Categories', list: '/admin/gallery-categories', new: '/admin/gallery-categories', detail: null, param: null },
+  terms: { label: 'Terms', list: '/admin/terms', new: '/admin/terms/new', detail: (id) => safeDetailPath('/admin/terms', id), param: 'id' },
   media: { label: 'Media', list: '/admin/media', new: '/admin/media', detail: null, param: null },
 };
 
@@ -223,17 +227,14 @@ export function adminItemLabel(item, fallback = 'Untitled') {
 
 export function adminDetailPathFor(kind, item) {
   const entry = ADMIN_ENTITY_ROUTES[kind];
-  if (!entry?.detail) {
+  if (!entry) {
     // Programming error, not a user state — log loudly instead of silently
     // landing on /admin. The fallback keeps the UI navigable in production.
     console.warn(`[admin] adminDetailPathFor: unknown kind "${kind}" — falling back to /admin.`);
     return '/admin';
   }
-  if (kind === 'content') {
-    const key = item?.section_key ?? item?.sectionKey;
-    if (!key || key === 'undefined') return entry.list;
-    return entry.detail(key);
-  }
+  // Single-page sections (categories, media) have no detail route — link the list.
+  if (!entry.detail) return entry.list;
   const id = item?.id ?? item?._id ?? item?.uuid ?? item?.slug;
   if (!id || id === 'undefined') return entry.list;
   return entry.detail(id);

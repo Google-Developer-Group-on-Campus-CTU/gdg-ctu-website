@@ -51,7 +51,7 @@ app.all(`${AUTH_BASE_PATH}/*splat`, toNodeHandler(auth));
 
 // Explicit JSON cap (Gate 4): 100kb — identical to body-parser's default,
 // so zero behaviour change, now stated rather than implicit. Every legit
-// JSON body is a single-entity admin form (site-content markdown `body`,
+// JSON body is a single-entity admin form (markdown `body`,
 // bios/descriptions = small textareas; reorder = {displayOrder}); no
 // bulk-JSON routes exist — file bytes ride multipart/direct-upload only.
 app.use(express.json({ limit: "100kb" }));

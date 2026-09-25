@@ -11,6 +11,7 @@ import {
       updateMediaCollection,
       deleteMediaCollection,
 } from "./models/media-collection.queries.js";
+import { getGalleryCategoryById } from "../gallery-categories/models/gallery-category.queries.js";
 import {
       CreateMediaCollectionDTO,
       MediaCollectionRecord,
@@ -22,7 +23,7 @@ export const toMediaCollectionResponse = (col: MediaCollectionRecord) => col; //
 export const createMediaCollectionService = async (
       data: CreateMediaCollectionDTO,
 ) => {
-      // Read-level slug 409 — matches events/team/partners/site-content (slug
+      // Read-level slug 409 — matches events/team/partners (slug
       // is unique in the DB, but this returns a clean 409 instead of a raw
       // constraint error).
       if (await getMediaCollectionBySlug(data.slug)) {
@@ -38,6 +39,12 @@ export const createMediaCollectionService = async (
             throw new AppError(
                   400,
                   "coverMediaId must reference existing media",
+            );
+      }
+      if (data.categoryId && !(await getGalleryCategoryById(data.categoryId))) {
+            throw new AppError(
+                  400,
+                  "categoryId must reference an existing gallery category",
             );
       }
 
@@ -94,6 +101,13 @@ export const updateMediaCollectionService = async (
             throw new AppError(
                   400,
                   "coverMediaId must reference existing media",
+            );
+      }
+
+      if (data.categoryId && !(await getGalleryCategoryById(data.categoryId))) {
+            throw new AppError(
+                  400,
+                  "categoryId must reference an existing gallery category",
             );
       }
 

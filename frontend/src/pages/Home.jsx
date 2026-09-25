@@ -2,10 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   formatDate,
-  mapContent,
+  mapAlbum,
   mapEvent,
+  mapGalleryCategory,
   mapMember,
-  mapPhoto,
   publicApi,
   sortPartners,
   usePublicFeed,
@@ -281,7 +281,6 @@ function RecentEventsStrip() {
                 <h3>{event.title}</h3>
                 {event.short ? <p>{event.short}</p> : null}
                 <div className="card-meta">
-                  {event.featured ? <span className="g-tag">Featured</span> : null}
                   {event.status ? <span className="g-tag green">{event.status}</span> : null}
                 </div>
                 <div className="card-meta">
@@ -374,24 +373,27 @@ function PartnersStrip() {
   );
 }
 
+const MOMENT_CHIP_COLORS = ['red', 'blue', 'green', 'yellow'];
+
 function MomentsStrip() {
+  const { data: categoryData } = usePublicFeed(
+    () => publicApi.getGalleryCategories().then((rows) => rows.map(mapGalleryCategory)),
+    'home-categories',
+  );
+  const categories = (categoryData ?? []).slice().sort((a, b) => a.order - b.order);
+  const [filter, setFilter] = useState('all');
+  const activeCategory = filter === 'all' ? undefined : filter;
+  const activeLabel = filter === 'all'
+    ? null
+    : (categories.find((c) => c.slug === filter)?.name ?? filter);
+
   const { data, loading, error, retry } = usePublicFeed(
-    () => publicApi.getFeaturedPhotos().then((rows) => rows.map(mapPhoto).slice(0, 8)),
-    'home-moments',
+    () => publicApi
+      .getAlbums(activeCategory ? { category: activeCategory } : undefined)
+      .then((rows) => rows.map(mapAlbum).slice(0, 8)),
+    `home-moments-${filter}`,
   );
   const empty = !loading && !error && (!data || data.length === 0);
-  const [filter, setFilter] = useState('all');
-  const categories = [
-    { key: 'all', label: 'All', cls: 'red active' },
-    { key: 'events', label: 'Events', cls: 'blue' },
-    { key: 'workshops', label: 'Workshops', cls: 'green' },
-    { key: 'community', label: 'Community', cls: 'yellow' },
-  ];
-  const decorated = (data ?? []).map((photo, idx) => {
-    const cats = ['events', 'workshops', 'community'];
-    return { ...photo, _cat: cats[idx % 3] };
-  });
-  const visible = filter === 'all' ? decorated : decorated.filter((p) => p._cat === filter);
 
   return (
     <section id="gallery" className="gallery-section section-frame jh-gallery" aria-label="Captured moments">
@@ -426,17 +428,27 @@ function MomentsStrip() {
           <h2>Captured Moments</h2>
         </div>
         <div className="tags" role="tablist" aria-label="Gallery filter">
-          {categories.map((cat) => (
+          <button
+            type="button"
+            className={`tag red${filter === 'all' ? ' active' : ''}`}
+            data-filter="all"
+            role="tab"
+            aria-selected={filter === 'all'}
+            onClick={() => setFilter('all')}
+          >
+            All
+          </button>
+          {categories.map((cat, idx) => (
             <button
-              key={cat.key}
+              key={cat.slug ?? cat.id}
               type="button"
-              className={`tag ${cat.cls.split(' ')[0]}${filter === cat.key ? ' active' : ''}`}
-              data-filter={cat.key}
+              className={`tag ${MOMENT_CHIP_COLORS[idx % MOMENT_CHIP_COLORS.length]}${filter === cat.slug ? ' active' : ''}`}
+              data-filter={cat.slug}
               role="tab"
-              aria-selected={filter === cat.key}
-              onClick={() => setFilter(cat.key)}
+              aria-selected={filter === cat.slug}
+              onClick={() => setFilter(cat.slug)}
             >
-              {cat.label}
+              {cat.name}
             </button>
           ))}
         </div>
@@ -456,17 +468,27 @@ function MomentsStrip() {
         ) : null}
         {empty ? (
           <div className="feed-empty">
-            <p>No photos published yet — check back soon.</p>
+            <p>
+              {activeLabel
+                ? `No ${activeLabel.toLowerCase()} albums yet — try another filter or check All.`
+                : 'No photos published yet — check back soon.'}
+            </p>
           </div>
         ) : null}
-        {!loading && !error && decorated.length ? (
+        {!loading && !error && data?.length ? (
           <div className="gallery-grid">
-            {visible.map((photo) => (
-              <Link key={photo.id} to="/gallery" className="moment" data-category={photo._cat} aria-label={photo.alt}>
-                {photo.url ? (
-                  <img src={photo.url} alt={photo.alt} loading="lazy" onError={hideImage} />
+            {data.map((album) => (
+              <Link
+                key={album.id}
+                to={album.slug ? `/gallery/${album.slug}` : '/gallery'}
+                className="moment"
+                data-category={album.categorySlug ?? ''}
+                aria-label={album.title}
+              >
+                {album.coverUrl ? (
+                  <img src={album.coverUrl} alt={album.coverAlt} loading="lazy" onError={hideImage} />
                 ) : (
-                  <img src="/layout-assets/home/image.png" alt={photo.alt} loading="lazy" onError={hideImage} />
+                  <img src="/layout-assets/home/image.png" alt={album.coverAlt} loading="lazy" onError={hideImage} />
                 )}
               </Link>
             ))}
@@ -483,11 +505,6 @@ function MomentsStrip() {
 }
 
 export default function Home() {
-  const hero = usePublicFeed(() => publicApi.getContentByKey('hero').then((c) => (c ? mapContent(c) : null)), 'home-hero');
-  const cta = usePublicFeed(() => publicApi.getContentByKey('cta').then((c) => (c ? mapContent(c) : null)), 'home-cta');
-  const heroContent = !hero.loading && !hero.error ? hero.data : null;
-  const ctaContent = !cta.loading && !cta.error ? cta.data : null;
-
   return (
     <div className="page-home">
       <section className="jh-hero">
@@ -554,14 +571,8 @@ export default function Home() {
           </div>
 
           <p className="hero-copy">
-            {heroContent?.subtitle || heroContent?.body ? (
-              heroContent.subtitle || heroContent.body
-            ) : (
-              <>
-                Immerse yourself into a community driven by shared passion, where networking meets real hands-on learning with the
-                brightest minds on campus.
-              </>
-            )}
+            Immerse yourself into a community driven by shared passion, where networking meets real hands-on learning with the
+            brightest minds on campus.
           </p>
 
           <div className="stats">
@@ -584,27 +595,13 @@ export default function Home() {
           </div>
 
           <div className="hero-actions">
-            {heroContent?.buttonText && heroContent?.buttonUrl ? (
-              <a href={heroContent.buttonUrl} className="small-yellow-btn">
-                {heroContent.buttonText} <span className="arrow-icon">↗</span>
-              </a>
-            ) : (
-              <Link to="/team" className="small-yellow-btn">
-                Explore Us <span className="arrow-icon">↗</span>
-              </Link>
-            )}
+            <Link to="/team" className="small-yellow-btn">
+              Explore Us <span className="arrow-icon">↗</span>
+            </Link>
             <Link to="/about" className="small-green-btn">
               About Us <span className="arrow-icon">↗</span>
             </Link>
           </div>
-          {!hero.loading && hero.error ? (
-            <div className="gdg-feed-error gdg-feed-offset" role="alert">
-              <p>{friendlyFeedError(hero.error)}</p>
-              <button type="button" className="small-blue-btn" onClick={hero.retry}>
-                Retry
-              </button>
-            </div>
-          ) : null}
         </div>
       </section>
 
@@ -619,9 +616,7 @@ export default function Home() {
           <br /> a premier tech community.
         </h2>
         <p>
-          {heroContent?.body
-            ? heroContent.body
-            : 'We started as a small group of passionate students determined to bring Google technologies to Cebu Technological University — growing into a community that builds, learns, and creates impact together.'}
+          We started as a small group of passionate students determined to bring Google technologies to Cebu Technological University — growing into a community that builds, learns, and creates impact together.
         </p>
 
         <div className="story-pills">
@@ -651,32 +646,18 @@ export default function Home() {
             <i className="green" />
             <i className="yellow" />
           </div>
-          <h2>{ctaContent?.title || 'Ready to transform ideas?'}</h2>
+          <h2>Ready to transform ideas?</h2>
           <p>
-            {ctaContent?.subtitle || ctaContent?.body || 'Join our community today to develop your skills through workshops, events, and Google tech credentials.'}
+            Join our community today to develop your skills through workshops, events, and Google tech credentials.
           </p>
-          {ctaContent?.buttonUrl ? (
-            <a href={ctaContent.buttonUrl} className="small-green-btn">
-              {ctaContent.buttonText || 'Register now'} <span className="arrow-icon">↗</span>
-            </a>
-          ) : (
-            <a
-              href="https://docs.google.com/forms/d/e/1FAIpQLSe8XGfS83u5u3bbwqaUlHYmYlTNqPuYPl1aULCb8xMrN91jaQ/viewform?pli=1"
-              target="_blank"
-              rel="noreferrer"
-              className="small-green-btn"
-            >
-              Register now <span className="arrow-icon">↗</span>
-            </a>
-          )}
-          {!cta.loading && cta.error ? (
-            <div className="gdg-feed-error gdg-feed-offset-sm" role="alert">
-              <p>{friendlyFeedError(cta.error)}</p>
-              <button type="button" className="small-blue-btn" onClick={cta.retry}>
-                Retry
-              </button>
-            </div>
-          ) : null}
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLSe8XGfS83u5u3bbwqaUlHYmYlTNqPuYPl1aULCb8xMrN91jaQ/viewform?pli=1"
+            target="_blank"
+            rel="noreferrer"
+            className="small-green-btn"
+          >
+            Register now <span className="arrow-icon">↗</span>
+          </a>
         </div>
       </section>
 

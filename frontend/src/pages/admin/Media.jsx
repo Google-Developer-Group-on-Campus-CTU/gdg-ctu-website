@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { albumItemsApi, contentApi, eventsApi, getId, mediaApi, teamApi } from '../../api/resources.js';
+import { albumItemsApi, eventsApi, getId, mediaApi, teamApi } from '../../api/resources.js';
 import { MEDIA_ALLOW, MEDIA_MAX_BYTES, useAdminList, useDebouncedValue } from '../../admin/editorial.js';
 import { DataTable, DataTableColumnHeader } from '../../components/admin/data-table.jsx';
 import { EditorCard, EditorField, EditorFooter } from '../../components/admin/form-shell.jsx';
@@ -56,9 +56,9 @@ export default function AdminMedia() {
     try {
       // No `.catch(() => [])` here: a failed list must surface as an error —
       // only a 200 with an empty array may render as "used in 0".
-      const [events, team, content, items] = await Promise.all([
+      const [events, team, items] = await Promise.all([
         eventsApi.list(), teamApi.list(),
-        contentApi.list(), albumItemsApi.list(),
+        albumItemsApi.list(),
       ]);
       const counts = {};
       const bump = (id) => {
@@ -67,7 +67,6 @@ export default function AdminMedia() {
       };
       for (const e of (Array.isArray(events) ? events : [])) bump(e.coverMediaId ?? e.cover_media_id);
       for (const m of (Array.isArray(team) ? team : [])) bump(m.profileMediaId ?? m.profile_media_id);
-      for (const c of (Array.isArray(content) ? content : [])) bump(c.mediaId ?? c.media_id);
       for (const a of (Array.isArray(items) ? items : [])) {
         const album = a.collection_id ?? a.collectionId;
         bump(a.media_id ?? a.mediaId);

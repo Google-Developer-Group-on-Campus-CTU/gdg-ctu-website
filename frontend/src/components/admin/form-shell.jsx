@@ -10,7 +10,7 @@ import {
   FormLabel,
   FormMessage,
 } from '../ui/form';
-import { checkSlugUnique, isAnyUrl, isReservedSlug } from '../../admin/editorial.js';
+import { checkSlugUnique, isAnyUrl, isHttpsUrl, isReservedSlug } from '../../admin/editorial.js';
 import './form-shell.css';
 
 /**
@@ -89,41 +89,41 @@ export const partnerEditorSchema = z.object({
 });
 
 /**
- * Event schema — same UX-level policy as validateEvent. registrationUrl is
- * optional here; the enabled-gating (required + https when registration is
- * on) stays page-level, exactly like validateEvent. The end < start
- * cross-rule is backend truth and surfaces as the server 400 banner.
+ * Event schema — same UX-level policy as validateEvent. There is no slug
+ * input (the slug is auto-derived from the title at save time) and no cover
+ * alt / embed-URL inputs (the backend persists neither coverAlt nor a
+ * hand-edited embed URL — the embed URL is derived from the location).
+ * externalUrl is a required https URL, timezone is required (backend
+ * defaults Asia/Manila), and ends-at-before-starts-at is rejected here with
+ * the same friendly message the backend returns.
  */
 export const eventEditorSchema = z.object({
   title: requiredText('Title is required.'),
-  slug: requiredText('Slug is required.').refine(
-    (v) => !isReservedSlug(String(v ?? '')),
-    'This slug is reserved.',
-  ),
   short_description: z.string().optional(),
   description: z.string().optional(),
   coverMediaId: z.string().optional(),
-  coverAlt: z.string().optional(),
   location: z.string().optional(),
-  locationEmbedUrl: optionalUrl('Must be a valid URL.'),
-  registrationEnabled: z.boolean(),
-  registrationUrl: z.string().optional(),
+  externalUrl: requiredText('External URL is required.').refine(
+    (v) => isHttpsUrl(v),
+    'External URL must be a valid https:// URL.',
+  ),
+  timezone: requiredText('Timezone is required.'),
   startAt: requiredText('Start date/time is required.'),
   endAt: requiredText('End date/time is required.'),
   status: z.string(),
-  is_featured: z.boolean(),
-  display_order: z.coerce.number(),
   is_active: z.boolean(),
-});
-
-/** Speaker sub-form schema: presence only — same level as the inline gate. */
-export const speakerEditorSchema = z.object({
-  firstName: requiredText('Required.'),
-  lastName: requiredText('Required.'),
-  slug: requiredText('Required.'),
-  role: z.string().optional(),
-  profileMediaId: z.string().optional(),
-  teamMemberId: z.string().optional(),
+}).superRefine((v, ctx) => {
+  if (v.startAt && v.endAt) {
+    const start = new Date(v.startAt);
+    const end = new Date(v.endAt);
+    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end < start) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['endAt'],
+        message: 'Ends at must be the same as or after Starts at.',
+      });
+    }
+  }
 });
 
 /**
@@ -139,22 +139,54 @@ export const albumEditorSchema = z.object({
   ),
   coverMediaId: z.string().optional(),
   eventId: z.string().optional(),
+  categoryId: z.string().optional(),
   date: z.string().optional(),
   description: z.string().optional(),
   is_featured: z.boolean(),
   is_active: z.boolean(),
 });
 
-/** Content schema — same UX-level policy as validateContent. No slug flow. */
-export const contentEditorSchema = z.object({
-  title: z.string().optional(),
-  subtitle: z.string().optional(),
-  body: z.string().optional(),
-  mediaId: z.string().optional(),
-  buttonText: z.string().optional(),
-  buttonUrl: optionalUrl('Button URL must be valid.'),
+/**
+ * Gallery-category schema — same UX-level policy as the backend
+ * CreateGalleryCategorySchema presence rules (name/slug required, slug
+ * reserved-check). displayOrder/isActive mapping stays in the page.
+ */
+export const galleryCategoryEditorSchema = z.object({
+  name: requiredText('Name is required.'),
+  slug: requiredText('Slug is required.').refine(
+    (v) => !isReservedSlug(String(v ?? '')),
+    'This slug is reserved.',
+  ),
+  display_order: z.coerce.number(),
   is_active: z.boolean(),
-  status: z.string(),
+});
+
+/**
+ * Term schema — mirrors the backend term presence rules (name ≤ 20 chars,
+ * start/end dates required; end < start is backend truth via the 400
+ * banner). isCurrent promotion unsets every other term server-side.
+ */
+export const termEditorSchema = z.object({
+  name: requiredText('Name is required.').refine(
+    (v) => String(v ?? '').trim().length <= 20,
+    'Name must be ≤ 20 characters.',
+  ),
+  startDate: requiredText('Start date is required.'),
+  endDate: requiredText('End date is required.'),
+  isCurrent: z.boolean(),
+});
+
+/**
+ * Roster-assignment schema — mirrors CreateMemberTermsSchema presence rules
+ * (member + role required; photo/order/active optional). termId comes from
+ * the route, never the form.
+ */
+export const memberTermEditorSchema = z.object({
+  memberId: requiredText('Member is required.'),
+  role: requiredText('Role is required.'),
+  profileMediaId: z.string().optional(),
+  display_order: z.coerce.number(),
+  is_active: z.boolean(),
 });
 
 /** useForm + zodResolver in one call. After fetching, page calls `reset(toForm(item))`. */
@@ -208,18 +240,18 @@ export function useSlugUniqueness(api, slug, currentId = null) {
 }
 
 /**
- * Save payload normalizer: display_order numeric coercion + empty→null for
- * UUID/FK fields. Backend `z.uuid().nullable()` rejects '' — so every key
- * ending in MediaId/AlbumId (logoMediaId, coverMediaId, profileMediaId,
- * galleryAlbumId, mediaId, …) maps '' → null, plus any caller-passed
- * `nullable[]` keys (department trio, etc.). Registration URL gating
- * (enabled ? url : null) stays in the page — it is event-specific, not shell
- * policy.
+ * Save payload normalizer: display_order numeric coercion (only when the
+ * form carries the key — events/terms have no display_order column) +
+ * empty→null for UUID/FK fields. Backend `z.uuid().nullable()` rejects '' —
+ * so every key ending in MediaId/AlbumId (logoMediaId, coverMediaId,
+ * profileMediaId, galleryAlbumId, mediaId, …) maps '' → null, plus any
+ * caller-passed `nullable[]` keys (department trio, etc.).
  */
 const FK_NULLABLE_PATTERN = /(MediaId|AlbumId)$/i;
 
 export function toEditorPayload(values, { nullable = [] } = {}) {
-  const out = { ...values, display_order: Number(values.display_order) || 0 };
+  const out = { ...values };
+  if ('display_order' in out) out.display_order = Number(out.display_order) || 0;
   const keys = new Set([
     ...Object.keys(out).filter((key) => FK_NULLABLE_PATTERN.test(key)),
     ...nullable,

@@ -1,4 +1,4 @@
-import { text, timestamp, uuid, varchar, boolean, integer } from "drizzle-orm/pg-core";
+import { text, timestamp, uuid, varchar, boolean } from "drizzle-orm/pg-core";
 import { pgTable } from "drizzle-orm/pg-core";
 import { user } from "../../auth/models/auth.js";
 import { media } from "../../media/models/media.js";
@@ -30,16 +30,15 @@ export const events = pgTable("events", {
       location: varchar("location", { length: 255 }),
       locationEmbedUrl: varchar("location_embed_url", { length: 2048 }),
 
-      // Registration toggle + URL (https required when enabled, Q2=b/Q11=a).
-      registrationEnabled: boolean("registration_enabled")
-            .default(false)
+      // External link (registration form, livestream, recap, …) — plain
+      // nullable https URL, validated in Zod.
+      externalUrl: varchar("external_url", { length: 2048 }),
+
+      // IANA timezone for interpreting/displaying startAt/endAt.
+      timezone: varchar("timezone", { length: 64 })
+            .default("Asia/Manila")
             .notNull(),
-      registrationUrl: varchar("registration_url", { length: 2048 }),
 
-      // Home Featured strip (max 3, UI-enforced, Q15=a).
-      isFeatured: boolean("is_featured").default(false).notNull(),
-
-      displayOrder: integer("display_order").default(0).notNull(),
       isActive: boolean("is_active").default(true).notNull(),
 
       // Required timestamps; Zod enforces chronological order.

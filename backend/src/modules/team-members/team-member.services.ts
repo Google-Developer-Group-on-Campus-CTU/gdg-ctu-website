@@ -11,7 +11,6 @@ import {
       getTeamMembers,
       getActiveTeamMembersByTerm,
       getActiveTeamMemberBySlug,
-      teamMemberHasEventSpeakerReferences,
       updateTeamMember,
 } from "./models/team-member.queries.js";
 import { UpdateTeamMemberDTO, TeamMember } from "./team-member.validations.js";
@@ -292,13 +291,6 @@ export const deleteTeamMemberService = async (id: string) => {
       const teamMember = await getTeamMemberById(id);
       if (!teamMember) {
             throw new AppError(404, "Team member not found");
-      }
-
-      if (await teamMemberHasEventSpeakerReferences(id)) {
-            throw new AppError(
-                  409,
-                  "Team member cannot be deleted while assigned to events",
-            );
       }
 
       deleteTeamMember(id);

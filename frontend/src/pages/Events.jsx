@@ -4,7 +4,7 @@ import { formatDate, mapEvent, publicApi, usePublicFeed } from '../api/public.js
 import { FeedError, FeedSkeleton, friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
 import '../styles/events.css';
 
-const SCOPES = ['upcoming', 'featured', 'past'];
+const SCOPES = ['upcoming', 'past'];
 
 const TRACKS = [
   {
@@ -105,11 +105,12 @@ function EventDetail({ slug }) {
               {data.startAt ? <span>Starts: {formatDate(data.startAt)}</span> : null}
               {data.endAt ? <span>Ends: {formatDate(data.endAt)}</span> : null}
               {data.location ? <span>{data.location}</span> : null}
+              {data.timezone ? <span>{data.timezone}</span> : null}
             </div>
-            {data.registrationEnabled && data.registrationUrl ? (
+            {data.externalUrl ? (
               <div className="gdg-btn-row">
-                <a href={data.registrationUrl} target="_blank" rel="noreferrer" className="gdg-btn gdg-btn-primary">
-                  Register
+                <a href={data.externalUrl} target="_blank" rel="noreferrer" className="gdg-btn gdg-btn-primary">
+                  Join
                 </a>
               </div>
             ) : null}
@@ -266,7 +267,7 @@ function EventsList() {
         <div ref={carouselRef} className="carousel" id="carousel">
           {isEmpty ? (
             <div className="carousel-empty-state">
-              <p>No upcoming events right now. We&apos;re cooking up something</p>
+              <p>No {scope} events right now. We&apos;re cooking up something</p>
               <p>exciting for the next sprint! Follow our socials or check back soon!</p>
               <Link to="/contact" className="register gdg-follow-btn">
                 Follow our community <span className="arrow-diagonal" aria-hidden="true">↗</span>
@@ -294,7 +295,6 @@ function EventsList() {
                     <div className="card__meta">
                       {event.startAt ? <span>{formatDate(event.startAt)}</span> : null}
                       {event.location ? <span>{event.location}</span> : null}
-                      {event.featured ? <span className="card__tag card__tag--featured">Featured</span> : null}
                       {event.status ? <span className="card__tag">{event.status}</span> : null}
                     </div>
                   </div>

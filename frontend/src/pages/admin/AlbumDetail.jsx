@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiFetch } from '../../api/client.js';
-import { albumItemsApi, albumsApi, getId, mediaApi, publicPreview } from '../../api/resources.js';
+import { albumItemsApi, albumsApi, galleryCategoriesApi, getId, mediaApi, publicPreview } from '../../api/resources.js';
 import { ADMIN_ENTITY_ROUTES, MAX_FEATURED_PHOTOS, slugify, useDirtyGuard } from '../../admin/editorial.js';
 import {
   albumEditorSchema,
@@ -20,7 +20,7 @@ import { Form } from '../../components/ui/form';
 import { Input } from '../../components/ui/input';
 import { authClient } from '../../lib/auth-client';
 
-const EMPTY = { title: '', slug: '', coverMediaId: '', eventId: '', date: '', description: '', is_featured: false, is_active: true };
+const EMPTY = { title: '', slug: '', coverMediaId: '', eventId: '', categoryId: '', date: '', description: '', is_featured: false, is_active: true };
 
 /**
  * Backend row → form state. Single-row responses are wrapped `{ success, collection }`,
@@ -33,6 +33,7 @@ function toForm(item = {}) {
     title: src.name ?? src.title ?? '', slug: src.slug ?? '',
     coverMediaId: src.coverMediaId ?? src.cover_media_id ?? '',
     eventId: src.eventId ?? src.event_id ?? '',
+    categoryId: src.categoryId ?? src.category_id ?? '',
     date: (src.date ?? '').toString().slice(0, 10),
     description: src.description ?? '',
     is_featured: !!(src.is_featured ?? src.isFeatured),
@@ -54,6 +55,7 @@ function toApiPayload(v = {}) {
     description: v.description ?? '',
     coverMediaId: v.coverMediaId || null,
     eventId: v.eventId || null,
+    categoryId: v.categoryId || null,
     date: v.date || null,
     isFeatured: !!v.is_featured,
     isActive: v.is_active !== false,
@@ -105,6 +107,8 @@ export default function AlbumDetail() {
   const [original, setOriginal] = useState(EMPTY);
   const [photos, setPhotos] = useState([]);
   const [media, setMedia] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [categoriesError, setCategoriesError] = useState(null);
   const [pickerId, setPickerId] = useState('');
   const [loading, setLoading] = useState(!isNew);
   const [error, setError] = useState(null);
@@ -130,6 +134,16 @@ export default function AlbumDetail() {
       if (alive) { setMedia(Array.isArray(rows) ? rows : []); setMediaError(null); }
     }).catch((err) => {
       if (alive) setMediaError(err);
+    });
+    // Category taxonomy for the ?category= album filter — a 404 means the
+    // module has not shipped yet, so the select renders "Uncategorized" only.
+    galleryCategoriesApi.list().then((rows) => {
+      if (alive) { setCategories(Array.isArray(rows) ? rows : []); setCategoriesError(null); }
+    }).catch((err) => {
+      if (alive) {
+        if (err?.status === 404) setCategories([]);
+        else setCategoriesError(err);
+      }
     });
     if (isNew) return () => { alive = false; };
     Promise.all([
@@ -367,6 +381,23 @@ export default function AlbumDetail() {
               <div className="editor-grid">
                 <EditorField control={control} name="eventId" label="Linked event ID (optional)">
                   {(field) => <Input {...field} value={field.value ?? ''} />}
+                </EditorField>
+                <EditorField
+                  control={control}
+                  name="categoryId"
+                  label="Category"
+                  plain
+                  hint={categoriesError ? `Categories failed to load: ${categoriesError?.body?.message ?? categoriesError?.message ?? 'request failed'}.` : 'Drives the public ?category= album filter.'}
+                >
+                  {(field) => (
+                    <select id="categoryId" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value)}>
+                      <option value="">Uncategorized</option>
+                      {categories.map((c) => {
+                        const cid = c?.id ?? c?._id ?? c?.uuid;
+                        return <option key={cid ?? c.slug} value={cid ?? ''}>{c.name ?? c.slug ?? '(unnamed)'}</option>;
+                      })}
+                    </select>
+                  )}
                 </EditorField>
                 <EditorField control={control} name="date" label="Date">
                   {(field) => <input type="date" {...field} value={field.value ?? ''} />}

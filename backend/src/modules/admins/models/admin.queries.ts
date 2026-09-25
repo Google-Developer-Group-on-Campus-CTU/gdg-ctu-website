@@ -3,7 +3,6 @@ import { db } from "../../../config/connectDB.js";
 import { Pagination } from "../../../utils/pagination.js";
 import { events } from "../../events/models/event.js";
 import { media } from "../../media/models/media.js";
-import { siteContent } from "../../site-content/models/site-content.js";
 import { account, user } from "../../auth/models/auth.js";
 
 // Fold: the old `admins` table is gone — these queries run against Better
@@ -98,11 +97,5 @@ export const adminHasReferences = async (id: string) => {
             .where(eq(media.uploadedBy, id))
             .limit(1);
 
-      const [content] = await db
-            .select({ id: siteContent.id })
-            .from(siteContent)
-            .where(eq(siteContent.updatedBy, id))
-            .limit(1);
-
-      return Boolean(event || uploadedMedia || content);
+      return Boolean(event || uploadedMedia);
 };

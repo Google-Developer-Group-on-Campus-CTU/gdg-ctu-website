@@ -2,7 +2,6 @@ import { and, asc, count, desc, eq } from "drizzle-orm";
 import { db } from "../../../config/connectDB.js";
 import { Pagination } from "../../../utils/pagination.js";
 import { activeByKey, activeOnly } from "../../../utils/activeScope.js";
-import { eventSpeakers } from "../../event-speakers/models/event-speaker.js";
 import { media } from "../../media/models/media.js";
 import { memberTerms } from "../../member_terms/models/member-terms.js";
 import { terms } from "../../terms/models/terms.js";
@@ -203,14 +202,4 @@ export const deleteTeamMember = async (id: string) => {
             .where(eq(teamMembers.id, id))
             .returning();
       return teamMember;
-};
-
-export const teamMemberHasEventSpeakerReferences = async (id: string) => {
-      const [speaker] = await db
-            .select({ id: eventSpeakers.id })
-            .from(eventSpeakers)
-            .where(eq(eventSpeakers.teamMemberId, id))
-            .limit(1);
-
-      return Boolean(speaker);
 };

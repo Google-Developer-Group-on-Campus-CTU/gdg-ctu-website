@@ -1,6 +1,7 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { mediaCollections } from "./models/media-collection.js";
+import { nullableUuid } from "../../utils/zodHelpers.js";
 
 export const MediaCollectionRecordSchema = createSelectSchema(mediaCollections);
 
@@ -28,6 +29,9 @@ export const CreateMediaCollectionSchema = createInsertSchema(mediaCollections)
                         message: "CreatedBy must be a non‑empty string (user ID).",
                   }),
             eventId: z.uuid().nullable().optional(),
+            categoryId: nullableUuid(
+                  "Category ID must be a valid UUID if provided.",
+            ),
             date: z.coerce.date().nullable().optional(),
             isFeatured: z.boolean().optional(),
             isActive: z.boolean().optional(),

@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { formatDate, mapAlbum, mapPhoto, publicApi, usePublicFeed } from '../api/public.js';
+import { formatDate, mapAlbum, mapGalleryCategory, mapPhoto, publicApi, usePublicFeed } from '../api/public.js';
 import { friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
 import '../styles/gallery.css';
 
-const FILTERS = [
-  { key: 'All', label: 'All', className: 'btn-all' },
-  { key: 'Events', label: 'Events', className: 'btn-events' },
-  { key: 'Workshops', label: 'Workshops', className: 'btn-workshops' },
-  { key: 'Community', label: 'Community', className: 'btn-community' },
-];
+/** Fallback button styles cycled for admin-added categories beyond the seeded three. */
+const CATEGORY_BTN_CLASSES = ['btn-events', 'btn-workshops', 'btn-community', 'btn-all'];
 
-function AlbumDetail({ slug }) {
-  const { data, loading, error, retry } = usePublicFeed(
+function categoryBtnClass(slug, index) {
+  const known = { events: 'btn-events', workshops: 'btn-workshops', community: 'btn-community' };
+  if (slug && known[slug]) return known[slug];
+  return CATEGORY_BTN_CLASSES[index % CATEGORY_BTN_CLASSES.length];
+}
+
+function AlbumDetail({ slug }) {  const { data, loading, error, retry } = usePublicFeed(
     () => publicApi.getAlbumBySlug(slug).then((a) => (a ? mapAlbum(a) : null)),
     `album-${slug}`,
   );
@@ -47,6 +48,7 @@ function AlbumDetail({ slug }) {
               <h2>{data.title}</h2>
               {data.description ? <p className="gdg-desc">{data.description}</p> : null}
               <div className="album-detail-meta">
+                {data.categoryName ? <span>{data.categoryName}</span> : null}
                 {data.date ? <span>{formatDate(data.date)}</span> : null}
                 <span>{data.items.length} Photos</span>
               </div>
@@ -86,11 +88,20 @@ export default function Gallery() {
 }
 
 function GalleryList() {
-  const [filter, setFilter] = useState('All');
+  const [filter, setFilter] = useState('all');
+
+  const { data: categoryData } = usePublicFeed(
+    () => publicApi.getGalleryCategories().then((rows) => rows.map(mapGalleryCategory).sort((a, b) => a.order - b.order)),
+    'gallery-categories',
+  );
+  const categories = useMemo(() => categoryData ?? [], [categoryData]);
+  const activeLabel = filter === 'all'
+    ? null
+    : (categories.find((c) => c.slug === filter)?.name ?? filter);
 
   const { data: albumsData, loading: albumsLoading, error: albumsError, retry: albumsRetry } = usePublicFeed(
-    () => publicApi.getAlbums().then((rows) => rows.map(mapAlbum)),
-    'gallery-albums',
+    () => publicApi.getAlbums(filter === 'all' ? undefined : { category: filter }).then((rows) => rows.map(mapAlbum)),
+    `gallery-albums-${filter}`,
   );
 
   const { data: featuredData, loading: featuredLoading, error: featuredError, retry: featuredRetry } = usePublicFeed(
@@ -98,15 +109,7 @@ function GalleryList() {
     'gallery-featured',
   );
 
-  const filteredAlbums = useMemo(() => {
-    const list = albumsData ?? [];
-    if (filter === 'All') return list;
-    const needle = filter.toLowerCase();
-    return list.filter((a) => {
-      const hay = `${a.title} ${a.description}`.toLowerCase();
-      return hay.includes(needle);
-    });
-  }, [albumsData, filter]);
+  const albumsEmpty = !albumsLoading && !albumsError && (!albumsData || albumsData.length === 0);
 
   const carouselRef = useRef(null);
   const wrapperRef = useRef(null);
@@ -146,8 +149,6 @@ function GalleryList() {
     carouselRef.current?.scrollBy({ left: 220, behavior: 'smooth' });
   }, []);
 
-  const albumsEmpty = !albumsLoading && !albumsError && (!albumsData || albumsData.length === 0);
-  const filteredEmpty = !albumsLoading && !albumsError && albumsData?.length > 0 && filteredAlbums.length === 0;
   const featuredEmpty = !featuredLoading && !featuredError && (!featuredData || featuredData.length === 0);
 
   return (
@@ -183,15 +184,23 @@ function GalleryList() {
         <h1 className="captured-title">Captured Moments</h1>
 
         <div className="captured-buttons" role="group" aria-label="Filter albums">
-          {FILTERS.map((f) => (
+          <button
+            type="button"
+            className={`btn-all ${filter === 'all' ? 'is-active' : ''}`}
+            aria-pressed={filter === 'all'}
+            onClick={() => setFilter('all')}
+          >
+            All
+          </button>
+          {categories.map((c, idx) => (
             <button
-              key={f.key}
+              key={c.slug ?? c.id}
               type="button"
-              className={`${f.className} ${filter === f.key ? 'is-active' : ''}`}
-              aria-pressed={filter === f.key}
-              onClick={() => setFilter(f.key)}
+              className={`${categoryBtnClass(c.slug, idx)} ${filter === c.slug ? 'is-active' : ''}`}
+              aria-pressed={filter === c.slug}
+              onClick={() => setFilter(c.slug)}
             >
-              {f.label}
+              {c.name}
             </button>
           ))}
         </div>
@@ -222,23 +231,22 @@ function GalleryList() {
           {albumsEmpty ? (
             <div className="gallery-state">
               <div className="gal-empty">
-                <strong>No albums published yet — check back soon.</strong>
-                <span>We are curating new galleries from recent GDGoC events.</span>
+                <strong>
+                  {activeLabel
+                    ? `No ${activeLabel.toLowerCase()} albums yet.`
+                    : 'No albums published yet — check back soon.'}
+                </strong>
+                <span>
+                  {activeLabel
+                    ? 'Try another filter or check All.'
+                    : 'We are curating new galleries from recent GDGoC events.'}
+                </span>
               </div>
             </div>
           ) : null}
 
-          {filteredEmpty ? (
-            <div className="gallery-state">
-              <div className="gal-empty">
-                <strong>No {filter.toLowerCase()} albums yet.</strong>
-                <span>Try another filter or check All.</span>
-              </div>
-            </div>
-          ) : null}
-
-          {!albumsLoading && !albumsError && filteredAlbums.length > 0 ? (
-            filteredAlbums.map((album) => (
+          {!albumsLoading && !albumsError && (albumsData ?? []).length > 0 ? (
+            (albumsData ?? []).map((album) => (
               <Link
                 key={album.id}
                 to={album.slug ? `/gallery/${album.slug}` : '/gallery'}
@@ -258,6 +266,7 @@ function GalleryList() {
                   <h3>{album.title}</h3>
                   {album.description ? <p>{album.description}</p> : null}
                   <div className="box-meta">
+                    {album.categoryName ? <span>{album.categoryName}</span> : null}
                     {album.date ? <span>{formatDate(album.date)}</span> : null}
                     <span>{album.photoCount} Photos</span>
                   </div>

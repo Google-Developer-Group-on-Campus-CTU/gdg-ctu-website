@@ -23,8 +23,9 @@ import AdminPartners from './pages/admin/Partners.jsx';
 import PartnerDetail from './pages/admin/PartnerDetail.jsx';
 import AdminGallery from './pages/admin/Gallery.jsx';
 import AlbumDetail from './pages/admin/AlbumDetail.jsx';
-import AdminContent from './pages/admin/Content.jsx';
-import ContentEditor from './pages/admin/ContentEditor.jsx';
+import GalleryCategories from './pages/admin/GalleryCategories.jsx';
+import AdminTerms from './pages/admin/Terms.jsx';
+import TermDetail from './pages/admin/TermDetail.jsx';
 import AdminMedia from './pages/admin/Media.jsx';
 import AdminSettings from './pages/admin/Settings.jsx';
 import { ADMIN_ENTITY_ROUTES } from './admin/editorial.js';
@@ -85,13 +86,14 @@ const ADMIN_ENTITY_PAGES = {
   team: { list: <AdminTeam />, detail: <TeamDetail /> },
   partners: { list: <AdminPartners />, detail: <PartnerDetail /> },
   gallery: { list: <AdminGallery />, detail: <AlbumDetail /> },
-  content: { list: <AdminContent />, detail: <ContentEditor /> },
+  galleryCategories: { list: <GalleryCategories />, detail: null },
+  terms: { list: <AdminTerms />, detail: <TermDetail /> },
   media: { list: <AdminMedia />, detail: null },
 };
 
 // Derive the admin entity routes from the canonical map: the list route always;
 // the `new` route when distinct from the list; the detail route as
-// `detail(':param')` (e.g. '/admin/events/:id', '/admin/content/:sectionKey').
+// `detail(':param')` (e.g. '/admin/events/:id', '/admin/terms/:id').
 const adminEntityRoutes = Object.entries(ADMIN_ENTITY_ROUTES).flatMap(([key, entity]) => {
   const page = ADMIN_ENTITY_PAGES[key];
   const routes = [{ path: entity.list, element: page.list }];

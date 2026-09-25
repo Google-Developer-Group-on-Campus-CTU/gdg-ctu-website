@@ -45,7 +45,7 @@ export const getPublishedEventBySlug = async (slug: string) => {
       return event;
 };
 
-/** Public upcoming feed: published + endAt >= now, soonest first. */
+/** Public upcoming feed: published + active + endAt >= now, soonest first. */
 export const getPublicUpcomingEvents = async (limit = 50) =>
       db
             .select()
@@ -53,39 +53,30 @@ export const getPublicUpcomingEvents = async (limit = 50) =>
             .where(
                   and(
                         eq(events.status, "published"),
+                        eq(events.isActive, true),
                         gte(events.endAt, new Date()),
                   ),
             )
             .orderBy(asc(events.startAt))
             .limit(limit);
 
-/** Public past feed: published + endAt < now, most recent first. */
+/** Public past feed: published + active + endAt < now, most recent first. */
 export const getPublicPastEvents = async (limit = 50) =>
-      db
-            .select()
-            .from(events)
-            .where(
-                  and(eq(events.status, "published"), lt(events.endAt, new Date())),
-            )
-            .orderBy(desc(events.endAt))
-            .limit(limit);
-
-/** Public featured feed: published + is_featured, max 3. */
-export const getPublicFeaturedEvents = async (limit = 3) =>
       db
             .select()
             .from(events)
             .where(
                   and(
                         eq(events.status, "published"),
-                        eq(events.isFeatured, true),
+                        eq(events.isActive, true),
+                        lt(events.endAt, new Date()),
                   ),
             )
-            .orderBy(asc(events.startAt))
+            .orderBy(desc(events.endAt))
             .limit(limit);
 
 /**
- * Public recent feed (Home, Q24=b): upcoming-first up to `limit`,
+ * Public recent feed (Home): upcoming-first up to `limit`,
  * backfilling with past events when upcoming is short.
  */
 export const getPublicRecentEvents = async (limit = 3) => {

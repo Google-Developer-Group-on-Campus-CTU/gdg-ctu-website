@@ -35,6 +35,16 @@ export const getTermByName = async (name: string) => {
       return term;
 };
 
+/** Current term for public defaults — at most one row should match. */
+export const getCurrentTerm = async () => {
+      const [term] = await db
+            .select()
+            .from(terms)
+            .where(eq(terms.isCurrent, true))
+            .limit(1);
+      return term;
+};
+
 export const updateTerm = async (id: string, data: Partial<NewTermRecord>) => {
       const [term] = await db
             .update(terms)

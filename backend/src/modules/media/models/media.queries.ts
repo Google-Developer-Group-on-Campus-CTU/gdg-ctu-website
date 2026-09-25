@@ -1,10 +1,8 @@
 import { count, eq } from "drizzle-orm";
 import { db } from "../../../config/connectDB.js";
 import { Pagination } from "../../../utils/pagination.js";
-import { eventSpeakers } from "../../event-speakers/models/event-speaker.js";
 import { events } from "../../events/models/event.js";
 import { memberTerms } from "../../member_terms/models/member-terms.js";
-import { siteContent } from "../../site-content/models/site-content.js";
 import { teamMembers } from "../../team-members/models/team-member.js";
 import { media } from "./media.js";
 
@@ -74,25 +72,11 @@ export const mediaHasReferences = async (id: string) => {
             .where(eq(events.coverMediaId, id))
             .limit(1);
 
-      const [eventSpeaker] = await db
-            .select({ id: eventSpeakers.id })
-            .from(eventSpeakers)
-            .where(eq(eventSpeakers.profileMediaId, id))
-            .limit(1);
-
       const [memberTerm] = await db
             .select({ id: memberTerms.id })
             .from(memberTerms)
             .where(eq(memberTerms.profileMediaId, id))
             .limit(1);
 
-      const [content] = await db
-            .select({ id: siteContent.id })
-            .from(siteContent)
-            .where(eq(siteContent.mediaId, id))
-            .limit(1);
-
-      return Boolean(
-            teamMember || event || eventSpeaker || memberTerm || content,
-      );
+      return Boolean(teamMember || event || memberTerm);
 };

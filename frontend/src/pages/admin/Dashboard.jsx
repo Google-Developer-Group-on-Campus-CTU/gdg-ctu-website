@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { albumsApi, contentApi, eventsApi, getStatus, getUpdatedAt, mediaApi, partnersApi, teamApi } from '../../api/resources.js';
+import { albumsApi, eventsApi, galleryCategoriesApi, getStatus, getUpdatedAt, mediaApi, partnersApi, teamApi, termsApi } from '../../api/resources.js';
 import { toArray } from '../../api/resources.js';
 import { ADMIN_ENTITY_ROUTES, adminDetailPathFor, adminItemLabel, timeAgo } from '../../admin/editorial.js';
 import { EditorCard } from '../../components/admin/form-shell.jsx';
@@ -20,6 +20,8 @@ const STAT_SECTIONS = [
   { kind: 'team', label: 'Team', className: 'admin-stat--blue' },
   { kind: 'partners', label: 'Partners', className: 'admin-stat--green' },
   { kind: 'gallery', label: 'Gallery', className: 'admin-stat--yellow' },
+  { kind: 'terms', label: 'Terms', className: 'admin-stat--blue' },
+  { kind: 'galleryCategories', label: 'Categories', className: 'admin-stat--green' },
 ];
 
 export default function AdminDashboard() {
@@ -55,7 +57,11 @@ export default function AdminDashboard() {
           if (e?.status === 404) return [];
           throw e;
         }),
-        contentApi.list().then(toArray).catch((e) => {
+        termsApi.list().then(toArray).catch((e) => {
+          if (e?.status === 404) return [];
+          throw e;
+        }),
+        galleryCategoriesApi.list().then(toArray).catch((e) => {
           if (e?.status === 404) return [];
           throw e;
         }),
@@ -68,7 +74,7 @@ export default function AdminDashboard() {
       // empty dashboard off a failed request (404 = module not shipped = empty).
       const failed = settled.find((r) => r.status === 'rejected' && r.reason?.status !== 404);
       if (failed) throw failed.reason;
-      const [events, team, partners, albums, content] = settled.map((r) =>
+      const [events, team, partners, albums, terms, categories] = settled.map((r) =>
         r.status === 'fulfilled' ? r.value : [],
       );
       const tagged = [
@@ -76,7 +82,8 @@ export default function AdminDashboard() {
         ...team.map((i) => ({ kind: 'team', item: i })),
         ...partners.map((i) => ({ kind: 'partners', item: i })),
         ...albums.map((i) => ({ kind: 'gallery', item: i })),
-        ...content.map((i) => ({ kind: 'content', item: i })),
+        ...terms.map((i) => ({ kind: 'terms', item: i })),
+        ...categories.map((i) => ({ kind: 'galleryCategories', item: i })),
       ];
       const needPublish = tagged.filter(({ item }) => getStatus(item) === 'draft');
       const edited = [...tagged].sort(

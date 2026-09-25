@@ -16,8 +16,12 @@ function shortId(id) {
  * previews thumbnails through pickImage + safeSrc, shows selected state with
  * gdg-tag + blue outline, offers copy-ID, and links to /admin/media.
  * Visual language: Poppins, --card/--border, gdg-btn/gdg-tag/admin-media-card.
+ *
+ * `showIds` (default true) renders the truncated media-ID code + Copy ID
+ * buttons. Editors that must never expose IDs (e.g. the event cover) pass
+ * `showIds={false}` — selection still stores the ID, it is just not shown.
  */
-export default function MediaPicker({ id, label, hint, error, required, value = '', onChange }) {
+export default function MediaPicker({ id, label, hint, error, required, value = '', onChange, showIds = true }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -98,10 +102,16 @@ export default function MediaPicker({ id, label, hint, error, required, value = 
       <p className="admin-muted gdg-status-muted" role="status" aria-live="polite">
         {selectedText ? (
           <>
-            Selected: <code title={selectedText} className="gdg-code-muted">{shortId(selectedText)}</code>{' '}
-            <button type="button" className="admin-link-btn" onClick={() => copyId(selectedText)}>
-              {copiedId === selectedText ? 'Copied ✓' : 'Copy ID'}
-            </button>{' '}
+            Selected{showIds ? (
+              <>
+                {': '}<code title={selectedText} className="gdg-code-muted">{shortId(selectedText)}</code>{' '}
+                <button type="button" className="admin-link-btn" onClick={() => copyId(selectedText)}>
+                  {copiedId === selectedText ? 'Copied ✓' : 'Copy ID'}
+                </button>{' '}
+              </>
+            ) : (
+              ' ✓ '
+            )}
             <button type="button" className="admin-link-btn" onClick={() => onChange?.('')}>Clear</button>
           </>
         ) : (
@@ -144,9 +154,11 @@ export default function MediaPicker({ id, label, hint, error, required, value = 
                     <button type="button" className={selected ? 'gdg-btn gdg-btn-secondary gdg-btn-sm' : 'gdg-btn gdg-btn-primary gdg-btn-sm'} aria-pressed={selected} disabled={!mediaId} onClick={() => select(mediaId)}>
                       {selected ? 'Clear' : 'Select'}
                     </button>
-                    <button type="button" className="gdg-btn gdg-btn-secondary gdg-btn-sm" disabled={!mediaId} onClick={() => copyId(mediaId)}>
-                      {copiedId === mediaId ? 'Copied ✓' : 'Copy ID'}
-                    </button>
+                    {showIds ? (
+                      <button type="button" className="gdg-btn gdg-btn-secondary gdg-btn-sm" disabled={!mediaId} onClick={() => copyId(mediaId)}>
+                        {copiedId === mediaId ? 'Copied ✓' : 'Copy ID'}
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               </article>

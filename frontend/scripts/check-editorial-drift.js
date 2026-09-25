@@ -26,7 +26,6 @@ function extractConst(name) {
 const expected = {
   EVENT_STATUSES: ['draft', 'published', 'archived', 'cancelled'],
   PARTNER_TIERS: ['platinum', 'gold', 'silver', 'community'],
-  CONTENT_KEYS: ['hero', 'about', 'community', 'cta', 'footer'],
 };
 
 let failed = false;

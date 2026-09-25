@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { mapContent, publicApi, sortPartners, usePublicFeed } from '../api/public.js';
+import { publicApi, sortPartners, usePublicFeed } from '../api/public.js';
 import { FeedSkeleton, friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
 import '../styles/about.css';
 
@@ -77,15 +77,10 @@ const legacyPartners = [
 ];
 
 export default function About() {
-  const about = usePublicFeed(() => publicApi.getContentByKey('about').then((c) => (c ? mapContent(c) : null)), 'about-key');
-  const community = usePublicFeed(
-    () => publicApi.getContentByKey('community').then((c) => (c ? mapContent(c) : null)),
-    'community-key',
-  );
+  // Site-content API is retired — hero/community copy is hardcoded below and
+  // only the partners strip still reads live CMS data.
   const partners = usePublicFeed(() => publicApi.getPartners().then(sortPartners), 'about-partners');
 
-  const aboutContent = !about.loading && !about.error ? about.data : null;
-  const communityContent = !community.loading && !community.error ? community.data : null;
   const cmsPartners = !partners.loading && !partners.error ? partners.data : null;
 
   return (
@@ -121,40 +116,13 @@ export default function About() {
             <span /> ABOUT US
           </div>
           <h1>
-            {aboutContent?.title ? (
-              aboutContent.title
-            ) : (
-              <>
-                Building Developers. Creating Impact. <span className="grad">Together.</span>
-              </>
-            )}
+            Building Developers. Creating Impact. <span className="grad">Together.</span>
           </h1>
           <p className="lead">
-            {aboutContent?.subtitle || aboutContent?.body ? (
-              aboutContent.subtitle || aboutContent.body
-            ) : (
-              <>
-                Google Developer Groups - Cebu Technological University - Main Campus is a student-led technology community that
-                empowers aspiring developers through workshops, hackathons, collaborative projects, networking events, and hands-on
-                learning experiences powered by Google technologies.
-              </>
-            )}
+            Google Developer Groups - Cebu Technological University - Main Campus is a student-led technology community that
+            empowers aspiring developers through workshops, hackathons, collaborative projects, networking events, and hands-on
+            learning experiences powered by Google technologies.
           </p>
-          {aboutContent?.buttonText && aboutContent?.buttonUrl ? (
-            <div className="btn-row">
-              <a href={aboutContent.buttonUrl} className="small-green-btn">
-                {aboutContent.buttonText} <span aria-hidden="true">↗</span>
-              </a>
-            </div>
-          ) : null}
-          {!about.loading && about.error ? (
-            <div className="gdg-feed-error gdg-feed-offset" role="alert">
-              <p>{friendlyFeedError(about.error)}</p>
-              <button type="button" className="btn-secondary" onClick={about.retry}>
-                Retry
-              </button>
-            </div>
-          ) : null}
         </div>
       </section>
 
@@ -163,33 +131,11 @@ export default function About() {
         <div className="eyebrow">
           <span /> COMMUNITY
         </div>
-        <h2>{communityContent?.title || 'Our Community'}</h2>
-        {community.loading ? (
-          <div className="feed-skeleton">
-            <FeedSkeleton count={1} label="Loading community…" />
-          </div>
-        ) : null}
-        {!community.loading && community.error ? (
-          <div className="gdg-feed-error" role="alert">
-            <p>{friendlyFeedError(community.error)}</p>
-            <button type="button" className="btn-secondary" onClick={community.retry}>
-              Retry
-            </button>
-          </div>
-        ) : null}
-        {!community.loading && !community.error && !communityContent ? (
-          <div className="feed-empty">
-            <p>No community updates published yet — check back soon.</p>
-          </div>
-        ) : null}
-        {communityContent?.subtitle ? <p className="sub">{communityContent.subtitle}</p> : null}
-        {communityContent?.body ? <p className="sub">{communityContent.body}</p> : null}
-        {!communityContent?.subtitle && !communityContent?.body && !community.loading && !community.error ? (
-          <p className="sub">
-            A diverse, inclusive community where students from all courses learn together, build together, and grow together —
-            supported by mentors, alumni, and industry friends.
-          </p>
-        ) : null}
+        <h2>Our Community</h2>
+        <p className="sub">
+          A diverse, inclusive community where students from all courses learn together, build together, and grow together —
+          supported by mentors, alumni, and industry friends.
+        </p>
       </section>
 
       <section className="ab-purpose section-frame">

@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { eventsApi, getId, mediaApi, publicPreview, speakersApi } from '../../api/resources.js';
-import { pickImage } from '../../api/public.js';
+import { eventsApi, getId, publicPreview } from '../../api/resources.js';
 import {
   ADMIN_ENTITY_ROUTES,
-  EVENT_STATUSES, MAX_FEATURED_EVENTS, isHttpsUrl, slugify,
+  isReservedSlug, slugify,
   useDirtyGuard, validateEvent,
 } from '../../admin/editorial.js';
 import {
@@ -15,41 +14,286 @@ import {
   EditorFooter,
   eventEditorSchema,
   focusEditorErrors,
-  speakerEditorSchema,
   toEditorPayload,
   useEditorForm,
-  useSlugUniqueness,
 } from '../../components/admin/form-shell.jsx';
 import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
 import { Form } from '../../components/ui/form';
 import { Input } from '../../components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import { Button } from '../../components/ui/button';
+import { Popover } from '@base-ui/react/popover';
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import MediaPicker from '../../components/admin/MediaPicker.jsx';
 
-const EMPTY = {
-  title: '', slug: '', short_description: '', description: '', coverMediaId: '', coverAlt: '',
-  location: '', locationEmbedUrl: '', registrationEnabled: false, registrationUrl: '',
-  startAt: '', endAt: '', status: 'draft', is_featured: false, display_order: 0, is_active: true,
-};
+const DEFAULT_TIMEZONE = 'Asia/Manila';
+/** First time offered when a date is picked before a time. */
+const DEFAULT_EVENT_TIME = '09:00';
 
-const SPEAKER_EMPTY = { firstName: '', lastName: '', slug: '', role: '', profileMediaId: '', teamMemberId: '' };
+const EMPTY = {
+  title: '', short_description: '', description: '', coverMediaId: '',
+  location: '', externalUrl: '', timezone: DEFAULT_TIMEZONE,
+  startAt: '', endAt: '', status: 'draft', is_active: true,
+};
 
 function toForm(item = {}) {
   return {
-    title: item.title ?? '', slug: item.slug ?? '',
+    title: item.title ?? '',
     short_description: item.short_description ?? item.shortDescription ?? '',
     description: item.description ?? '',
     coverMediaId: item.coverMediaId ?? item.cover_media_id ?? item.cover_url ?? '',
-    coverAlt: item.coverAlt ?? item.cover_alt ?? '',
-    location: item.location ?? '', locationEmbedUrl: item.locationEmbedUrl ?? item.location_embed_url ?? '',
-    registrationEnabled: !!(item.registrationEnabled ?? item.registration_enabled),
-    registrationUrl: item.registrationUrl ?? item.registration_url ?? '',
+    location: item.location ?? '',
+    externalUrl: item.externalUrl ?? item.external_url ?? '',
+    timezone: item.timezone ?? DEFAULT_TIMEZONE,
     startAt: (item.startAt ?? item.start_at ?? '').toString().slice(0, 16),
     endAt: (item.endAt ?? item.end_at ?? '').toString().slice(0, 16),
     status: String(item.status ?? 'draft').toLowerCase(),
-    is_featured: !!item.is_featured,
-    display_order: item.display_order ?? 0, is_active: item.is_active ?? true,
+    is_active: item.is_active ?? item.isActive ?? true,
     updated_by: item.updated_by ?? item.updatedBy ?? null, updated_at: item.updated_at ?? item.updatedAt ?? null,
   };
+}
+
+/** Slug is never typed — it is derived from the title at save time. */
+function deriveEventSlug(title) {
+  return slugify(title ?? '');
+}
+
+/**
+ * Keyless map links derived from the location text (there is no Google Maps
+ * API key in the frontend env — see .env.example). The embed URL is what the
+ * backend persists as locationEmbedUrl; the search URL powers the
+ * "Open in Google Maps" link.
+ */
+function mapsEmbedUrl(location) {
+  const query = String(location ?? '').trim();
+  if (!query) return null;
+  return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+}
+
+function mapsSearchUrl(location) {
+  const query = String(location ?? '').trim();
+  if (!query) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+/**
+ * Form state → CreateEventSchema / UpdateEventSchema body
+ * (backend/src/modules/events/event.validations.ts, camelCase). The slug is
+ * only ever sent on create (the backend requires it there); edits never send
+ * it. locationEmbedUrl is auto-derived from the location text.
+ */
+function toApiPayload(v = {}, { slug } = {}) {
+  const body = {
+    title: v.title,
+    shortDescription: v.short_description || null,
+    description: v.description || null,
+    coverMediaId: v.coverMediaId || null,
+    location: v.location || null,
+    locationEmbedUrl: mapsEmbedUrl(v.location),
+    externalUrl: v.externalUrl,
+    timezone: v.timezone || DEFAULT_TIMEZONE,
+    startAt: v.startAt,
+    endAt: v.endAt,
+    status: v.status,
+    isActive: v.is_active !== false,
+  };
+  if (slug) body.slug = slug;
+  return body;
+}
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+/** Split an ISO-like `YYYY-MM-DDTHH:mm` value into date/time parts. */
+function splitDateTime(value) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(value ?? ''));
+  if (!m) return { year: '', month: '', day: '', time: '' };
+  return { year: m[1], month: m[2], day: m[3], time: `${m[4]}:${m[5]}` };
+}
+
+function formatDateTime(parts) {
+  if (!parts.year || !parts.month || !parts.day) return '';
+  const date = new Date(Number(parts.year), Number(parts.month) - 1, Number(parts.day), 0, 0);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/**
+ * Single combined date-and-time picker: a calendar month-grid inside a
+ * popover with hour + minute selection in the same popover, one
+ * `YYYY-MM-DDTHH:mm` form value out. Built from the shared shadcn Button +
+ * Select primitives and the Base UI popover (same stack as components/ui) —
+ * no new dependency, no separate date/time rows.
+ */
+function DateTimeField({ id, value, onChange }) {
+  const parts = splitDateTime(value);
+  const [open, setOpen] = useState(false);
+  const today = new Date();
+  const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() + 1 });
+
+  // Every open starts on the current value (or today) — form resets after
+  // save never leave the calendar parked on a stale month.
+  const handleOpenChange = (next) => {
+    if (next) {
+      const current = splitDateTime(value);
+      setView({
+        year: Number(current.year) || today.getFullYear(),
+        month: Number(current.month) || today.getMonth() + 1,
+      });
+    }
+    setOpen(next);
+  };
+
+  const emit = (date, time) => {
+    if (!date) {
+      onChange('');
+      return;
+    }
+    onChange(`${date}T${time || DEFAULT_EVENT_TIME}`);
+  };
+
+  const currentDate = parts.year && parts.month && parts.day
+    ? `${parts.year}-${parts.month}-${parts.day}`
+    : '';
+  const currentTime = parts.time;
+
+  const pickDay = (day) => {
+    emit(`${view.year}-${pad2(view.month)}-${pad2(day)}`, currentTime);
+  };
+
+  const setTime = (key, val) => {
+    const [hh, mm] = (currentTime || DEFAULT_EVENT_TIME).split(':');
+    const nextTime = key === 'hour' ? `${val}:${mm}` : `${hh}:${val}`;
+    if (!currentDate) {
+      emit(`${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`, nextTime);
+      return;
+    }
+    emit(currentDate, nextTime);
+  };
+
+  const shiftMonth = (delta) => {
+    setView((v) => {
+      const date = new Date(v.year, v.month - 1 + delta, 1);
+      return { year: date.getFullYear(), month: date.getMonth() + 1 };
+    });
+  };
+
+  const firstDow = new Date(view.year, view.month - 1, 1).getDay();
+  const daysInView = new Date(view.year, view.month, 0).getDate();
+  const cells = [...Array(firstDow).fill(null)];
+  for (let d = 1; d <= daysInView; d += 1) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const hours = [];
+  for (let h = 0; h < 24; h += 1) hours.push(pad2(h));
+  const minutes = [];
+  for (let m = 0; m < 60; m += 1) minutes.push(pad2(m));
+  const [selHour, selMinute] = (currentTime || '').split(':');
+
+  const triggerLabel = currentDate
+    ? `${formatDateTime(parts)}${currentTime ? `, ${currentTime}` : ''}`
+    : 'Pick date & time';
+
+  return (
+    <Popover.Root open={open} onOpenChange={handleOpenChange}>
+      <Popover.Trigger
+        id={id}
+        render={<Button variant="outline" type="button" className="justify-start font-normal" />}
+      >
+        <Calendar className="size-4 text-muted-foreground" aria-hidden="true" />
+        <span className={currentDate ? undefined : 'text-muted-foreground'}>{triggerLabel}</span>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner side="bottom" align="start" sideOffset={4} className="isolate z-50">
+          <Popover.Popup className="w-max rounded-lg bg-popover p-3 text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none">
+            <div className="flex items-center justify-between">
+              <Button type="button" variant="ghost" size="icon-sm" onClick={() => shiftMonth(-1)} aria-label="Previous month">
+                <ChevronLeft aria-hidden="true" />
+              </Button>
+              <p className="text-sm font-medium" aria-live="polite">{MONTHS[view.month - 1]} {view.year}</p>
+              <Button type="button" variant="ghost" size="icon-sm" onClick={() => shiftMonth(1)} aria-label="Next month">
+                <ChevronRight aria-hidden="true" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-7 gap-1" role="grid" aria-label="Choose a date">
+              {WEEKDAYS.map((d) => (
+                <span key={d} className="flex size-8 items-center justify-center text-xs text-muted-foreground" aria-hidden="true">{d}</span>
+              ))}
+              {cells.map((day, i) => {
+                if (day === null) return <span key={`blank-${i}`} aria-hidden="true" />;
+                const isSelected = currentDate === `${view.year}-${pad2(view.month)}-${pad2(day)}`;
+                const dayDate = new Date(view.year, view.month - 1, day);
+                const isToday = dayDate.toDateString() === today.toDateString();
+                return (
+                  <Button
+                    // eslint-disable-next-line react/no-array-index-key
+                    key={`${view.year}-${view.month}-${day}`}
+                    type="button"
+                    size="icon"
+                    variant={isSelected ? 'default' : isToday ? 'outline' : 'ghost'}
+                    aria-pressed={isSelected}
+                    aria-label={dayDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                    onClick={() => pickDay(day)}
+                  >
+                    {day}
+                  </Button>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex items-end gap-2">
+              <label className="editor-field" htmlFor={`${id}-hour`}>
+                <span className="editor-label">Hour</span>
+                <Select value={selHour || undefined} onValueChange={(v) => setTime('hour', v)}>
+                  <SelectTrigger id={`${id}-hour`}>
+                    <SelectValue placeholder="HH" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hours.map((h) => (
+                      <SelectItem key={h} value={h}>{h}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+              <span className="pb-2 text-sm text-muted-foreground" aria-hidden="true">:</span>
+              <label className="editor-field" htmlFor={`${id}-minute`}>
+                <span className="editor-label">Minute</span>
+                <Select value={selMinute || undefined} onValueChange={(v) => setTime('minute', v)}>
+                  <SelectTrigger id={`${id}-minute`}>
+                    <SelectValue placeholder="MM" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {minutes.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+              <span className="flex-1" aria-hidden="true" />
+              <Button type="button" variant="ghost" size="sm" onClick={() => { onChange(''); setOpen(false); }}>
+                Clear
+              </Button>
+              <Button type="button" size="sm" onClick={() => setOpen(false)}>
+                Done
+              </Button>
+            </div>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
 }
 
 export default function EventDetail() {
@@ -61,18 +305,15 @@ export default function EventDetail() {
   const isNew = id === 'new' || id === undefined;
   const navigate = useNavigate();
   const summaryRef = useRef(null);
-  const speakerSummaryRef = useRef(null);
   const methods = useEditorForm({ schema: eventEditorSchema, defaultValues: EMPTY });
   const {
     control, reset, watch, setValue, setError: setFieldError, handleSubmit,
     formState: { errors: rhfErrors },
   } = methods;
-  const speakerMethods = useEditorForm({ schema: speakerEditorSchema, defaultValues: SPEAKER_EMPTY });
-  const {
-    control: speakerControl, reset: speakerReset, watch: speakerWatch, setValue: setSpeakerValue,
-    handleSubmit: handleSpeakerSubmit, formState: { errors: speakerRhfErrors },
-  } = speakerMethods;
   const [original, setOriginal] = useState(EMPTY);
+  // The persisted slug is display-only (public link + preview text) — it is
+  // never edited and never sent back on update.
+  const [savedSlug, setSavedSlug] = useState('');
   const [loading, setLoading] = useState(!isNew);
   const [error, setError] = useState(null);
   // Load retry that preserves form state — bumps the fetch effect below
@@ -80,28 +321,13 @@ export default function EventDetail() {
   const [loadRetry, setLoadRetry] = useState(0);
   const [serverError, setServerError] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [slugTouched, setSlugTouched] = useState(false);
-  const [confirmArchive, setConfirmArchive] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [toast, setToast] = useState('');
-  const [speakers, setSpeakers] = useState([]);
-  const [speakersLoading, setSpeakersLoading] = useState(!isNew);
-  const [speakersError, setSpeakersError] = useState(null);
-  const [speakerRetry, setSpeakerRetry] = useState(0);
-  const [speakerSlugTouched, setSpeakerSlugTouched] = useState(false);
-  const [speakerFile, setSpeakerFile] = useState(null);
-  const [speakerError, setSpeakerError] = useState(null);
-  const [speakerSaving, setSpeakerSaving] = useState(false);
-  const [confirmSpeaker, setConfirmSpeaker] = useState(null);
-  const [media, setMedia] = useState([]);
-  const [mediaError, setMediaError] = useState(null);
   const activePending = useRef(false);
 
   const values = watch();
   const dirty = useMemo(() => JSON.stringify(values) !== JSON.stringify(original), [values, original]);
   const blocker = useDirtyGuard(dirty && !saving);
-  const isPublished = original.status === 'published';
-  const slugChanged = isNew ? false : values.slug !== original.slug;
 
   useEffect(() => {
     if (isNew) return;
@@ -112,6 +338,7 @@ export default function EventDetail() {
         const next = toForm(item);
         reset(next);
         setOriginal(next);
+        setSavedSlug(item?.slug ?? '');
         setLoading(false);
       })
       .catch((err) => {
@@ -124,69 +351,6 @@ export default function EventDetail() {
     };
   }, [id, isNew, loadRetry, reset]);
 
-  // Slug auto-fills from the title until touched (same contract as before).
-  const title = watch('title');
-  useEffect(() => {
-    if (!slugTouched) setValue('slug', slugify(title ?? ''));
-  }, [title, slugTouched, setValue]);
-
-  const currentId = isNew ? null : getId(original) ?? id;
-  const { slugDup, slugCheckError } = useSlugUniqueness(eventsApi, watch('slug'), currentId);
-
-  // Speaker slug auto-fills from the speaker name until touched.
-  const speakerFirstName = speakerWatch('firstName');
-  const speakerLastName = speakerWatch('lastName');
-  useEffect(() => {
-    if (!speakerSlugTouched) setSpeakerValue('slug', slugify(`${speakerFirstName ?? ''} ${speakerLastName ?? ''}`.trim()));
-  }, [speakerFirstName, speakerLastName, speakerSlugTouched, setSpeakerValue]);
-  const { slugDup: speakerSlugDup, slugCheckError: speakerSlugCheckError } = useSlugUniqueness(
-    speakersApi, speakerWatch('slug'), null,
-  );
-
-  /* Speakers are per-event: backend list returns everything, filter client-side by eventId. */
-  useEffect(() => {
-    if (isNew) {
-      setSpeakersLoading(false);
-      return undefined;
-    }
-    let alive = true;
-    setSpeakersLoading(true);
-    setSpeakersError(null);
-    speakersApi.list({ limit: 100 })
-      .then((rows) => {
-        if (!alive) return;
-        const mine = (Array.isArray(rows) ? rows : []).filter(
-          (s) => String(s.eventId ?? s.event_id ?? '') === String(id),
-        );
-        setSpeakers(mine);
-        setSpeakersLoading(false);
-      })
-      .catch((err) => {
-        if (!alive) return;
-        setSpeakersError(err);
-        setSpeakersLoading(false);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [id, isNew, speakerRetry]);
-
-  /* Media library for profile thumbnails (profileSrc resolves profileMediaId → URL, never a raw UUID). */
-  useEffect(() => {
-    if (isNew) return undefined;
-    let alive = true;
-    mediaApi.list({ limit: 100 })
-      .then((rows) => {
-        if (alive) { setMedia(Array.isArray(rows) ? rows : []); setMediaError(null); }
-      })
-      .catch((err) => {
-        if (alive) setMediaError(err);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [isNew]);
-
   if (!isNew && loading) return <section aria-label="Event editor"><h1>Event</h1><LoadingSkeleton label="Loading event…" /></section>;
   // Retry clears the error + shows the loader from the click handler (not the
   // fetch effect) and bumps `loadRetry` — the form state above is untouched.
@@ -197,75 +361,78 @@ export default function EventDetail() {
   };
   if (!isNew && error) return <section aria-label="Event editor"><h1>Event</h1><ErrorState error={error} onRetry={retryLoad} context="load this event" /></section>;
 
+  const titleText = values.title ?? '';
+  const previewSlug = isNew ? deriveEventSlug(titleText) : (savedSlug || deriveEventSlug(titleText));
+  const locationText = values.location ?? '';
+  const embedUrl = mapsEmbedUrl(locationText);
+  const searchUrl = mapsSearchUrl(locationText);
+
   // Live publish-gate indicator (display only — submit validation runs zod).
-  const publishGate = { ...validateEvent(values), ...(slugDup ? { slug: 'Slug is already in use.' } : {}) };
+  const publishGate = validateEvent(values);
+
+  /** Create with a server-generated unique slug: base first, then -2, -3… on 409. */
+  const createWithUniqueSlug = async (payload, slugBase) => {
+    let lastError = null;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const slug = attempt === 0 ? slugBase : `${slugBase}-${attempt + 1}`;
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const saved = await eventsApi.create({ ...payload, slug });
+        return { saved, slug };
+      } catch (err) {
+        if (err?.status === 409 && attempt < 4) {
+          lastError = err;
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastError;
+  };
 
   const persist = (publish) => async (next) => {
-    if (slugCheckError) {
-      setFieldError('slug', { message: slugCheckError });
-      focusEditorErrors(summaryRef);
-      return;
-    }
     // Client validation runs through the zod schema (same UX-level policy as
-    // validateEvent) on every submit; the registration gate below is the
-    // page-level cross-rule, exactly like today.
-    const effective = publish ? { ...next, status: 'published', is_active: true } : next;
-    if (effective.registrationEnabled && !isHttpsUrl(effective.registrationUrl)) {
-      setFieldError('registrationUrl', { message: 'Registration URL must be a valid https:// URL when registration is enabled.' });
+    // validateEvent) on every submit.
+    const slugBase = deriveEventSlug(next.title);
+    if (!slugBase) {
+      setFieldError('title', { message: 'Title needs letters or numbers for the link.' });
       focusEditorErrors(summaryRef);
       return;
     }
-    if (publish && slugDup) { setFieldError('slug', { message: 'Slug is already in use.' }); focusEditorErrors(summaryRef); return; }
-    if (publish && slugChanged && isPublished) {
-      if (!window.confirm('You changed the slug of a published event. There are no redirects in V1 — the old URL will 404. Continue?')) return;
+    if (isReservedSlug(slugBase)) {
+      setFieldError('title', { message: 'That title is reserved — try another.' });
+      focusEditorErrors(summaryRef);
+      return;
     }
-    if (publish && effective.is_featured) {
-      try {
-        const all = await eventsApi.list();
-        const others = (Array.isArray(all) ? all : []).filter(
-          (e) => e.is_featured && String(getId(e) ?? e.slug) !== String(currentId),
-        );
-        if (others.length >= MAX_FEATURED_EVENTS) {
-          setServerError(`Featured cap reached (max ${MAX_FEATURED_EVENTS}). Unfeature another event first.`);
-          return;
-        }
-      } catch { /* non-blocking */ }
-    }
+    const normalized = toEditorPayload(next);
+    // Status comes from the buttons, never a picker: draft on save, published on publish.
+    const effective = { ...normalized, status: publish ? 'published' : 'draft', is_active: publish ? true : normalized.is_active };
     setSaving(true);
     setServerError(null);
     try {
-      const payload = {
-        ...toEditorPayload(effective),
-        registrationUrl: effective.registrationEnabled ? effective.registrationUrl : null,
-      };
       let saved;
-      if (isNew) saved = await eventsApi.create({ ...payload, status: publish ? 'published' : 'draft' });
-      else saved = await eventsApi.update(id, payload);
+      let finalSlug = savedSlug;
+      if (isNew) {
+        const created = await createWithUniqueSlug(toApiPayload(effective), slugBase);
+        saved = created.saved;
+        finalSlug = created.slug;
+        setSavedSlug(created.slug);
+      } else {
+        // Edits never send the slug — the public link stays stable.
+        saved = await eventsApi.update(id, toApiPayload(effective));
+        finalSlug = saved?.slug ?? savedSlug;
+        setSavedSlug(finalSlug);
+      }
       const fresh = toForm(saved ?? effective);
       reset(fresh);
       setOriginal(fresh);
-      setToast(publish ? 'Published.' : 'Saved as draft.');
+      const deduped = isNew && finalSlug && finalSlug !== slugBase;
+      setToast(`${publish ? 'Published.' : 'Saved as draft.'}${deduped ? ` Public link: /events/${finalSlug}.` : ''}`);
       if (isNew && (getId(saved) ?? saved?.slug)) navigate(ADMIN_ENTITY_ROUTES.events.detail(getId(saved) ?? saved.slug), { replace: true });
     } catch (err) {
       setServerError(err?.body?.message ?? err?.message ?? 'Save failed.');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const archive = async () => {
-    setSaving(true);
-    try {
-      await eventsApi.update(id, { is_active: false, status: 'archived' });
-      setToast('Archived. Hidden publicly, still editable.');
-      setOriginal((o) => ({ ...o, is_active: false, status: 'archived' }));
-      setValue('is_active', false);
-      setValue('status', 'archived');
-    } catch (err) {
-      setServerError(err?.body?.message ?? err?.message ?? 'Archive failed.');
-    } finally {
-      setSaving(false);
-      setConfirmArchive(false);
     }
   };
 
@@ -293,7 +460,7 @@ export default function EventDetail() {
     const prev = values.is_active;
     setValue('is_active', value);
     try {
-      await eventsApi.update(id, { is_active: value });
+      await eventsApi.update(id, { isActive: value });
       setOriginal((o) => ({ ...o, is_active: value }));
       setToast(value ? 'Event is active.' : 'Event hidden publicly.');
     } catch (err) {
@@ -304,75 +471,6 @@ export default function EventDetail() {
     }
   };
 
-  /** Resolve a speaker profileMediaId through the media list; pickImage rejects UUIDs. */
-  const profileSrc = (mediaId) => {
-    if (!mediaId) return null;
-    const record = media.find((m) => String(getId(m)) === String(mediaId));
-    const url = pickImage(record);
-    return typeof url === 'string' ? url : null;
-  };
-
-  const addSpeaker = async (speaker) => {
-    if (speakerSlugCheckError) { setSpeakerError(speakerSlugCheckError); return; }
-    if (speakerSlugDup) { setSpeakerError('Speaker slug is already in use.'); return; }
-    setSpeakerSaving(true);
-    setSpeakerError(null);
-    try {
-      let profileMediaId = (speaker.profileMediaId ?? '').trim() || null;
-      if (speakerFile) {
-        // Upload parity: backend already stores the file; reuse the Media pipeline and link its ID.
-        const uploaded = await mediaApi.upload(speakerFile, `${speaker.firstName} ${speaker.lastName}`.trim());
-        const uploadedId = uploaded?.media?.id ?? null;
-        if (uploadedId) {
-          profileMediaId = uploadedId;
-          setMedia((list) => [uploaded.media, ...list]);
-        }
-      }
-      const created = await speakersApi.create({
-        eventId: id,
-        firstName: speaker.firstName.trim(),
-        lastName: speaker.lastName.trim(),
-        slug: speaker.slug.trim(),
-        role: (speaker.role ?? '').trim() || null,
-        profileMediaId,
-        teamMemberId: (speaker.teamMemberId ?? '').trim() || null,
-      });
-      const row = created?.eventSpeaker ?? created;
-      setSpeakers((list) => [...list, row]);
-      speakerReset(SPEAKER_EMPTY);
-      setSpeakerSlugTouched(false);
-      setSpeakerFile(null);
-      setToast('Speaker added.');
-    } catch (err) {
-      setSpeakerError(err?.body?.message ?? err?.message ?? 'Could not add speaker.');
-    } finally {
-      setSpeakerSaving(false);
-    }
-  };
-
-  const removeSpeaker = async () => {
-    const sid = getId(confirmSpeaker);
-    if (!sid) {
-      setConfirmSpeaker(null);
-      return;
-    }
-    const prev = speakers;
-    setSpeakers((list) => list.filter((s) => getId(s) !== sid));
-    setSpeakerSaving(true);
-    setSpeakerError(null);
-    try {
-      await speakersApi.remove(sid);
-      setToast('Speaker removed.');
-      setConfirmSpeaker(null);
-    } catch (err) {
-      setSpeakers(prev);
-      setSpeakerError(err?.body?.message ?? err?.message ?? 'Remove failed — change reverted.');
-      setConfirmSpeaker(null);
-    } finally {
-      setSpeakerSaving(false);
-    }
-  };
-
   const isDraft = original.status === 'draft';
 
   return (
@@ -380,10 +478,11 @@ export default function EventDetail() {
       <div className="admin-page-head">
         <div>
           <h1>{isNew ? 'New event' : values.title || 'Event'}</h1>
-          <p className="admin-muted">
-            {values.updated_at ? `Last edited ${values.updated_at}${values.updated_by ? ` by ${values.updated_by}` : ''} · ` : ''}
-            Create = draft · publish gate enforced.
-          </p>
+          {values.updated_at ? (
+            <p className="admin-muted">
+              Last edited {values.updated_at}{values.updated_by ? ` by ${values.updated_by}` : ''}
+            </p>
+          ) : null}
         </div>
         {!isNew ? <Link className="gdg-btn gdg-btn-secondary" to={ADMIN_ENTITY_ROUTES.events.list}>Back to list</Link> : null}
       </div>
@@ -400,7 +499,7 @@ export default function EventDetail() {
             actions={(
               <a
                 className="gdg-btn gdg-btn-secondary"
-                href={values.slug ? publicPreview.eventSlug(values.slug) : publicPreview.events()}
+                href={previewSlug ? publicPreview.eventSlug(previewSlug) : publicPreview.events()}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -410,285 +509,100 @@ export default function EventDetail() {
           >
             <EditorErrors errors={rhfErrors} serverError={serverError} summaryRef={summaryRef} />
             {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
-            <div className="editor-grid">
-              <EditorField control={control} name="title" label="Title" required>
-                {(field) => <Input {...field} />}
-              </EditorField>
-              <EditorField
-                control={control}
-                name="slug"
-                label="Slug"
-                required
-                hint={slugCheckError ?? (slugDup ? 'Slug is already in use.' : 'Auto from title; override allowed. Lowercase-hyphen-ascii, unique.')}
-              >
-                {(field) => <Input {...field} onChange={(e) => { setSlugTouched(true); field.onChange(slugify(e.target.value)); }} />}
-              </EditorField>
-            </div>
+            <EditorField control={control} name="title" label="Title" required>
+              {(field) => <Input {...field} placeholder="e.g. Build with AI Workshop" />}
+            </EditorField>
+            {previewSlug ? (
+              <p className="admin-muted" aria-live="polite">/events/{previewSlug}</p>
+            ) : null}
             <EditorField control={control} name="short_description" label="Short description">
-              {(field) => <Input {...field} value={field.value ?? ''} />}
+              {(field) => <Input {...field} value={field.value ?? ''} placeholder="e.g. Intro AI workshop for students" />}
             </EditorField>
             <EditorField control={control} name="description" label="Description (markdown)" required>
               {(field) => <textarea {...field} value={field.value ?? ''} rows={6} />}
             </EditorField>
-            <div className="editor-grid">
-              <EditorField
-                control={control}
-                name="coverMediaId"
-                label="Cover media"
-                plain
-                showMessage={false}
-                hint="Pick from the Media library below; the ID is stored on save."
-              >
-                {(field) => (
-                  <MediaPicker
-                    id="coverMediaId"
-                    label="Cover media ID"
-                    hint="Pick from the Media library below; the ID is stored on save."
-                    error={rhfErrors.coverMediaId?.message}
-                    required
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
-                  />
-                )}
-              </EditorField>
-              <EditorField control={control} name="coverAlt" label="Cover alt text" required>
-                {(field) => <Input {...field} value={field.value ?? ''} />}
-              </EditorField>
-            </div>
-            <div className="editor-grid">
-              <EditorField control={control} name="location" label="Location">
-                {(field) => <Input {...field} value={field.value ?? ''} />}
-              </EditorField>
-              <EditorField control={control} name="locationEmbedUrl" label="Location embed URL">
-                {(field) => <Input {...field} value={field.value ?? ''} placeholder="https://…" />}
-              </EditorField>
-            </div>
-            <EditorField control={control} name="registrationEnabled" label="Registration enabled" plain>
+            <EditorField
+              control={control}
+              name="coverMediaId"
+              label="Cover photo"
+              plain
+              showMessage={false}
+            >
               {(field) => (
-                <Toggle
-                  id="registrationEnabled"
-                  label="Registration enabled"
-                  checked={!!field.value}
-                  onChange={(v) => { field.onChange(v); if (!v) setValue('registrationUrl', ''); }}
+                <MediaPicker
+                  id="coverMediaId"
+                  label="Cover photo"
+                  hint="Choose from the gallery or upload a new photo — no IDs needed."
+                  error={rhfErrors.coverMediaId?.message}
+                  required
+                  showIds={false}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
                 />
               )}
             </EditorField>
-            {values.registrationEnabled ? (
-              <EditorField control={control} name="registrationUrl" label="Registration URL (https required)" required>
-                {(field) => <Input {...field} value={field.value ?? ''} placeholder="https://…" />}
-              </EditorField>
+            <EditorField
+              control={control}
+              name="location"
+              label="Location"
+            >
+              {(field) => <Input {...field} value={field.value ?? ''} placeholder="e.g. CTU Main Campus, Cebu City" />}
+            </EditorField>
+            {embedUrl ? (
+              <div>
+                <iframe
+                  title={`Map preview for ${locationText.trim()}`}
+                  src={embedUrl}
+                  loading="lazy"
+                  style={{ width: '100%', height: 280, border: 0, borderRadius: 8 }}
+                />
+                <p className="admin-muted">
+                  <a href={searchUrl} target="_blank" rel="noreferrer">Open in Google Maps ↗</a>
+                </p>
+              </div>
             ) : null}
             <div className="editor-grid">
-              <EditorField control={control} name="startAt" label="Starts at" required>
-                {(field) => <input type="datetime-local" {...field} />}
+              <EditorField control={control} name="externalUrl" label="External link" required>
+                {(field) => <Input {...field} value={field.value ?? ''} placeholder="https://…" />}
               </EditorField>
-              <EditorField control={control} name="endAt" label="Ends at" required>
-                {(field) => <input type="datetime-local" {...field} />}
-              </EditorField>
-              <EditorField control={control} name="status" label="Status" required plain>
-                {(field) => (
-                  <select id="status" value={field.value} onChange={(e) => field.onChange(e.target.value)}>
-                    {EVENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                )}
-              </EditorField>
-              <EditorField control={control} name="display_order" label="Display order (≥ 0)">
-                {(field) => <input type="number" min="0" step="1" {...field} />}
+              <EditorField control={control} name="timezone" label="Timezone" required>
+                {(field) => <Input {...field} value={field.value ?? ''} placeholder="Asia/Manila" />}
               </EditorField>
             </div>
-            <EditorField control={control} name="is_featured" label={`Featured (max ${MAX_FEATURED_EVENTS})`} plain
-              hint="UI-enforced cap; server is truth.">
+            <div className="editor-grid">
+              <EditorField control={control} name="startAt" label="Starts at" required plain>
+                {(field) => (
+                  <DateTimeField id="startAt" value={field.value ?? ''} onChange={field.onChange} />
+                )}
+              </EditorField>
+              <EditorField control={control} name="endAt" label="Ends at" required plain>
+                {(field) => (
+                  <DateTimeField id="endAt" value={field.value ?? ''} onChange={field.onChange} />
+                )}
+              </EditorField>
+            </div>
+            <EditorField control={control} name="is_active" label="Active" plain>
               {(field) => (
-                <Toggle id="is_featured" label={`Featured (max ${MAX_FEATURED_EVENTS})`} checked={!!field.value} onChange={field.onChange} />
-              )}
-            </EditorField>
-            <EditorField control={control} name="is_active" label="Active (off hides publicly)" plain
-              hint="Saves immediately for saved events (reverts + announces on failure).">
-              {(field) => (
-                <Toggle id="is_active" label="Active (off hides publicly)" checked={!!field.value} onChange={toggleActive} />
+                <Toggle id="is_active" label="Active" checked={!!field.value} onChange={toggleActive} />
               )}
             </EditorField>
             <EditorFooter
               saving={saving}
               isNew={isNew}
               onPublish={() => handleSubmit(persist(true), () => focusEditorErrors(summaryRef))()}
-              onArchive={() => (isDraft ? setConfirmDelete(true) : setConfirmArchive(true))}
-              archiveLabel={isDraft ? 'Delete draft' : 'Archive'}
+              onArchive={isDraft && !isNew ? () => setConfirmDelete(true) : undefined}
+              archiveLabel="Delete draft"
             />
             {Object.keys(publishGate).length > 0 ? (
-              <p className="admin-muted">Publish blocked: {Object.keys(publishGate).length} field(s) need attention.</p>
+              <p className="admin-muted">Fix {Object.keys(publishGate).length} more to publish.</p>
             ) : (
-              <p className="admin-muted">Publish gate: all required fields valid.</p>
+              <p className="admin-muted">Ready to publish.</p>
             )}
           </EditorCard>
         </form>
       </Form>
 
-      {isNew ? (
-        <div className="admin-card">
-          <p className="admin-muted">Save the event first, then add speakers.</p>
-        </div>
-      ) : (
-        <Form {...speakerMethods}>
-          <EditorCard
-            title="Speakers"
-            eyebrow="Event"
-          >
-            <p className="admin-muted">
-              Profile via Media ID or direct upload (backend stores the file and links profileMediaId).
-              Team-member link is optional. Slug is unique across speakers.
-            </p>
-            <EditorErrors
-              errors={speakerRhfErrors}
-              serverError={speakerError}
-              summaryRef={speakerSummaryRef}
-              title="Fix the speaker fields below"
-            />
-            {mediaError ? (
-              <div className="admin-summary" role="alert">
-                <p>Media library failed to load: {mediaError?.body?.message ?? mediaError?.message ?? 'request failed'}.</p>
-              </div>
-            ) : null}
-            {speakersLoading ? <LoadingSkeleton label="Loading speakers…" /> : null}
-            {!speakersLoading && speakersError ? (
-              <ErrorState error={speakersError} onRetry={() => setSpeakerRetry((t) => t + 1)} context="load speakers" />
-            ) : null}
-            {!speakersLoading && !speakersError && speakers.length === 0 ? (
-              <p className="admin-muted">No speakers yet — add the first one below.</p>
-            ) : null}
-            {!speakersLoading && !speakersError && speakers.length > 0 ? (
-              <div className="admin-table-wrap">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Name</th>
-                      <th scope="col">Role</th>
-                      <th scope="col">Team member</th>
-                      <th scope="col">Profile</th>
-                      <th scope="col">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {speakers.map((s, i) => {
-                      const sid = getId(s);
-                      const src = profileSrc(s.profileMediaId ?? s.profile_media_id);
-                      const teamId = s.teamMemberId ?? s.team_member_id;
-                      return (
-                        <tr key={sid ?? s.slug ?? i}>
-                          <td>
-                            {s.firstName} {s.lastName}
-                            <br />
-                            <span className="admin-muted">{s.slug}</span>
-                          </td>
-                          <td>{s.role || '—'}</td>
-                          <td>{teamId ? `${String(teamId).slice(0, 8)}…` : '—'}</td>
-                          <td>
-                            {src ? (
-                              <img className="admin-thumb" src={src} alt="" loading="lazy" />
-                            ) : (
-                              <span className="admin-muted">—</span>
-                            )}
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="gdg-btn gdg-btn-secondary admin-danger"
-                              disabled={speakerSaving}
-                              onClick={() => setConfirmSpeaker(s)}
-                            >
-                              Remove
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : null}
-            <form onSubmit={(e) => handleSpeakerSubmit(addSpeaker, () => focusEditorErrors(speakerSummaryRef))(e)} noValidate>
-              <h3>Add speaker</h3>
-              <div className="editor-grid">
-                <EditorField control={speakerControl} name="firstName" label="First name" required>
-                  {(field) => <Input {...field} />}
-                </EditorField>
-                <EditorField control={speakerControl} name="lastName" label="Last name" required>
-                  {(field) => <Input {...field} />}
-                </EditorField>
-              </div>
-              <div className="editor-grid">
-                <EditorField
-                  control={speakerControl}
-                  name="slug"
-                  label="Slug"
-                  required
-                  hint={speakerSlugCheckError ?? (speakerSlugDup ? 'Slug is already in use.' : 'Auto from name; override allowed. Unique across speakers.')}
-                >
-                  {(field) => <Input {...field} onChange={(e) => { setSpeakerSlugTouched(true); field.onChange(slugify(e.target.value)); }} />}
-                </EditorField>
-                <EditorField control={speakerControl} name="role" label="Role">
-                  {(field) => <Input {...field} value={field.value ?? ''} />}
-                </EditorField>
-              </div>
-              <div className="editor-grid">
-                <EditorField
-                  control={speakerControl}
-                  name="profileMediaId"
-                  label="Profile media"
-                  plain
-                  showMessage={false}
-                  hint="Optional — pick an asset below, or upload a photo further down (upload wins)."
-                >
-                  {(field) => (
-                    <MediaPicker
-                      id="speakerProfileMediaId"
-                      label="Profile media ID"
-                      hint="Optional — pick an asset below, or upload a photo further down (upload wins)."
-                      error={speakerRhfErrors.profileMediaId?.message}
-                      value={field.value ?? ''}
-                      onChange={field.onChange}
-                    />
-                  )}
-                </EditorField>
-                <EditorField
-                  control={speakerControl}
-                  name="teamMemberId"
-                  label="Team member ID (optional)"
-                  hint="Link this speaker to a team-member UUID."
-                >
-                  {(field) => <Input {...field} value={field.value ?? ''} />}
-                </EditorField>
-              </div>
-              <EditorField
-                control={speakerControl}
-                name="speakerFile"
-                label="Profile photo (optional)"
-                plain
-                showMessage={false}
-                hint="Uploads to Media and uses its ID; overrides the media ID above."
-              >
-                <input type="file" accept="image/*" onChange={(e) => setSpeakerFile(e.target.files?.[0] ?? null)} />
-              </EditorField>
-              <div className="editor-btn-row">
-                <button type="submit" className="editor-btn editor-btn-primary" disabled={speakerSaving}>
-                  {speakerSaving ? (
-                    <>
-                      <span className="editor-spinner" aria-hidden="true" />
-                      Adding…
-                    </>
-                  ) : (
-                    'Add speaker'
-                  )}
-                </button>
-              </div>
-            </form>
-          </EditorCard>
-        </Form>
-      )}
-
-      <TypedConfirm open={confirmArchive} title="Archive event?" body="Archive hides it publicly but keeps it editable and restorable (preferred over delete)." expected={values.slug} confirmLabel="Archive" busy={saving} onCancel={() => setConfirmArchive(false)} onConfirm={archive} />
-      <TypedConfirm open={confirmDelete} title="Delete never-published draft?" body="Hard delete is only for never-published drafts. This cannot be undone." expected={values.slug} confirmLabel="Delete forever" busy={saving} onCancel={() => setConfirmDelete(false)} onConfirm={hardDelete} />
-      <TypedConfirm open={!!confirmSpeaker} title="Remove speaker?" body="Deletes this speaker record from the event. It can be re-added later." expected={confirmSpeaker ? `${confirmSpeaker.firstName} ${confirmSpeaker.lastName}` : ''} confirmLabel="Remove" busy={speakerSaving} onCancel={() => setConfirmSpeaker(null)} onConfirm={removeSpeaker} />
+      <TypedConfirm open={confirmDelete} title="Delete draft?" body="Hard delete is only for never-published drafts. This cannot be undone." expected={values.title} confirmLabel="Delete forever" busy={saving} onCancel={() => setConfirmDelete(false)} onConfirm={hardDelete} />
     </section>
   );
 }

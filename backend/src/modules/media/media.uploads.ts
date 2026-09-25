@@ -6,7 +6,7 @@ import { rollbackCloudinaryUpload } from "../../config/cloudinary/utils/cloudina
 import { createMediaService } from "./media.services.js";
 
 /**
- * Shared upload→media-record step (events / team-members / event-speakers /
+ * Shared upload→media-record step (events / team-members /
  * partners create+update paths). Uploads the buffer to Cloudinary, then
  * persists the media row — DB-first ordering per step is the caller's job;
  * this helper only creates the new asset, it never deletes.

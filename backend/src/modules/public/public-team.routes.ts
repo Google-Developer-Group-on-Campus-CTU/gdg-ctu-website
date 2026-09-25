@@ -3,6 +3,7 @@ import {
       getActiveTeamMembersByTermService,
       getActiveTeamMemberBySlugService,
 } from "../team-members/team-member.services.js";
+import { getCurrentTerm } from "../terms/models/terms.queries.js";
 import {
       AppError,
       getStringParam,
@@ -13,6 +14,10 @@ import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url.js";
 /**
  * Public team feed — no auth. Active members only, safe fields
  * (no Clerk IDs, no emails — team_members holds none).
+ *
+ * Term scoping: an explicit `termName` (or legacy `term`) wins; otherwise
+ * the feed defaults to the current (`isCurrent`) term. When no current
+ * term exists the feed returns an empty roster — never an all-terms dump.
  */
 const router = Router();
 
@@ -66,17 +71,34 @@ const parseTermName = (query: Record<string, any>): string | undefined => {
       return undefined;
 };
 
+/**
+ * Resolve the roster filter: explicit termName wins; otherwise fall back
+ * to the current term. Returns `null` when no current term exists so
+ * callers can return an empty roster instead of an all-terms dump.
+ */
+const resolveTermFilter = async (
+      query: Record<string, any>,
+): Promise<{ termName: string } | { currentOnly: true } | null> => {
+      const termName = parseTermName(query);
+      if (termName) return { termName };
+      const current = await getCurrentTerm();
+      if (!current) return null;
+      return { currentOnly: true as const };
+};
+
 // GET /public/team/term?termName={{termName (e.g. 2025-2026)}} — static public feed
 router.get("/term", async (req, res) => {
       try {
             // Static configuration: always show featured members only.
             const featuredOnly = true;
-            // Users can select a term via the query param `termName` (e.g., ?termName=2025-2026).
-            const termName = parseTermName(req.query);
+            const termFilter = await resolveTermFilter(req.query);
+            if (!termFilter) {
+                  return res.status(200).json({ success: true, team: [] });
+            }
 
             // Fetch members for the selected term, always filtering featured members.
             const members = await getActiveTeamMembersByTermService({
-                  termName,
+                  ...termFilter,
                   featuredOnly,
             });
             // No pagination or capping needed beyond the featured filter; return all.
@@ -97,9 +119,12 @@ router.get("/term", async (req, res) => {
 router.get("/", async (req, res) => {
       try {
             const featuredOnly = req.query.featured === "true";
-            const termName = parseTermName(req.query);
+            const termFilter = await resolveTermFilter(req.query);
+            if (!termFilter) {
+                  return res.status(200).json({ success: true, team: [] });
+            }
             const members = await getActiveTeamMembersByTermService({
-                  termName,
+                  ...termFilter,
                   featuredOnly,
             });
             const capped = featuredOnly ? members.slice(0, 10) : members;

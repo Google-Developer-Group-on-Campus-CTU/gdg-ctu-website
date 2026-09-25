@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { mapMember, publicApi, usePublicFeed } from '../api/public.js';
+import { mapMember, mapTerm, publicApi, usePublicFeed } from '../api/public.js';
 import { FeedError, friendlyFeedError } from '../components/FeedStates.jsx';
 import '../styles/officers.css';
 
@@ -188,9 +188,22 @@ function OfficerModal({ member, onClose }) {
 }
 
 export default function Officers() {
+  const { data: termsData } = usePublicFeed(
+    () => publicApi.getTerms().then((rows) => rows.map(mapTerm)),
+    'team-terms',
+  );
+  const terms = useMemo(() => termsData ?? [], [termsData]);
+
+  // Explicit selection wins; otherwise default to the current term (fall
+  // back to the newest row — the feed is newest-first).
+  const [selectedTerm, setSelectedTerm] = useState(null);
+  const currentTermName = terms.find((t) => t.isCurrent)?.name ?? terms[0]?.name ?? null;
+  const activeTermName = selectedTerm ?? currentTermName;
+
   const { data, loading, error, retry } = usePublicFeed(
-    () => publicApi.getTeam().then((rows) => rows.map(mapMember).sort((a, b) => a.order - b.order)),
-    'team-all',
+    () => publicApi.getTeam(activeTermName ? { termName: activeTermName } : undefined)
+      .then((rows) => rows.map(mapMember).sort((a, b) => a.order - b.order)),
+    `team-${activeTermName ?? 'default'}`,
   );
 
   const [selected, setSelected] = useState(null);
@@ -214,6 +227,23 @@ export default function Officers() {
           <div className="team-label"><span aria-hidden="true" />MEET THE TEAM</div>
           <h1>The people behind<br />the community</h1>
           <p>A team of students who plan, create, organize, and build the experiences behind GDGoC - CTU.</p>
+          {terms.length > 0 ? (
+            <div className="officers-term-filter">
+              <label htmlFor="officers-term">S.Y.</label>
+              <select
+                id="officers-term"
+                value={activeTermName ?? ''}
+                onChange={(e) => setSelectedTerm(e.target.value || null)}
+                aria-label="Filter officers by school year"
+              >
+                {terms.map((t) => (
+                  <option key={t.id ?? t.name} value={t.name}>
+                    {t.label}{t.isCurrent ? ' (Current)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
         </div>
       </section>
 

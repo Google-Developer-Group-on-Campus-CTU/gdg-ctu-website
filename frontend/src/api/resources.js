@@ -6,8 +6,8 @@ export { qs };
 /**
  * Envelope keys a backend list payload may nest its array under.
  * Generic keys first, then domain keys used by public routes
- * (team/events/albums/partners/content/photos) and admin routes
- * (teamMembers/siteContent/media/eventSpeakers).
+ * (team/events/albums/partners) and admin routes
+ * (teamMembers/media/terms/memberTerms/categories).
  */
 const LIST_KEYS = [
   'data',
@@ -18,12 +18,12 @@ const LIST_KEYS = [
   'events',
   'albums',
   'partners',
-  'content',
   'photos',
   'teamMembers',
-  'siteContent',
   'media',
-  'eventSpeakers',
+  'terms',
+  'memberTerms',
+  'categories',
   'collections',
 ];
 
@@ -55,7 +55,7 @@ export function getStatus(item) {
 
 function unwrapOne(payload) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload ?? null;
-  for (const key of ['data', 'item', 'result', 'teamMember', 'event', 'partner', 'content', 'media', 'album', 'collection', 'siteContent']) {
+  for (const key of ['data', 'item', 'result', 'teamMember', 'event', 'partner', 'media', 'album', 'collection', 'term', 'memberTerm', 'category']) {
     const value = payload[key];
     if (value && typeof value === 'object' && !Array.isArray(value)) return value;
   }
@@ -113,62 +113,16 @@ function resource(base) {
 
 export const eventsApi = resource('/events');
 export const teamApi = resource('/team-members');
-export const speakersApi = resource('/event-speakers');
 /** Greenfield per spec §4.5 — follows the team-members pattern. Backend module may still be pending (expect 404 until shipped). */
 export const partnersApi = resource('/partners');
 /** Gallery albums extend media-collections; items live in media-collection-items (spec §4.6, "extend, don't fork"). */
 export const albumsApi = resource('/media-collections');
 export const albumItemsApi = resource('/media-collection-items');
-/**
- * Admin site-content API. The backend wraps every single-row response in
- * `{ success, siteContent }`, so each method unwraps to the row itself —
- * callers (ContentEditor) get the id/fields directly instead of the envelope.
- */
-const unwrapContent = (payload) => payload?.siteContent ?? unwrapOne(payload);
-
-export const contentApi = {
-  ...resource('/site-content'),
-  get: (id) => {
-    assertResourceId(id, 'get');
-    return apiFetch(`/site-content/${encodeURIComponent(id)}`).then(unwrapContent);
-  },
-  create: (body) =>
-    apiFetch('/site-content', { method: 'POST', body: JSON.stringify(body) }).then(unwrapContent),
-  update: (id, body) => {
-    assertResourceId(id, 'update');
-    return apiFetch(`/site-content/${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      body: JSON.stringify(body),
-    }).then(unwrapContent);
-  },
-  getBySection: (key) =>
-    apiFetch(`/site-content/section/${encodeURIComponent(key)}`).then(unwrapContent),
-  /**
-   * sectionKey fallback when the editor has no row id yet: resolve the key
-   * through the read-only GET /section/:sectionKey, then PATCH by UUID
-   * (PATCH /:id is the only writable path — :id is validateUuid-checked).
-   * One AbortSignal is shared by both legs: aborting cancels the resolving
-   * GET, and a signal aborted mid-lookup makes the PATCH fail immediately
-   * instead of firing after the caller went away.
-   */
-  updateBySection: async (key, body, { signal } = {}) => {
-    const row = await apiFetch(`/site-content/section/${encodeURIComponent(key)}`, { signal }).then(unwrapContent);
-    // UUID only: PATCH /site-content/:id is validateUuid-checked, so a slug
-    // fallback here would 400 "Invalid id". Missing UUID surfaces as 404.
-    const id = row?.id ?? row?._id ?? row?.uuid;
-    if (!id || id === 'undefined') {
-      const err = new Error(`No site content row for section "${key}"`);
-      err.status = 404;
-      err.body = { message: `No site content row for section "${key}"` };
-      throw err;
-    }
-    return apiFetch(`/site-content/${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      body: JSON.stringify(body),
-      signal,
-    }).then(unwrapContent);
-  },
-};
+/** Gallery category taxonomy for the ?category= album filter (CMS simplification Phase 2). */
+export const galleryCategoriesApi = resource('/gallery-categories');
+/** Academic-term roster: terms own the date range, member-terms link team members per term. */
+export const termsApi = resource('/terms');
+export const memberTermsApi = resource('/member-terms');
 export const mediaApi = {
   ...resource('/media'),
   /**

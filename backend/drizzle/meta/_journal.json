@@ -50,6 +50,13 @@
       "when": 1790239974059,
       "tag": "0006_foamy_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790299022397,
+      "tag": "0007_classy_marvel_boy",
+      "breakpoints": true
     }
   ]
 }

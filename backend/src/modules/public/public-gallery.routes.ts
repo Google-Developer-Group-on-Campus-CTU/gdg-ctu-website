@@ -1,8 +1,9 @@
 import { Router } from "express";
 import {
-      getActiveMediaCollectionBySlug,
-      getActiveMediaCollections,
+      getActiveMediaCollectionBySlugWithCategory,
+      getActiveMediaCollectionsWithCategory,
 } from "../media-collections/models/media-collection.queries.js";
+import { getActiveGalleryCategories } from "../gallery-categories/models/gallery-category.queries.js";
 import {
       getFeaturedCollectionItems,
       getItemsByCollectionId,
@@ -35,9 +36,15 @@ const toPublicPhoto = (r: {
       order: r.order ?? 0,
 });
 
-router.get("/albums", async (_req, res) => {
+router.get("/albums", async (req, res) => {
       try {
-            const albums = await getActiveMediaCollections();
+            const category =
+                  typeof req.query.category === "string" &&
+                  req.query.category.trim() !== ""
+                        ? req.query.category.trim()
+                        : undefined;
+            const albums =
+                  await getActiveMediaCollectionsWithCategory(category);
             const urlMap = await resolveMediaUrlMap(
                   albums.map((a) => a.coverMediaId),
             );
@@ -56,7 +63,7 @@ router.get("/albums", async (_req, res) => {
 router.get("/albums/slug/:slug", async (req, res) => {
       try {
             const slug = getStringParam(req.params.slug, "slug");
-            const album = await getActiveMediaCollectionBySlug(slug);
+            const album = await getActiveMediaCollectionBySlugWithCategory(slug);
             if (!album) {
                   throw new AppError(404, "Album not found");
             }
@@ -78,6 +85,19 @@ router.get("/albums/slug/:slug", async (req, res) => {
             });
       } catch (error) {
             return handleControllerError(res, error, "Failed to get public album");
+      }
+});
+
+router.get("/categories", async (_req, res) => {
+      try {
+            const categories = await getActiveGalleryCategories();
+            return res.status(200).json({ success: true, categories });
+      } catch (error) {
+            return handleControllerError(
+                  res,
+                  error,
+                  "Failed to list public gallery categories",
+            );
       }
 });
 

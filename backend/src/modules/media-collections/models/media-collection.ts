@@ -2,6 +2,7 @@ import { boolean, integer, text, timestamp, uuid, varchar } from "drizzle-orm/pg
 import { pgTable } from "drizzle-orm/pg-core";
 import { user } from "../../auth/models/auth.js";
 import { events } from "../../events/models/event.js";
+import { galleryCategories } from "../../gallery-categories/models/gallery-category.js";
 import { media } from "../../media/models/media.js"; // reference media module
 
 export const mediaCollections = pgTable("media_collections", {
@@ -12,6 +13,12 @@ export const mediaCollections = pgTable("media_collections", {
       coverMediaId: uuid("cover_media_id").references(() => media.id),
       // Gallery album extension (spec §4.6): optional link to an event recap.
       eventId: uuid("event_id").references(() => events.id),
+      // Optional gallery category (events / workshops / community).
+      // ON DELETE SET NULL so removing a category never orphans albums.
+      categoryId: uuid("category_id").references(
+            () => galleryCategories.id,
+            { onDelete: "set null" },
+      ),
       // Album/showcase date.
       date: timestamp("date"),
       // Album highlight flag for the public gallery.

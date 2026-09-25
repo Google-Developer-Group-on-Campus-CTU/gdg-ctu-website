@@ -1,6 +1,5 @@
 import { Router } from "express";
 import {
-      getPublicFeaturedEvents,
       getPublicPastEvents,
       getPublicRecentEvents,
       getPublicUpcomingEvents,
@@ -11,17 +10,20 @@ import { pickMediaUrl, resolveMediaUrlMap } from "./public-media-url.js";
 
 /**
  * Public events feed — no auth, published only.
- * ?scope=upcoming|past|featured|recent (default: upcoming).
+ * ?scope=upcoming|past|recent (default: upcoming).
+ * `recent` is the Home-compat alias (upcoming-first, backfilled with past).
  * Cutoff: endAt < now = past, else upcoming.
  */
 const router = Router();
 
-type Scope = "upcoming" | "past" | "featured" | "recent";
+type Scope = "upcoming" | "past" | "recent";
 
-const SCOPES: Scope[] = ["upcoming", "past", "featured", "recent"];
+const SCOPES: Scope[] = ["upcoming", "past", "recent"];
 
 /** Adds the resolved cover URL alongside the existing coverMediaId FK. */
-const withCoverUrl = async <T extends { coverMediaId?: string | null }>(
+const withCoverUrl = async <
+      T extends { coverMediaId?: string | null },
+>(
       rows: T[],
 ) => {
       const urlMap = await resolveMediaUrlMap(rows.map((r) => r.coverMediaId));
@@ -34,21 +36,24 @@ const withCoverUrl = async <T extends { coverMediaId?: string | null }>(
 router.get("/", async (req, res) => {
       try {
             const raw = String(req.query.scope ?? "upcoming");
+            // `featured` was retired with the events simplification — point
+            // callers at the supported scopes instead of silently remapping.
+            if (raw === "featured") {
+                  throw new AppError(400, "Use upcoming|past.");
+            }
             if (!SCOPES.includes(raw as Scope)) {
                   throw new AppError(
                         400,
-                        "Invalid scope. Use upcoming|past|featured|recent.",
+                        "Invalid scope. Use upcoming|past|recent.",
                   );
             }
             const scope = raw as Scope;
             const events =
                   scope === "past"
                         ? await getPublicPastEvents()
-                        : scope === "featured"
-                          ? await getPublicFeaturedEvents(3)
-                          : scope === "recent"
-                            ? await getPublicRecentEvents(3)
-                            : await getPublicUpcomingEvents();
+                        : scope === "recent"
+                          ? await getPublicRecentEvents(3)
+                          : await getPublicUpcomingEvents();
             return res
                   .status(200)
                   .json({

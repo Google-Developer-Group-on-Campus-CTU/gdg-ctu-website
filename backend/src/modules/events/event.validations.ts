@@ -23,6 +23,19 @@ const eventDateRule = <
 
 export const EventSchema = createSelectSchema(events);
 
+const httpsUrl = (message: string) =>
+      emptyToNull(z.url().nullable().optional()).refine(
+            (val) => {
+                  if (!val) return true;
+                  try {
+                        return new URL(val).protocol === "https:";
+                  } catch {
+                        return false;
+                  }
+            },
+            { message },
+      );
+
 const BaseCreateEventSchema = createInsertSchema(events)
       .omit({
             id: true,
@@ -52,18 +65,14 @@ const BaseCreateEventSchema = createInsertSchema(events)
             ).refine((val) => !val || val.length > 0, {
                   message: "Location embed URL must be a valid URL if provided.",
             }),
-            registrationEnabled: z.boolean().optional().default(false),
-            registrationUrl: z
+            externalUrl: httpsUrl(
+                  "External URL must be a valid https:// URL if provided.",
+            ),
+            timezone: z
                   .string()
                   .trim()
-                  .nullable()
-                  .optional()
-                  .refine((val) => !val || val.startsWith("https://"), {
-                        message:
-                              "Registration URL must be a valid https:// URL when registration is enabled.",
-                  }),
-            isFeatured: z.boolean().optional().default(false),
-            displayOrder: z.number().int().nonnegative().optional(),
+                  .min(1, { message: "Timezone is required." })
+                  .default("Asia/Manila"),
             isActive: z.boolean().optional(),
             startAt: z.coerce.date(),
             endAt: z.coerce.date(),
@@ -79,32 +88,6 @@ const BaseCreateEventSchema = createInsertSchema(events)
 export const CreateEventSchema = BaseCreateEventSchema.superRefine(
       (data, ctx) => {
             eventDateRule(data, ctx);
-            if (data.registrationEnabled) {
-                  if (!data.registrationUrl) {
-                        ctx.addIssue({
-                              code: "custom",
-                              message:
-                                    "Registration URL is required when registration is enabled.",
-                              path: ["registrationUrl"],
-                        });
-                  } else {
-                        // No Error-as-control-flow: the try guards only the
-                        // URL parse; the https rule is a plain refinement.
-                        let protocol: string | undefined;
-                        try {
-                              protocol = new URL(data.registrationUrl).protocol;
-                        } catch {
-                              protocol = undefined;
-                        }
-                        if (protocol !== "https:") {
-                              ctx.addIssue({
-                                    code: "custom",
-                                    message: "Registration URL must be a valid https:// URL.",
-                                    path: ["registrationUrl"],
-                              });
-                        }
-                  }
-            }
       },
 );
 
