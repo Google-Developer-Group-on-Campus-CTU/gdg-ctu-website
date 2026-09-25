@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CalendarDays, Users, Handshake, Images, GalleryHorizontal, Layers, FileText, Mail, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, Handshake, Images, GalleryHorizontal, Layers, FileText, Mail, Settings, LogOut, MoreHorizontal } from 'lucide-react';
 import { authClient } from '../../lib/auth-client';
 import { ADMIN_ENTITY_ROUTES } from '../../admin/editorial.js';
 import '../../styles/admin.css';
@@ -10,8 +10,8 @@ const NAV_ICONS = {
   '/admin/events': CalendarDays,
   '/admin/team': Users,
   '/admin/partners': Handshake,
-  '/admin/albums': Images,
-  '/admin/gallery/categories': Layers,
+  '/admin/gallery': Images,
+  '/admin/gallery-categories': Layers,
   '/admin/terms': FileText,
   '/admin/media': GalleryHorizontal,
   '/admin/invites': Mail,
@@ -28,6 +28,105 @@ export const ADMIN_NAV = [
 ];
 
 const STORAGE_KEY = 'm3-admin-sidebar-collapsed';
+
+// Spec §3.3 grouped drawer (11 destinations in 3 groups). Derived from
+// ADMIN_NAV by path so labels/routes stay in sync with ADMIN_ENTITY_ROUTES.
+const NAV_GROUPS = [
+  { heading: 'Overview', tos: ['/admin'] },
+  { heading: 'Content', tos: ['/admin/events', '/admin/team', '/admin/partners', '/admin/gallery', '/admin/gallery-categories', '/admin/terms'] },
+  { heading: 'System', tos: ['/admin/media', '/admin/invites', '/admin/users', '/admin/settings'] },
+];
+
+function navItemByTo(to) {
+  return ADMIN_NAV.find((item) => item.to === to);
+}
+
+// Spec §3.3 compact rail (explicit collapsed mode only): curated 5 —
+// Dashboard, Events, Team, Partners, Media — + More (full grouped drawer).
+// The rail never renders all 11 destinations.
+const RAIL_TOS = ['/admin', '/admin/events', '/admin/team', '/admin/partners', '/admin/media'];
+
+function NavItems({ items }) {
+  return (
+    <ul>
+      {items.map((item) => {
+        if (!item) return null;
+        const Icon = NAV_ICONS[item.to] || LayoutDashboard;
+        return (
+          <li key={item.to}>
+            <NavLink
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => (isActive ? 'admin-nav-link is-active' : 'admin-nav-link')}
+            >
+              <span className="admin-nav-icon" aria-hidden="true"><Icon size={20} /></span>
+              <span className="admin-nav-label">{item.label}</span>
+            </NavLink>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function GroupedNav() {
+  return (
+    <nav aria-label="Admin primary" className="admin-nav">
+      {NAV_GROUPS.map((group, gi) => (
+        <section key={group.heading} aria-labelledby={`admin-nav-group-${group.heading.toLowerCase()}`}>
+          <h2
+            id={`admin-nav-group-${group.heading.toLowerCase()}`}
+            style={{ margin: gi === 0 ? '4px 16px 4px' : '12px 16px 4px', fontSize: 12, fontWeight: 500, letterSpacing: '0.4px', color: 'var(--m3-on-surface-variant)' }}
+          >
+            {group.heading}
+          </h2>
+          <NavItems items={group.tos.map(navItemByTo)} />
+          {gi < NAV_GROUPS.length - 1 ? (
+            <hr aria-hidden="true" style={{ margin: '8px 16px 0', border: 'none', borderTop: '1px solid var(--m3-outline-variant)' }} />
+          ) : null}
+        </section>
+      ))}
+    </nav>
+  );
+}
+
+function RailNav({ onMore }) {
+  const items = RAIL_TOS.map(navItemByTo).filter(Boolean);
+  return (
+    <nav aria-label="Admin primary" className="admin-nav">
+      <ul>
+        {items.map((item) => {
+          const Icon = NAV_ICONS[item.to] || LayoutDashboard;
+          return (
+            <li key={item.to}>
+              <NavLink
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) => (isActive ? 'admin-nav-link is-active' : 'admin-nav-link')}
+              >
+                <span className="admin-nav-icon" aria-hidden="true"><Icon size={20} /></span>
+                <span className="admin-nav-label">{item.label}</span>
+              </NavLink>
+            </li>
+          );
+        })}
+        <li>
+          <button
+            type="button"
+            className="admin-nav-link"
+            style={{ width: '100%', cursor: 'pointer', background: 'transparent', border: 'none', font: 'inherit' }}
+            aria-haspopup="dialog"
+            aria-label="More navigation options"
+            onClick={onMore}
+          >
+            <span className="admin-nav-icon" aria-hidden="true"><MoreHorizontal size={20} /></span>
+            <span className="admin-nav-label">More</span>
+          </button>
+        </li>
+      </ul>
+    </nav>
+  );
+}
 
 function Breadcrumbs() {
   const { pathname } = useLocation();
@@ -137,41 +236,27 @@ export default function AdminShell() {
   const hamburgerExpanded = isLarge ? !collapsed : drawerOpen;
   const hamburgerLabel = isLarge ? (collapsed ? 'Expand navigation' : 'Collapse navigation') : (drawerOpen ? 'Close navigation' : 'Open navigation');
 
-  const nav = (
-    <nav aria-label="Admin primary" className="admin-nav">
-      <ul>
-        {ADMIN_NAV.map((item) => {
-          const Icon = NAV_ICONS[item.to] || LayoutDashboard;
-          return (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) => (isActive ? 'admin-nav-link is-active' : 'admin-nav-link')}
-              >
-                <span className="admin-nav-icon" aria-hidden="true"><Icon size={20} /></span>
-                <span className="admin-nav-label">{item.label}</span>
-              </NavLink>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
-  );
+  const openDrawer = () => setDrawerOpen(true);
+
+  // Topbar section context (longest-prefix match); breadcrumbs stay in <main>.
+  const sectionContext = [...ADMIN_NAV]
+    .sort((a, b) => b.to.length - a.to.length)
+    .find((i) => location.pathname === i.to || location.pathname.startsWith(`${i.to}/`))
+    ?? ADMIN_NAV[0];
 
   const shellClass = `admin-shell${collapsed ? ' admin-shell--collapsed' : ''}`;
 
   return (
     <div className={shellClass}>
-<aside className="admin-sidebar" aria-label="Admin navigation" id="admin-sidebar">
+      <aside className="admin-sidebar" aria-label="Admin navigation" id="admin-sidebar">
         <div className="admin-sidebar-top">
-          {nav}
+          {collapsed ? <RailNav onMore={openDrawer} /> : <GroupedNav />}
         </div>
         <SidebarIdentity />
       </aside>
 
       <div className="admin-main-col">
-        {/* Header simple: only hamburger + breadcrumbs handled in main */}
+        {/* Topbar 64px: toggle + section context + primary-action slot */}
         <header className="admin-topbar">
           <button
             ref={toggleBtnRef}
@@ -182,25 +267,42 @@ export default function AdminShell() {
             aria-controls="admin-sidebar"
             onClick={handleHamburger}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
           </button>
+          <span aria-live="polite" style={{ fontSize: 'var(--m3-typescale-title-medium-size)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {sectionContext?.label ?? 'Admin'}
+          </span>
           <span style={{ flex: 1 }} aria-hidden="true" />
+          <span data-slot="primary-action" style={{ display: 'inline-flex', alignItems: 'center' }} />
         </header>
 
-        <main  className="admin-main" >
+        <main className="admin-main">
           <Breadcrumbs />
           <Outlet />
         </main>
       </div>
 
       {drawerOpen ? (
-        <div className="admin-drawer-backdrop" onClick={() => setDrawerOpen(false)} role="presentation">
-          <div ref={drawerRef} className="admin-drawer" role="dialog" aria-modal="true" aria-label="Admin navigation" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="admin-drawer-backdrop"
+          style={{ display: 'block', position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 }}
+          onClick={() => setDrawerOpen(false)}
+          role="presentation"
+        >
+          <div
+            ref={drawerRef}
+            className="admin-drawer"
+            style={{ background: 'var(--m3-surface-container-low)', width: 'min(360px, 86vw)', height: '100vh', padding: 12, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 12 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Admin navigation"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="admin-drawer-head">
               <strong>GDG-CTU Admin</strong>
               <button type="button" aria-label="Close navigation" onClick={() => { setDrawerOpen(false); toggleBtnRef.current?.focus(); }}>✕</button>
             </div>
-            {nav}
+            <GroupedNav />
             <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid var(--m3-outline-variant)' }}>
               <SidebarIdentity />
             </div>

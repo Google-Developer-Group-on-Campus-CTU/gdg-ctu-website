@@ -9,6 +9,11 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "bg-[var(--m3-secondary-container)] text-[var(--m3-on-secondary-container)] border-transparent",
+        // M3 status mapping (spec §6.2): Published = secondary-container
+        // (default), Warning/needs-review = tertiary-container, Error =
+        // error-container (destructive), Draft = neutral outline.
+        tertiary:
+          "bg-[var(--m3-tertiary-container)] text-[var(--m3-on-tertiary-container)] border-transparent",
         secondary:
           "bg-[var(--m3-surface-container-high)] text-[var(--m3-on-surface-variant)] border-[var(--m3-outline-variant)]",
         destructive:

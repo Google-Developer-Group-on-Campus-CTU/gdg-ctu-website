@@ -5,24 +5,73 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Google+Sans:wght@400;500&display=swap');
 
 .admin-shell {
-  --background: var(--m3-surface);
-  --foreground: var(--m3-on-surface);
-  --card: var(--m3-surface-container-low);
-  --card-foreground: var(--m3-on-surface);
-  --popover: var(--m3-surface-container-high);
-  --popover-foreground: var(--m3-on-surface);
-  --primary: var(--m3-primary);
-  --primary-foreground: var(--m3-on-primary);
-  --secondary: var(--m3-secondary-container);
-  --secondary-foreground: var(--m3-on-secondary-container);
-  --muted: var(--m3-surface-container);
-  --muted-foreground: var(--m3-on-surface-variant);
-  --border: var(--m3-outline-variant);
-  --input: var(--m3-outline);
-  --ring: var(--m3-primary);
-  --destructive: var(--m3-error);
-  --destructive-foreground: var(--m3-on-error);
-  --radius: var(--m3-shape-corner-md);
+  /* Canonical M3 roles — --md-sys-* is canonical (spec §8.2, App. A);
+     --m3-* (index.css :root/.dark) are deprecated aliases for one release.
+     New admin CSS references --md-sys-*; values flip with .dark, so component
+     code never branches on light/dark. */
+  --md-sys-color-primary: var(--m3-primary);
+  --md-sys-color-on-primary: var(--m3-on-primary);
+  --md-sys-color-primary-container: var(--m3-primary-container);
+  --md-sys-color-on-primary-container: var(--m3-on-primary-container);
+  --md-sys-color-secondary: var(--m3-secondary);
+  --md-sys-color-on-secondary: var(--m3-on-secondary);
+  --md-sys-color-secondary-container: var(--m3-secondary-container);
+  --md-sys-color-on-secondary-container: var(--m3-on-secondary-container);
+  --md-sys-color-tertiary: var(--m3-tertiary);
+  --md-sys-color-on-tertiary: var(--m3-on-tertiary);
+  --md-sys-color-tertiary-container: var(--m3-tertiary-container);
+  --md-sys-color-on-tertiary-container: var(--m3-on-tertiary-container);
+  --md-sys-color-error: var(--m3-error);
+  --md-sys-color-on-error: var(--m3-on-error);
+  --md-sys-color-error-container: var(--m3-error-container);
+  --md-sys-color-on-error-container: var(--m3-on-error-container);
+  --md-sys-color-surface: var(--m3-surface);
+  --md-sys-color-on-surface: var(--m3-on-surface);
+  --md-sys-color-surface-variant: var(--m3-surface-variant, var(--m3-on-surface-variant));
+  --md-sys-color-on-surface-variant: var(--m3-on-surface-variant);
+  --md-sys-color-surface-container-lowest: var(--m3-surface-container-lowest);
+  --md-sys-color-surface-container-low: var(--m3-surface-container-low);
+  --md-sys-color-surface-container: var(--m3-surface-container);
+  --md-sys-color-surface-container-high: var(--m3-surface-container-high);
+  --md-sys-color-surface-container-highest: var(--m3-surface-container-highest);
+  --md-sys-color-outline: var(--m3-outline);
+  --md-sys-color-outline-variant: var(--m3-outline-variant);
+  --md-sys-color-scrim: var(--m3-scrim);
+  --md-sys-color-inverse-surface: var(--m3-inverse-surface);
+  --md-sys-color-inverse-on-surface: var(--m3-inverse-on-surface);
+  --md-sys-color-inverse-primary: var(--m3-inverse-primary);
+  --md-sys-shape-corner-extra-small: var(--m3-shape-corner-xs);
+  --md-sys-shape-corner-small: var(--m3-shape-corner-sm);
+  --md-sys-shape-corner-medium: var(--m3-shape-corner-md);
+  --md-sys-shape-corner-large: var(--m3-shape-corner-lg);
+  --md-sys-shape-corner-extra-large: var(--m3-shape-corner-2xl);
+  --md-sys-shape-corner-full: var(--m3-shape-corner-full);
+  --md-sys-elevation-level1: var(--m3-elevation-1);
+  --md-sys-elevation-level3: var(--m3-elevation-3);
+  --md-sys-motion-easing-standard: var(--m3-motion-easing-standard);
+  --md-sys-motion-duration-short: var(--m3-motion-duration-short);
+  --md-sys-motion-duration-medium: var(--m3-motion-duration-medium);
+
+  /* shadcn aliases scoped to .admin-shell so the public site is unaffected
+     (spec §8.4). Cards map to surface-container-high, flat (spec §4.3). */
+  --background: var(--md-sys-color-surface);
+  --foreground: var(--md-sys-color-on-surface);
+  --card: var(--md-sys-color-surface-container-high);
+  --card-foreground: var(--md-sys-color-on-surface);
+  --popover: var(--md-sys-color-surface-container-high);
+  --popover-foreground: var(--md-sys-color-on-surface);
+  --primary: var(--md-sys-color-primary);
+  --primary-foreground: var(--md-sys-color-on-primary);
+  --secondary: var(--md-sys-color-secondary-container);
+  --secondary-foreground: var(--md-sys-color-on-secondary-container);
+  --muted: var(--md-sys-color-surface-container);
+  --muted-foreground: var(--md-sys-color-on-surface-variant);
+  --border: var(--md-sys-color-outline-variant);
+  --input: var(--md-sys-color-outline);
+  --ring: var(--md-sys-color-primary);
+  --destructive: var(--md-sys-color-error);
+  --destructive-foreground: var(--md-sys-color-on-error);
+  --radius: 16px; /* maps to large */
 
   display: grid;
   grid-template-columns: 360px 1fr;
@@ -88,11 +137,10 @@
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
-  overflow-y: auto;
+  overflow: hidden;
   overflow-x: hidden;
-  scrollbar-width: thin;
   box-sizing: border-box;
   min-width: 0;
   max-width: 100%;
@@ -103,13 +151,22 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  flex: 1;
+  flex: 1 1 0;
   min-height: 0;
   min-width: 0;
   width: 100%;
   max-width: 100%;
   overflow: hidden;
   box-sizing: border-box;
+}
+.admin-nav {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 .admin-sidebar-footer {
   margin-top: 12px;
@@ -124,6 +181,7 @@
   max-width: 100%;
   box-sizing: border-box;
   overflow: hidden;
+  flex-shrink: 0;
 }
 .admin-sidebar-identity {
   display: flex;
@@ -181,15 +239,15 @@
   overflow: hidden;
   white-space: nowrap;
 }
-.admin-sidebar-signout:hover { background: rgba(29,27,32,0.08); color: var(--m3-on-surface); }
-.admin-sidebar-signout:focus-visible { outline: 2px solid var(--m3-primary); outline-offset: 2px; }
+.admin-sidebar-signout:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); color: var(--m3-on-surface); }
+.admin-sidebar-signout:focus-visible { outline: 3px solid var(--md-sys-color-primary); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
   .admin-sidebar-signout { transition: none; }
 }
 
 /* admin-brand removed per M3 spec — header now hamburger + nav only, no brand text */
 
-/* M3 Navigation drawer items : 56dp, pill indicator */
+/* M3 Navigation drawer items : 56dp, icon-only pill (user override) */
 .admin-nav ul {
   list-style: none;
   margin: 4px 0 0;
@@ -204,7 +262,7 @@
   gap: 12px;
   min-height: 56px;
   padding: 0 24px 0 16px;
-  border-radius: var(--m3-shape-corner-full);
+  border-radius: 0;
   color: var(--m3-on-surface-variant);
   text-decoration: none;
   font-size: 14px;
@@ -212,42 +270,54 @@
   line-height: 20px;
   letter-spacing: 0.1px;
   position: relative;
+  background: transparent;
   transition: background var(--m3-motion-duration-short) var(--m3-motion-easing-standard),
               color var(--m3-motion-duration-short) var(--m3-motion-easing-standard);
 }
 
 .admin-nav-link:hover {
-  background: rgba(29,27,32,0.08);
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
   color: var(--m3-on-surface);
 }
 
 .admin-nav-link:focus-visible {
-  outline: 2px solid var(--m3-primary);
+  outline: 3px solid var(--md-sys-color-primary);
   outline-offset: 2px;
 }
 
+/* Icon-only active indicator: pill lives on the icon, label stays bare */
 .admin-nav-link.is-active {
-  background: var(--m3-secondary-container);
-  color: var(--m3-on-secondary-container);
+  background: transparent;
+  color: var(--m3-on-surface);
   font-weight: 700;
 }
 
 .admin-nav-link.is-active:hover {
-  background: var(--m3-secondary-container);
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
 }
 
 .admin-nav-icon {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--m3-shape-corner-full);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  opacity: 0.9;
+  background: transparent;
+  color: var(--m3-on-surface-variant);
+  transition: background var(--m3-motion-duration-short) var(--m3-motion-easing-standard),
+              color var(--m3-motion-duration-short) var(--m3-motion-easing-standard);
 }
 
 .admin-nav-link.is-active .admin-nav-icon {
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
   opacity: 1;
+}
+
+.admin-nav-link:not(.is-active) .admin-nav-icon {
+  opacity: 0.9;
 }
 
 /* Supporting text under drawer — M3 surfaceContainer */
@@ -398,10 +468,10 @@
   letter-spacing: 0.1px;
 }
 
-.admin-link-btn:hover { background: rgba(11,87,208,0.08); }
-.admin-link-btn:focus-visible { outline: 2px solid var(--m3-primary); outline-offset: 2px; }
+.admin-link-btn:hover { background: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent); }
+.admin-link-btn:focus-visible { outline: 3px solid var(--md-sys-color-primary); outline-offset: 2px; }
 .admin-link-btn-danger { color: var(--m3-error); }
-.admin-link-btn-danger:hover { background: rgba(186,26,26,0.08); }
+.admin-link-btn-danger:hover { background: color-mix(in srgb, var(--md-sys-color-error) 8%, transparent); }
 
 /* M3 Extended FAB — primary container */
 .admin-new-btn {
@@ -497,7 +567,7 @@
   color: var(--m3-on-surface);
 }
 
-.admin-menu-btn:hover { background: rgba(29,27,32,0.08); }
+.admin-menu-btn:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); }
 
 .admin-visually-hidden {
   position: absolute;
@@ -510,16 +580,19 @@
 /* ────────── PAGE HEAD — M3 Headline (typescale) ────────── */
 .admin-page-head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: var(--m3-spacing-4);
   flex-wrap: wrap;
-  margin-bottom: var(--m3-spacing-4);
-  /* spacing: 4dp baseline — all gaps multiples of 4 */
+  margin-bottom: var(--m3-spacing-6);
+  /* spacing: 4dp baseline — all gaps multiples of 4; 24px (spacing-6) at the
+     head preserves rhythm when the helper line is absent (spec §4.1: title row
+     + optional explanatory text). This keeps a lone h1 from collapsing against
+     the filter toolbar or looking bottom-heavy next to the 56dp primary FAB. */
 }
 
 .admin-page-head h1 {
-  margin: 4px 0 4px;
+  margin: 0;
   font-family: "Google Sans", Roboto, sans-serif;
   font-size: var(--m3-typescale-headline-medium-size);
   line-height: var(--m3-typescale-headline-medium-line);
@@ -541,7 +614,6 @@
   line-height: var(--m3-typescale-label-small-line);
   font-weight: var(--m3-typescale-label-small-weight);
   letter-spacing: var(--m3-typescale-label-small-tracking);
-  text-transform: uppercase;
 }
 
 .admin-muted {
@@ -560,9 +632,10 @@
 }
 
 .admin-card {
-  background: var(--m3-surface-container-low);
-  border: 1px solid var(--m3-outline-variant);
-  border-radius: var(--m3-shape-corner-lg);
+  background: var(--md-sys-color-surface-container-high);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-medium);
+  box-shadow: none;
   padding: 20px;
 }
 
@@ -651,16 +724,15 @@
 
 .admin-table th {
   color: var(--m3-on-surface-variant);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
-  line-height: 16px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  line-height: 20px;
+  letter-spacing: 0.1px;
   background: var(--m3-surface-container-low);
 }
 
 .admin-table tbody tr:last-child td { border-bottom: none; }
-.admin-table tbody tr:hover { background: rgba(29,27,32,0.04); }
+.admin-table tbody tr:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); }
 
 .admin-thumb {
   width: 56px;
@@ -689,6 +761,9 @@
 .lozenge-success { background: var(--m3-secondary-container); color: var(--m3-on-secondary-container); border-color: transparent; }
 .lozenge-warning { background: var(--m3-tertiary-container); color: var(--m3-on-tertiary-container); border-color: transparent; }
 .lozenge-removed { background: var(--m3-error-container); color: var(--m3-on-error-container); border-color: transparent; }
+/* Draft — neutral per status mapping (spec §6.2): surface-container fill,
+   on-surface-variant text, outline border. */
+.lozenge-neutral { background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface-variant); border-color: var(--md-sys-color-outline); }
 .lozenge-default { background: var(--m3-surface-container-high); color: var(--m3-on-surface-variant); }
 .lozenge-new { background: var(--m3-primary-container); color: var(--m3-on-primary-container); border-color: transparent; }
 
@@ -806,14 +881,19 @@
 
 .admin-field input:focus,
 .admin-field select:focus,
-.admin-field textarea:focus {
-  outline: none;
-  border-color: var(--m3-primary);
-  border-width: 2px;
-  padding: 15px;
+.admin-field textarea:focus,
+.admin-dialog input:focus {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+  border-color: var(--md-sys-color-primary);
 }
 
-.admin-field textarea:focus { padding-top: 11px; }
+.admin-field input[aria-invalid="true"]:focus,
+.admin-field select[aria-invalid="true"]:focus,
+.admin-field textarea[aria-invalid="true"]:focus {
+  border-color: var(--md-sys-color-error);
+  outline-color: var(--md-sys-color-error);
+}
 
 .admin-field input[aria-invalid="true"],
 .admin-field select[aria-invalid="true"],
@@ -905,18 +985,23 @@
 }
 
 .admin-toggle input:focus-visible {
-  outline: 2px solid var(--m3-primary);
+  outline: 3px solid var(--md-sys-color-primary);
   outline-offset: 2px;
 }
 
 .admin-skeleton-row {
   height: 16px;
-  border-radius: var(--m3-shape-corner-sm);
-  background: linear-gradient(90deg, var(--m3-surface-container) 25%, var(--m3-surface-container-high) 50%, var(--m3-surface-container) 75%);
+  min-height: 16px;
+  border-radius: var(--md-sys-shape-corner-extra-small);
+  background: linear-gradient(90deg, var(--md-sys-color-outline-variant) 25%, var(--md-sys-color-surface-container) 50%, var(--md-sys-color-outline-variant) 75%);
   background-size: 200% 100%;
-  animation: gdg-shimmer 1.4s ease-in-out infinite;
+  animation: gdg-shimmer 1.4s var(--md-sys-motion-easing-standard) infinite;
   margin-bottom: 8px;
 }
+/* Table loading preserves row geometry (52px rows, spec §5.3): no layout
+   shift when data arrives. Text/status loading (role=status label) is kept
+   under reduced motion — only the shimmer is stilled. */
+.admin-skeleton--table .admin-skeleton-row { height: 52px; min-height: 52px; border-radius: var(--md-sys-shape-corner-extra-small); }
 
 .admin-empty,
 .admin-error {
@@ -941,7 +1026,7 @@
 .admin-dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 32%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -951,11 +1036,11 @@
 
 .admin-dialog {
   background: var(--m3-surface-container-high);
-  border-radius: var(--m3-shape-corner-xl);
+  border-radius: var(--md-sys-shape-corner-extra-large);
   padding: 24px;
   max-width: 560px;
   width: 100%;
-  box-shadow: var(--m3-elevation-3);
+  box-shadow: var(--md-sys-elevation-level3);
   color: var(--m3-on-surface);
 }
 
@@ -980,9 +1065,12 @@
 }
 
 .admin-danger {
-  background: var(--m3-error) !important;
-  border-color: var(--m3-error) !important;
-  color: var(--m3-on-error) !important;
+  background: var(--md-sys-color-error) !important;
+  border-color: var(--md-sys-color-error) !important;
+  color: var(--md-sys-color-on-error) !important;
+}
+.admin-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--md-sys-color-error) 92%, var(--md-sys-color-on-error)) !important;
 }
 
 .admin-tabs {
@@ -1009,7 +1097,7 @@
   border-radius: 0;
 }
 
-.admin-tabs button:hover { background: rgba(29,27,32,0.05); color: var(--m3-on-surface); }
+.admin-tabs button:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); color: var(--m3-on-surface); }
 
 .admin-tabs button.is-active {
   color: var(--m3-primary);
@@ -1083,17 +1171,25 @@
 .gdg-spacer-sm { height: 16px; }
 .admin-drawer-backdrop { display: none; }
 
-.admin-shell :focus-visible { outline: 2px solid var(--m3-primary); outline-offset: 2px; }
+.admin-shell :focus-visible { outline: 3px solid var(--md-sys-color-primary); outline-offset: 2px; }
 
-/* ————— M3 buttons replacing gdg-btn inside admin ————— */
+/* ————— M3 buttons inside admin (spec §4.2) —————
+   One hierarchy: Filled (one primary per view) · Tonal (secondary alongside
+   filled) · Outlined (neutral/cancel) · Text (tertiary/row actions) ·
+   Elevated (rare, floating over content) · Filled error confirm ONLY inside a
+   dialog (.admin-danger). State layers only — no hover-elevation. Disabled
+   container/content opacity 0.12/0.38. Dense 40px is a documented project
+   extension for toolbar-inline buttons; the hit area stays 48x48 via ::after.
+   M3 medium 56px for primary form/page actions (page head + editor footer). */
 .admin-shell .gdg-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-height: 40px;
   padding: 0 24px;
-  border-radius: var(--m3-shape-corner-full);
+  border-radius: var(--md-sys-shape-corner-full);
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
@@ -1101,27 +1197,133 @@
   text-decoration: none;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: background var(--m3-motion-duration-short) var(--m3-motion-easing-standard), box-shadow var(--m3-motion-duration-short) var(--m3-motion-easing-standard);
+  transition: background var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard), box-shadow var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
 }
+.admin-shell .gdg-btn svg { width: 18px; height: 20px; max-height: 20px; flex: none; }
+/* 48x48 hit-area extension for dense 40px buttons (project extension). */
+.admin-shell .gdg-btn::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--md-sys-shape-corner-full);
+}
+.admin-shell .gdg-btn:disabled { opacity: 0.38; cursor: not-allowed; }
 
+/* Filled — the one primary action per view. */
 .admin-shell .gdg-btn-primary {
-  background: var(--m3-primary);
-  color: var(--m3-on-primary);
-  border-color: var(--m3-primary);
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  border-color: var(--md-sys-color-primary);
 }
-.admin-shell .gdg-btn-primary:hover { background: #0A4EB8; box-shadow: var(--m3-elevation-1); }
+.admin-shell .gdg-btn-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--md-sys-color-primary) 92%, var(--md-sys-color-on-primary));
+}
+/* M3 medium 56px for primary page actions. */
+.admin-shell .admin-page-head .gdg-btn-primary { min-height: 56px; }
 
+/* Tonal — secondary action alongside a filled primary. */
+.admin-shell .gdg-btn-tonal {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  border-color: transparent;
+}
+.admin-shell .gdg-btn-tonal:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--md-sys-color-secondary-container) 92%, var(--md-sys-color-on-secondary-container));
+}
+
+/* Outlined — neutral actions, cancel, destructive-confirm border. */
 .admin-shell .gdg-btn-secondary {
   background: transparent;
-  color: var(--m3-primary);
-  border-color: var(--m3-outline);
+  color: var(--md-sys-color-on-surface);
+  border-color: var(--md-sys-color-outline);
 }
-.admin-shell .gdg-btn-secondary:hover { background: rgba(11,87,208,0.08); }
+.admin-shell .gdg-btn-secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+}
+
+/* Text — tertiary, table row actions, dialog dismiss. Primary label only. */
+.admin-shell .gdg-btn-text {
+  background: transparent;
+  color: var(--md-sys-color-primary);
+  border-color: transparent;
+}
+.admin-shell .gdg-btn-text:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+}
+
+/* Elevated — rare, only floating over content. */
+.admin-shell .gdg-btn-elevated {
+  background: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-primary);
+  border-color: transparent;
+  box-shadow: var(--md-sys-elevation-level1);
+}
+.admin-shell .gdg-btn-elevated:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-low) 92%, var(--md-sys-color-primary));
+}
 
 .gdg-btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
 
 @keyframes gdg-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @keyframes drawerIn { from { transform: translateX(-12px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ── shadcn primitives scoped to .admin-shell (spec §8.4) ──
+   Public site unaffected: every override below is prefixed .admin-shell.
+   Form controls are outlined 56px (spec §6.1); the dense 40px allowance
+   applies to toolbar buttons only, never fields. */
+.admin-shell [data-slot="input"],
+.admin-shell [data-slot="select-trigger"] {
+  min-height: 56px;
+  border-radius: var(--md-sys-shape-corner-extra-small);
+  font-size: 16px;
+  line-height: 24px;
+}
+.admin-shell [data-slot="label"] {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+}
+.admin-shell [data-slot="checkbox"] {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--md-sys-shape-corner-extra-small);
+}
+/* shadcn Card in admin: flat, surface-container-high, medium 12px (spec §4.3). */
+.admin-shell [data-slot="card"] {
+  background: var(--md-sys-color-surface-container-high);
+  border-color: var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-medium);
+  box-shadow: none;
+}
+/* Dialogs: extra-large 28px, elevation 3, scrim on-surface 32% (spec §6.2).
+   Decisions use a dialog; transient confirmations use a snackbar. */
+.admin-shell [data-slot="dialog-content"],
+.admin-shell [data-slot="alert-dialog-content"] {
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  box-shadow: var(--md-sys-elevation-level3);
+}
+.admin-shell [data-slot="dialog-overlay"],
+.admin-shell [data-slot="alert-dialog-overlay"] {
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 32%, transparent);
+}
+.admin-shell [data-slot="dialog-footer"],
+.admin-shell [data-slot="alert-dialog-footer"] {
+  background: var(--md-sys-color-surface);
+}
+/* Snackbar (transient success/failure, 4–10s, one action max — never for
+   decisions): inverse-surface / inverse-on-surface, extra-small 4px. */
+.admin-shell .cn-toast {
+  background: var(--md-sys-color-inverse-surface);
+  color: var(--md-sys-color-inverse-on-surface);
+  border-radius: var(--md-sys-shape-corner-extra-small);
+}
+/* Skeleton preserves the final content's dimensions (no layout shift);
+   shimmer gradient per spec §6.2. */
+.admin-shell [data-slot="skeleton"] {
+  background: var(--md-sys-color-surface-container);
+  border-radius: var(--md-sys-shape-corner-extra-small);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .admin-drawer { animation: none; }
@@ -1133,7 +1335,7 @@
 @media (max-width: 1199px) and (min-width: 600px) {
   .admin-shell { grid-template-columns: 80px 1fr; }
   .admin-sidebar { width: 80px; padding: 12px 8px; align-items: center; gap: 12px; }
-  /* Rail: vertical stacked icon + label, 80dp wide, 56dp pill indicator + 12sp label below */
+  /* Rail: vertical stacked icon + label, 80dp wide, icon-only 32dp pill + 12sp label below */
   .admin-nav-link {
     flex-direction: column;
     justify-content: center;
@@ -1143,7 +1345,8 @@
     width: 56px;
     min-height: 56px;
     height: auto;
-    border-radius: var(--m3-shape-corner-lg);
+    border-radius: 0;
+    background: transparent;
     text-align: center;
   }
   .admin-nav-link span:not(.admin-nav-icon) {
@@ -1185,7 +1388,7 @@
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.4);
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 32%, transparent);
     z-index: 40;
   }
   .admin-drawer {
@@ -1198,14 +1401,23 @@
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
     border-right: 1px solid var(--m3-outline-variant);
     box-shadow: var(--m3-elevation-3);
-    overflow-y: auto;
+    overflow: hidden;
     overflow-x: hidden;
     box-sizing: border-box;
     min-width: 0;
-    animation: drawerIn 0.2s var(--m3-motion-easing-standard);
+    animation: drawerIn 250ms var(--m3-motion-easing-standard);
     display: flex;
     flex-direction: column;
     gap: 12px;
+  }
+  .admin-drawer .admin-nav {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
   }
   @media (prefers-reduced-motion: reduce) {
     .admin-drawer { animation: none; }
@@ -1232,7 +1444,8 @@
     cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center;
   }
-  .admin-drawer-head button:hover { background: rgba(29,27,32,0.08); }
+  .admin-drawer-head { flex-shrink: 0; }
+  .admin-drawer-head button:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); }
   .admin-drawer .admin-nav-link { flex-direction: row; justify-content: flex-start; padding: 0 24px 0 16px; width: auto; min-height: 56px; height: 56px; }
   .admin-drawer .admin-nav-link span:not(.admin-nav-icon) { display: inline; font-size: var(--m3-typescale-label-large-size); }
 }
@@ -1297,5 +1510,31 @@
 .m3-elev-1 { box-shadow: var(--m3-elevation-1); }
 .m3-elev-2 { box-shadow: var(--m3-elevation-2); }
 .m3-elev-3 { box-shadow: var(--m3-elevation-3); }
+
+/* Reduced motion (spec §2.5/§7.3): all spatial motion collapses to a
+   cross-fade <= 50ms — no drawer slide, no dialog scale, no shimmer.
+   Translation/scale are removed; text/status loading indicators are kept
+   (skeleton becomes a static placeholder, role=status label remains). */
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell *,
+  .admin-shell *::before,
+  .admin-shell *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .admin-shell .admin-drawer,
+  .admin-shell .admin-dialog,
+  .admin-shell [data-slot="dialog-content"],
+  .admin-shell [data-slot="alert-dialog-content"] {
+    animation: none !important;
+    transform: none !important;
+  }
+  .admin-shell .admin-skeleton-row,
+  .admin-shell [data-slot="skeleton"] {
+    animation: none !important;
+  }
+}
 
 

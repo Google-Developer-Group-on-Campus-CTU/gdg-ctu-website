@@ -178,7 +178,6 @@ export default function AdminPartners() {
       <div className="admin-page-head">
         <div>
           <h1>Partners</h1>
-          <p className="admin-muted">Searchable table · ?tier=platinum|gold|silver|community respected · ordered by tier then display_order.</p>
         </div>
         <Link className="admin-new-btn" to={ADMIN_ENTITY_ROUTES.partners.new}>+ New partner</Link>
       </div>

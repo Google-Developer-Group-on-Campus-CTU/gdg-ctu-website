@@ -1,9 +1,14 @@
 # Admin form shell (shared)
 
-Shared editor infra for the forms phase: quiet Atlassian card chrome + react-hook-form
+> **Authoritative spec:** `docs/admin-material3-design.md` §6. This file is an
+> implementation companion, not the design authority. Where values disagree,
+> the M3 spec wins.
+
+Shared editor infra for the forms phase: M3 card chrome + react-hook-form
 bindings + validation summary + sticky footer. Lives at
 `frontend/src/components/admin/form-shell.jsx` (+ `form-shell.css`, `.editor-*`
-scope only). No detail page migrates yet — TeamDetail is the pilot target.
+scope only). Rolled out to all detail pages (TeamDetail pilot + Partner /
+Event / Album / Content — see Status below).
 
 Stack (already installed): `react-hook-form` 7 + `zod` 4 + `@hookform/resolvers`.
 shadcn `form.tsx` / `input.tsx` / `label.tsx` / `select.tsx` are consumed
@@ -13,10 +18,10 @@ as-is — never restyled, never touched.
 
 | Export | Props | Notes |
 | --- | --- | --- |
-| `EditorCard` | `title` / `eyebrow` / `actions` / `children` | White card, 1px `#EBECF0` border, 3px radius, quiet Atlassian elevation, dots row hidden; `#172B4D` text in the system font stack |
-| `EditorField` | `control` / `name` / `label` / `hint` / `required` / `anchorId` / `plain` / `showMessage` / `className` / render-`children(field)` | Binds shadcn `FormField`→`FormItem`→`FormLabel`→`FormMessage` through the Controller `field`. Single ref-forwarding inputs render inside `FormControl` (id + `aria-invalid` + `aria-describedby` via Slot); composites (`Select` root, shared `Toggle`, `MediaPicker`, file inputs) pass `plain`. `showMessage={false}` when the child renders its own error (MediaPicker). Anchors (`#name`) land on the item wrapper (`anchorId ?? name`) |
-| `EditorErrors` | `errors` / `serverError` / `summaryRef` / `title` | Error card (1px `#FFBDAD` on `#FFEBE6`, `#BF2600` text, 3px radius): "fix N fields" + anchor links, `role="alert"`, focusable. Accepts flat `{ field: msg }` or RHF `formState.errors`. `serverError` (backend 400 text) renders as the banner paragraph in the same card |
-| `EditorFooter` | `saving` / `isNew` / `onPublish` / `onArchive` / labels | Sticky bar, white with `#EBECF0` top border: Save draft (secondary `#FAFBFC`, form submit), Publish (primary `#0C66E4`), Archive/Delete (danger outline `#DE350B`, hidden when new). 32px targets, 3px radii; disabled = opacity `.7` + 16px spinner |
+| `EditorCard` | `title` / `eyebrow` / `actions` / `children` | M3 flat card: `surface-container-high` fill, 1px `outline-variant` border, `medium` 12px radius, elevation 0, 16px compact / 24px desktop padding; title `title-large`/`title-medium`, dots row hidden |
+| `EditorField` | `control` / `name` / `label` / `hint` / `required` / `anchorId` / `plain` / `showMessage` / `className` / render-`children(field)` | Binds shadcn `FormField`→`FormItem`→`FormLabel`→`FormMessage` through the Controller `field`. Outlined 56px fields, `extra-small` 4px shape, `body-large` input text, `label-large` form label, `body-small` helper/error. Required fields carry `required` + `aria-required="true"`; invalid fields get `aria-invalid="true"` + `aria-describedby` → error `id`. Single ref-forwarding inputs render inside `FormControl` (id + `aria-invalid` + `aria-describedby` via Slot); composites (`Select` root, shared `Toggle`, `MediaPicker`, file inputs) pass `plain`. `showMessage={false}` when the child renders its own error (MediaPicker). Anchors (`#name`) land on the item wrapper (`anchorId ?? name`) |
+| `EditorErrors` | `errors` / `serverError` / `summaryRef` / `title` | Error summary card (`error-container` fill, `on-error-container` text with icon, `small` 8px shape): "fix N fields" + anchor links that move focus to each field, `role="alert"`, focusable. Accepts flat `{ field: msg }` or RHF `formState.errors`. Field errors use `error` color + `body-small` with icon (`role="alert"` when shown after submit). `serverError` (backend 400 text) renders as the banner paragraph in the same card |
+| `EditorFooter` | `saving` / `isNew` / `onPublish` / `onArchive` / labels | Sticky footer bar (`position: sticky; bottom: 0`, `surface` fill with `outline-variant` top border): Save draft (Tonal, form submit), Publish (Filled `primary`, 56px primary action), Archive/Delete (Outlined danger, hidden when new). M3 button hierarchy — one Filled per view, `full`-pill shape; dense 40px toolbar buttons keep a 48x48 hit area (§4.2). Disabled = 0.12 container / 0.38 content + 16px spinner |
 | `DirtyGuardBanner` | `blocker` | Renders on `blocker.state === 'blocked'` with Stay (`reset()`) / Discard (`proceed()`) buttons |
 | `useEditorForm` | `{ schema, defaultValues, ...options }` | `useForm` + `zodResolver` in one call. After fetching, the page calls `reset(toForm(item))` — that is how defaults come from the record |
 | `useSlugUniqueness` | `(api, slug, currentId)` | 400ms debounce; 404 = unique; 500/timeout/network → error-blocking message. Returns `{ slugDup, slugCheckError }` for the publish gate |
@@ -203,8 +208,8 @@ field (`accept="image/*"`, upload wins over media ID, exactly like today);
 
 ## Status
 
-- [x] Shared `form-shell.jsx` + `form-shell.css` (quiet Atlassian card, RHF bindings,
-  errors card, sticky footer, dirty banner, slug hook, payload normalizer,
+- [x] Shared `form-shell.jsx` + `form-shell.css` (M3 flat card, RHF bindings,
+  error-summary card, sticky footer, dirty banner, slug hook, payload normalizer,
   team schema)
 - [x] Pilot migration: `pages/admin/TeamDetail.jsx` — editor wrapped in
   `<EditorCard>` (eyebrow Team + Public preview button to `/team` in actions);
@@ -252,3 +257,17 @@ field (`accept="image/*"`, upload wins over media ID, exactly like today);
   rowId/notFound flows verbatim; no archive tertiary. Public preview button per
   section map (hero/about → own routes, rest → `/`). Preserved: immutable-key
   header with last-edited line, load retry, toasts, dirty guard.
+
+## M3 conformance (Phase 7)
+
+Visual authority is `docs/admin-material3-design.md` §6.1 + §4.2–§4.3:
+outlined 56px fields (`body-large` input / `label-large` label / `body-small`
+helper-error, 4px shape), `medium` 12px cards (flat, elevation 0), `full`-pill
+buttons with one Filled primary per view (dense 40px toolbar buttons keep a
+48x48 hit area), semantic role tokens only, error summary (`role="alert"`,
+field anchor links move focus) + sticky footer (`surface` + `outline-variant`
+top border). Decisions = dialog (28px, elevation 3, focus trap); transient
+confirmations = snackbar (`inverse-surface`). Status badges always pair
+container color with text + icon (Draft neutral / Published
+`secondary-container` / Warning `tertiary-container` / Error
+`error-container`).

@@ -1,10 +1,12 @@
-/* Editor shell — Material Design 3 (web reproduction)
-   Scope: .editor-* only. Uses --m3-* tokens. */
+/* Editor shell — Material 3 (spec §6.1; tokens in frontend/src/index.css,
+   canonical --md-sys-* aliases scoped under .admin-shell in styles/admin.css).
+   Scope: .editor-* only. Inner fields use M3 role tokens. */
 
 .editor-card {
-  background: var(--m3-surface-container-lowest);
+  background: var(--m3-surface-container-high);
   border: 1px solid var(--m3-outline-variant);
   border-radius: var(--m3-shape-corner-md);
+  box-shadow: none;
   padding: 24px;
   color: var(--m3-on-surface);
   font-family: Roboto, "Google Sans", system-ui, sans-serif;
@@ -44,7 +46,6 @@
   line-height: var(--m3-typescale-label-small-line);
   font-weight: var(--m3-typescale-label-small-weight);
   letter-spacing: var(--m3-typescale-label-small-tracking);
-  text-transform: uppercase;
 }
 
 .editor-card-actions { display: flex; gap: 8px; flex: none; }
@@ -85,6 +86,10 @@
   gap: 4px;
 }
 
+/* Outlined 56px fields (spec §6.1): input text body-large 16/400, label
+   label-large 14/500, helper/error body-small 12/400. Outline is `outline`
+   at rest, 3px primary focus ring (offset 2px), error outline when invalid.
+   No dense fields — dense 40px applies to toolbar buttons only. */
 .editor-field input:not([type='checkbox']):not([type='radio']),
 .editor-field textarea,
 .editor-field select {
@@ -111,33 +116,35 @@
 .editor-field input:focus,
 .editor-field textarea:focus,
 .editor-field select:focus {
-  outline: none;
+  outline: 3px solid var(--m3-primary);
+  outline-offset: 2px;
   border-color: var(--m3-primary);
-  border-width: 2px;
-  padding: 15px;
 }
-.editor-field textarea:focus { padding-top: 11px; }
 
 .editor-field [aria-invalid='true'] { border-color: var(--m3-error); border-width: 2px; }
-.editor-field [aria-invalid='true']:focus { border-color: var(--m3-error); }
+.editor-field [aria-invalid='true']:focus { border-color: var(--m3-error); outline-color: var(--m3-error); }
 
-/* Validation card — M3 error container */
+/* Validation summary — M3 error-container banner (small 8px), icon + text,
+   focusable via summaryRef and focused on submit (spec §6.1). */
 .editor-errors {
   border: none;
   background: var(--m3-error-container);
   color: var(--m3-on-error-container);
-  border-radius: var(--m3-shape-corner-md);
+  border-radius: var(--m3-shape-corner-sm);
   padding: 16px;
   margin-bottom: 16px;
   line-height: 20px;
 }
 
 .editor-errors h3 { margin: 0 0 8px; font-size: 14px; font-weight: 500; color: var(--m3-on-error-container); }
+.editor-errors h3::before { content: "⚠"; margin-right: 8px; }
 .editor-errors ul { margin: 0; padding-left: 20px; }
 .editor-errors a { color: var(--m3-on-error-container); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
 .editor-errors-server { margin: 8px 0 0; font-size: 14px; }
 
-/* Sticky footer — M3 surfaceContainer + tonal buttons */
+/* Sticky footer (spec §6.1): surface + top outline-variant border. One filled
+   primary (publish, M3 medium 56px) + outlined secondary (save draft) +
+   outlined-error destructive (archive). State layers only, disabled 0.38. */
 .editor-footer {
   position: sticky;
   bottom: 0;
@@ -147,13 +154,14 @@
   gap: 12px;
   margin-top: 16px;
   padding: 16px 0 0;
-  background: var(--m3-surface-container-lowest);
+  background: var(--m3-surface-container-high);
   border-top: 1px solid var(--m3-outline-variant);
 }
 
 .editor-btn-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
 
 .editor-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -171,27 +179,39 @@
   cursor: pointer;
   transition: background 150ms cubic-bezier(0.2,0,0,1), box-shadow 150ms cubic-bezier(0.2,0,0,1);
 }
+/* 48x48 hit-area extension for dense 40px buttons (project extension). */
+.editor-btn::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--m3-shape-corner-full);
+}
+/* M3 medium 56px for the primary form action. */
+.editor-footer .editor-btn-primary { min-height: 56px; }
+.editor-footer .editor-btn-primary::after { content: none; }
 
 .editor-btn-secondary {
   background: transparent;
   color: var(--m3-primary);
   border-color: var(--m3-outline);
 }
-.editor-btn-secondary:hover:not(:disabled) { background: rgba(11,87,208,0.08); }
+.editor-btn-secondary:hover:not(:disabled) { background: color-mix(in srgb, var(--m3-primary) 8%, transparent); }
 
 .editor-btn-primary {
   background: var(--m3-primary);
   color: var(--m3-on-primary);
   border-color: var(--m3-primary);
 }
-.editor-btn-primary:hover:not(:disabled) { background: #0A4EB8; }
+.editor-btn-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--m3-primary) 92%, var(--m3-on-primary));
+}
 
 .editor-btn-danger {
   background: transparent;
   color: var(--m3-error);
   border-color: var(--m3-error);
 }
-.editor-btn-danger:hover:not(:disabled) { background: rgba(186,26,26,0.08); }
+.editor-btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--m3-error) 8%, transparent); }
 
 .editor-btn:disabled { opacity: 0.38; cursor: not-allowed; }
 
@@ -199,27 +219,24 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.4);
+  border: 2px solid color-mix(in srgb, var(--m3-on-primary) 40%, transparent);
   border-top-color: var(--m3-on-primary);
   animation: editor-spin 0.7s linear infinite;
 }
-.editor-btn-secondary .editor-spinner { border-color: rgba(11,87,208,0.2); border-top-color: var(--m3-primary); }
+.editor-btn-secondary .editor-spinner { border-color: color-mix(in srgb, var(--m3-primary) 20%, transparent); border-top-color: var(--m3-primary); }
 
 .editor-dirty {
   border: none;
   background: var(--m3-tertiary-container);
   color: var(--m3-on-tertiary-container);
-  border-radius: var(--m3-shape-corner-md);
+  border-radius: var(--m3-shape-corner-sm);
   padding: 16px;
   margin-bottom: 16px;
 }
 .editor-dirty h3 { margin: 0 0 4px; font-size: 16px; font-weight: 500; }
 .editor-dirty p { margin: 0; font-size: 14px; line-height: 20px; }
 
-.editor-card :focus-visible { outline: 2px solid var(--m3-primary); outline-offset: 2px; }
-.editor-field input:focus-visible,
-.editor-field textarea:focus-visible,
-.editor-field select:focus-visible { outline: none; }
+.editor-card :focus-visible { outline: 3px solid var(--m3-primary); outline-offset: 2px; }
 
 @keyframes editor-spin { to { transform: rotate(360deg); } }
 
@@ -231,4 +248,5 @@
 @media (prefers-reduced-motion: reduce) {
   .editor-btn, .editor-field input, .editor-field textarea, .editor-field select { transition: none; }
   .editor-spinner { animation: none; }
+  .editor-btn::after { content: none; }
 }

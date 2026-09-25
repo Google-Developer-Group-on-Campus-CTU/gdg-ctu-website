@@ -1,9 +1,26 @@
-import { useRef, useState } from 'react';
+import { Children, cloneElement, isValidElement, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-export function LoadingSkeleton({ rows = 6, label = 'Loading…' }) {
+/**
+ * Move focus to the field targeted by an error-summary anchor (`#key`).
+ * Anchors alone only scroll; this focuses the first focusable control inside
+ * the target (spec §6.1: summary links move focus to the field).
+ */
+export function focusLinkedField(e, key) {
+  const el = typeof document === 'undefined' ? null : document.getElementById(key);
+  if (!el) return;
+  const target =
+    el.matches?.('input,select,textarea,button,[tabindex]') ? el : el.querySelector?.('input,select,textarea,button,[tabindex]');
+  if (target) {
+    e.preventDefault();
+    target.scrollIntoView({ block: 'center' });
+    target.focus({ preventScroll: true });
+  }
+}
+
+export function LoadingSkeleton({ rows = 6, label = 'Loading…', table = false }) {
   return (
-    <div role="status" aria-live="polite" aria-label={label} className="admin-skeleton" style={{ display: 'grid', gap: 8, padding: 16, background: 'var(--m3-surface-container)', borderRadius: 12 }}>
+    <div role="status" aria-live="polite" aria-label={label} className={table ? 'admin-skeleton admin-skeleton--table' : 'admin-skeleton'} style={{ display: 'grid', gap: 8, padding: 16, background: 'var(--m3-surface-container)', borderRadius: 12 }}>
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="admin-skeleton-row" aria-hidden="true" />
       ))}
@@ -100,6 +117,11 @@ export function ErrorState({ error, requestId, onRetry, context = 'load this con
           : (error?.body?.message ?? error?.message ?? `Could not ${context}.`);
   return (
     <div className="admin-error" role="alert">
+      <div className="flex justify-center mb-3" aria-hidden="true">
+        <span className="inline-flex size-12 items-center justify-center rounded-full bg-[var(--m3-error)] text-[var(--m3-on-error)]">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 8v5m0 3.5v.5M4.9 4.9a10 10 0 1 0 14.2 14.2A10 10 0 0 0 4.9 4.9Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+        </span>
+      </div>
       <h3>Something went wrong</h3>
       <p>{message}</p>
       {requestId ? <p className="admin-muted">Request ID: {requestId}</p> : null}
@@ -112,6 +134,10 @@ export function ErrorState({ error, requestId, onRetry, context = 'load this con
   );
 }
 
+// Status mapping (spec §6.2): Draft = neutral (surface-container +
+// outline), Published = secondary-container, Warning/needs-review =
+// tertiary-container, Error/rejected = error-container. Color never conveys
+// meaning alone — every badge pairs fill with an icon glyph + text.
 export function StatusPill({ status, active }) {
   let raw = status;
   if (typeof raw !== 'string' || !raw.trim()) {
@@ -123,15 +149,17 @@ export function StatusPill({ status, active }) {
   const variant =
     normalized === 'published' || normalized === 'active' || normalized === 'verified'
       ? 'lozenge-success'
-      : normalized === 'draft' || normalized === 'unverified'
+      : normalized === 'warning' || normalized === 'needs-review' || normalized === 'needs review' || normalized === 'pending'
         ? 'lozenge-warning'
-        : normalized === 'archived' || normalized === 'cancelled' || normalized === 'banned'
-          ? 'lozenge-removed'
-          : normalized === 'new'
-            ? 'lozenge-new'
-            : 'lozenge-default';
-  // Non-color cue: icon dot
-  const dot = variant === 'lozenge-success' ? '●' : variant === 'lozenge-warning' ? '◐' : variant === 'lozenge-removed' ? '■' : '○';
+        : normalized === 'draft' || normalized === 'unverified'
+          ? 'lozenge-neutral'
+          : normalized === 'archived' || normalized === 'cancelled' || normalized === 'banned' || normalized === 'rejected' || normalized === 'error' || normalized === 'failed'
+            ? 'lozenge-removed'
+            : normalized === 'new'
+              ? 'lozenge-new'
+              : 'lozenge-default';
+  // Non-color cue: icon glyph + text (never color alone).
+  const dot = variant === 'lozenge-success' ? '●' : variant === 'lozenge-warning' ? '▲' : variant === 'lozenge-removed' ? '■' : variant === 'lozenge-new' ? '✦' : '○';
   return (
     <span className={`lozenge ${variant}`} aria-label={`Status: ${normalized}`}>
       <span aria-hidden="true" style={{ marginRight: 6 }}>{dot}</span>{normalized}
@@ -140,13 +168,22 @@ export function StatusPill({ status, active }) {
 }
 
 export function Field({ label, hint, error, htmlFor, children, required }) {
+  // Forward required/aria-required to a single-element child so the required
+  // semantics (spec §6.1) live on the control, not just the asterisk.
+  let control = children;
+  if (required) {
+    const kids = Children.toArray(children);
+    if (kids.length === 1 && isValidElement(kids[0])) {
+      control = cloneElement(kids[0], { required: true, 'aria-required': 'true' });
+    }
+  }
   return (
     <div className="admin-field">
       <label htmlFor={htmlFor}>
         {label} {required ? <span aria-hidden="true" style={{ color: 'var(--m3-error)' }}>*</span> : null}
       </label>
       {hint ? <p className="admin-hint" id={`${htmlFor}-hint`}>{hint}</p> : null}
-      {children}
+      {control}
       {error ? (
         <p className="admin-field-error" id={`${htmlFor}-error`} role="alert">
           {error}
@@ -173,7 +210,7 @@ export function FormSummary({ errors, summaryRef }) {
       <ul>
         {list.map(([key, message]) => (
           <li key={key}>
-            <a href={`#${key}`}>{message}</a>
+            <a href={`#${key}`} onClick={(e) => focusLinkedField(e, key)}>{message}</a>
           </li>
         ))}
       </ul>
@@ -185,28 +222,64 @@ export function focusSummary(ref) {
   requestAnimationFrame(() => ref?.current?.focus?.());
 }
 
+// Decision dialog (spec §6.2): destructive confirm, extra-large 28px shape,
+// elevation 3, scrim on-surface 32% (see .admin-dialog). Focus moves into the
+// dialog on open, Tab is trapped, Esc cancels, and focus is restored to the
+// opener on close. Actions: outlined cancel + filled-error confirm — a filled
+// error button never appears outside a dialog.
 export function TypedConfirm({ open, title, body, expected, confirmLabel = 'Confirm', onConfirm, onCancel, busy }) {
   const [typed, setTyped] = useState('');
   const inputRef = useRef(null);
+  const dialogRef = useRef(null);
+  const restoreRef = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    restoreRef.current = document.activeElement;
+    const node = dialogRef.current;
+    const input = inputRef.current ?? node?.querySelector('input');
+    if (input) input.focus();
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape' && !busy) {
+        e.stopPropagation();
+        onCancel?.();
+        return;
+      }
+      if (e.key !== 'Tab' || !node) return;
+      const focusables = node.querySelectorAll(
+        'button:not(:disabled), input:not(:disabled), [href], [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+      restoreRef.current?.focus?.();
+    };
+  }, [open, busy, onCancel]);
   if (!open) return null;
   const matches = typed.trim() === String(expected ?? '').trim();
   return (
-    <div className="admin-dialog-backdrop" role="presentation" onClick={onCancel}>
+    <div className="admin-dialog-backdrop" role="presentation" onClick={busy ? undefined : onCancel}>
       <div
         className="admin-dialog"
         role="alertdialog"
         aria-modal="true"
         aria-label={title}
+        aria-describedby="typed-confirm-body"
         onClick={(e) => e.stopPropagation()}
-        ref={(node) => {
-          if (node && !inputRef.current) {
-            const input = node.querySelector('input');
-            if (input) input.focus();
-          }
-        }}
+        ref={dialogRef}
       >
         <h3>{title}</h3>
-        <p className="admin-muted">{body}</p>
+        <p className="admin-muted" id="typed-confirm-body">{body}</p>
         <label htmlFor="typed-confirm" className="gdg-confirm-label">
           Type <code className="gdg-code-muted">{expected}</code> to confirm
         </label>

@@ -1,5 +1,9 @@
 # Admin DataTable (shared)
 
+> **Authoritative spec:** `docs/admin-material3-design.md` §5. This file is an
+> implementation companion, not the design authority. Where values disagree,
+> the M3 spec wins.
+>
 > **API freeze (pre Team/Partners rollout):** the `DataTable` props API below
 > is frozen. Do not add/rename/remove props without orchestrator approval.
 > The TanStack import stays pinned to the legacy compat layer
@@ -9,26 +13,40 @@
 
 Shared admin table infra: shadcn `Table` primitives + TanStack Table v9
 (`@tanstack/react-table` 9.x). Lives at
-`frontend/src/components/admin/data-table.jsx`. Not wired into any
-list page yet — Events is the planned pilot.
+`frontend/src/components/admin/data-table.jsx`. Rolled out to all list pages
+(Events pilot + Team/Partners/Gallery/Media/Content/Invites/Users — see
+Status below).
 
-## Styling (des-2)
+## Styling (M3 per `docs/admin-material3-design.md` §5)
 
-Quiet Atlassian theme: system font stack, `#172B4D` text on `#F4F5F7`
-backgrounds, `#0C66E4` primary, lozenge tiles, 32px control density. The
-stock shadcn `Table` has no border/shadow, so the card treatment lives
-on the `DataTable` wrapper — never restyle the Table primitives themselves:
+M3 table theme (semantic role tokens only, never raw hex outside token
+definitions): `surface` container with 1px `outline-variant` border,
+`extra-small` 4px radius, elevation 0; header row 56px tall with
+`surface-container` fill and `title-small` (14/500) `on-surface-variant`
+label, **no uppercase**; body rows 52px tall, `body-medium` (14/400)
+`on-surface` text, 16px horizontal cell padding, 1px `outline-variant`
+dividers, no zebra; hover = `on-surface` state layer 0.08; selected =
+`surface-container-highest`; footer/pagination bar 52px, `label-medium`
+`on-surface-variant`; sort icon 18px (`on-surface-variant`, active `primary`);
+checkbox 18px (`primary` when checked). The stock shadcn `Table` has no
+border/shadow, so the card treatment lives on the `DataTable` wrapper —
+never restyle the Table primitives themselves:
 
-- wrapper: `border border-border rounded-md bg-card overflow-hidden` + quiet
-  elevation `shadow-[0_1px_1px_rgba(9,30,66,0.13),0_0_1px_rgba(9,30,66,0.13)]`
-  with an explicit inner `overflow-x-auto` div around `<Table>` so <640px
-  viewports scroll horizontally without losing the rounded-md clip; header
-  row is `border-b border-[#EBECF0] bg-[#FAFBFC]`
-- toolbar controls: search `Input` + scope `SelectTrigger` are `h-8`
-  (32px density) `rounded-[3px]`
-- sortable header buttons: compact ghost `h-6 rounded-[3px]` via `DataTableColumnHeader`
-- empty/error cards use the same wrapper classes on shadcn `Card` (brand `G`
-  tile in `#DEEBFF` / `#0747A6`; Retry is an outline `h-8 rounded-[3px]` button)
+- wrapper: `surface` container, 1px `outline-variant` border, 4px
+  (`extra-small`) radius, elevation 0, with a **single** `overflow-x-auto`
+  div around `<Table>` (exactly one horizontal scroll region with
+  `overscroll-behavior: contain`) so <640px viewports scroll horizontally
+  without losing the clip; header row is `surface-container` fill
+- toolbar controls: search `Input` + scope `SelectTrigger` are M3 dense
+  `h-10` (40px visual, 48px hit area per §4.2 dense rule), `extra-small` 4px
+  shape
+- sortable header buttons: sort control is a `button` **inside** the `th`
+  (never the `th` itself) with `aria-label="Sort by <column>"`; 48x48 hit
+  area (dense 40px visual allowed)
+- empty/error states: centered empty state (icon + `title-medium` heading +
+  `body-medium` description + single Filled/Tonal CTA, skeleton rows preserve
+  52px height, no layout shift); error is an inline `error-container` alert
+  above the table with a Retry action
 
 ## Props API
 
@@ -63,9 +81,9 @@ state, or via `onPaginationChange` when pagination is controlled) so heavy
 filtering never strands the user on a stale page. Uncontrolled typing
 already resets through the toolbar handlers.
 
-Previous/Next are outline `h-8 rounded-[3px]` buttons (32px density); the
-quiet card wrapper (`border border-border rounded-md bg-card overflow-hidden`
-+ `shadow-[0_1px_1px_rgba(9,30,66,0.13),0_0_1px_rgba(9,30,66,0.13)]`) is unchanged.
+Previous/Next are Outlined buttons at M3 dense 40px visual height with a
+48x48 hit area (§4.2 dense rule); the M3 flat card wrapper (`surface`, 1px
+`outline-variant`, 4px radius, elevation 0) is unchanged.
 
 ## Usage — Events pilot (client-side first)
 
@@ -306,3 +324,12 @@ table state — never wire it into `columnFilters`/`sorting`.
   `LIST_LIMIT` 50 cap notice), `?q` URL sync (debounced 250ms), `requestId`
   inside the error card, page size 20 default. Confirms stay list-level by
   choice: no user detail route exists, so no Manage pill. No extra borders.
+
+## M3 conformance (Phase 7)
+
+Visual authority is `docs/admin-material3-design.md` §5: 4px container, 56px
+header / 52px rows / 52px pagination footer, `title-small` header with no
+uppercase, 48px sort targets (dense 40px visual allowed), single scroll
+wrapper, semantic role tokens with native `table` semantics (`caption`,
+`scope="col"`, `aria-sort`, sort `button` in `th`). `useLegacyTable` /
+`flexRender` remain frozen (styling-only change).

@@ -187,7 +187,6 @@ export default function AdminTeam() {
       <div className="admin-page-head">
         <div>
           <h1>Team</h1>
-          <p className="admin-muted">Searchable table · ?scope=&lt;department&gt; respected.</p>
         </div>
         <Link className="admin-new-btn" to={ADMIN_ENTITY_ROUTES.team.new}>+ New member</Link>
       </div>

@@ -157,7 +157,6 @@ export default function AdminGallery() {
       <div className="admin-page-head">
         <div>
           <h1>Gallery</h1>
-          <p className="admin-muted">Manual albums + curated featured photos. Albums reuse media-collections.</p>
         </div>
         <Link className="admin-new-btn" to={ADMIN_ENTITY_ROUTES.gallery.new}>+ New album</Link>
       </div>
@@ -178,7 +177,6 @@ export default function AdminGallery() {
         renderEmptyState={
           <EmptyState
             title={(albums.data ?? []).length === 0 ? 'No albums yet' : 'No albums match this filter'}
-            hint="Manually create an album, then add photos from the Media picker."
             actionLabel="+ New album"
             actionTo={adminNewTargetFor(pathname)}
           />

@@ -11,14 +11,17 @@ import {
   FormMessage,
 } from '../ui/form';
 import { checkSlugUnique, isAnyUrl, isHttpsUrl, isReservedSlug } from '../../admin/editorial.js';
+import { focusLinkedField } from './shared.jsx';
 import './form-shell.css';
 
 /**
- * Shared editor shell — quiet Atlassian-style theme.
+ * Shared editor shell — Material 3 (spec §6.1).
  *
  * Migration target for the detail pages. Do NOT restyle
  * shadcn primitives here: EditorField binds them through react-hook-form's
- * Controller via the shadcn FormField/FormItem/FormLabel/FormMessage set.
+ * Controller via the shadcn FormField/FormItem/FormLabel/FormMessage set,
+ * skinned by M3 role tokens (see form-shell.css + .admin-shell in
+ * styles/admin.css).
  */
 
 const requiredText = (message) =>
@@ -267,7 +270,8 @@ export function focusEditorErrors(ref) {
 }
 
 /**
- * Quiet card: white, 1px #EBECF0 border, 3px radius, subtle shadow.
+ * M3 editor card: surface-container-high fill, 1px outline-variant border,
+ * medium (12px) shape, elevation 0.
  */
 export function EditorCard({ title, eyebrow, actions, children }) {
   return (
@@ -293,21 +297,24 @@ export function EditorCard({ title, eyebrow, actions, children }) {
 }
 
 /**
- * RHF-bound field. `children` is a render function receiving the Controller
- * `field` ({ value, onChange, onBlur, name, ref }):
+ * RHF-bound field (spec §6.1). `children` is a render function receiving the
+ * Controller `field` ({ value, onChange, onBlur, name, ref }):
  *
  *   <EditorField control={control} name="firstName" label="First name" required>
  *     {(field) => <Input {...field} />}
  *   </EditorField>
  *
- * Single ref-forwarding inputs (shadcn Input, native input/textarea/select)
- * render inside FormControl, which supplies id + aria-invalid +
- * aria-describedby (hint/error) via Slot. For composite children that cannot
- * take Slot props (shadcn Select root, shared Toggle, MediaPicker, file
- * inputs) pass `plain` — the child renders unwrapped with hint/error text
- * still shown below. Components with their own error UI (MediaPicker) also
- * pass `showMessage={false}` to avoid double errors. Anchors in EditorErrors
- * (`#name`) land on the FormItem wrapper (`anchorId ?? name`).
+ * `required` renders the asterisk AND sets `required` + `aria-required="true"`
+ * on the control (forms are `noValidate`, so RHF owns validation and the
+ * error summary owns focus). Single ref-forwarding inputs (shadcn Input,
+ * native input/textarea/select) render inside FormControl, which supplies id
+ * + aria-invalid + aria-describedby (hint/error) via Slot. For composite
+ * children that cannot take Slot props (shadcn Select root, shared Toggle,
+ * MediaPicker, file inputs) pass `plain` — the child renders unwrapped with
+ * hint/error text still shown below. Components with their own error UI
+ * (MediaPicker) also pass `showMessage={false}` to avoid double errors.
+ * Anchors in EditorErrors (`#name`) land on the FormItem wrapper
+ * (`anchorId ?? name`) and move focus into the field on click.
  */
 export function EditorField({
   control,
@@ -332,13 +339,15 @@ export function EditorField({
           </FormLabel>
           {plain ? (
             typeof children === 'function' ? (
-              children(field)
+              children(required ? { ...field, required: true, 'aria-required': 'true' } : field)
             ) : (
               children
             )
           ) : (
-            <FormControl>
-              {typeof children === 'function' ? children(field) : children}
+            <FormControl required={required ? true : undefined} aria-required={required ? 'true' : undefined}>
+              {typeof children === 'function'
+                ? children(required ? { ...field, required: true, 'aria-required': 'true' } : field)
+                : children}
             </FormControl>
           )}
           {hint ? <FormDescription className="editor-hint">{hint}</FormDescription> : null}
@@ -356,10 +365,11 @@ function errorMessage(value) {
 }
 
 /**
- * Quiet validation card: 1px #FFBDAD on #FFEBE6, "fix N fields" + anchor
- * links, focusable via summaryRef (focus on submit). Accepts a flat
- * { field: message } map or RHF formState.errors. `serverError` (backend 400
- * text) renders as the banner paragraph in the same card.
+ * M3 error-container summary (small 8px, icon + text): "fix N fields" +
+ * anchor links that move focus into the field, focusable via summaryRef
+ * (focused on submit). Accepts a flat { field: message } map or RHF
+ * formState.errors. `serverError` (backend 400 text) renders as the banner
+ * paragraph in the same card.
  */
 export function EditorErrors({ errors, serverError, summaryRef, title }) {
   const list = Object.entries(errors ?? {})
@@ -375,7 +385,7 @@ export function EditorErrors({ errors, serverError, summaryRef, title }) {
           <ul>
             {list.map(([key, message]) => (
               <li key={key}>
-                <a href={`#${key}`}>{String(message)}</a>
+                <a href={`#${key}`} onClick={(e) => focusLinkedField(e, key)}>{String(message)}</a>
               </li>
             ))}
           </ul>
@@ -387,10 +397,10 @@ export function EditorErrors({ errors, serverError, summaryRef, title }) {
 }
 
 /**
- * Sticky action bar: Save draft (secondary, form submit), Publish (primary
- * #0C66E4), Archive/Delete (danger outline, hidden for new records).
- * Quiet Atlassian buttons: 32px min-height, 3px radius, disabled at
- * opacity .7 with a 16px spinner.
+ * Sticky action bar (spec §6.1): one filled primary (publish, M3 medium 56px),
+ * one outlined secondary (save draft, form submit), one outlined-error
+ * destructive (archive/delete, hidden for new records). State layers only,
+ * disabled at opacity 0.38 with a 16px spinner.
  */
 export function EditorFooter({
   saving = false,
@@ -403,7 +413,7 @@ export function EditorFooter({
 }) {
   return (
     <div className="editor-footer">
-      <button type="submit" className="editor-btn editor-btn-secondary" disabled={saving}>
+      <button type="submit" className="editor-btn editor-btn-secondary" disabled={saving} aria-busy={saving}>
         {saving ? (
           <>
             <span className="editor-spinner" aria-hidden="true" />
@@ -413,7 +423,7 @@ export function EditorFooter({
           saveLabel
         )}
       </button>
-      <button type="button" className="editor-btn editor-btn-primary" disabled={saving} onClick={onPublish}>
+      <button type="button" className="editor-btn editor-btn-primary" disabled={saving} aria-busy={saving} onClick={onPublish}>
         {saving ? (
           <>
             <span className="editor-spinner" aria-hidden="true" />
@@ -424,7 +434,7 @@ export function EditorFooter({
         )}
       </button>
       {!isNew && onArchive ? (
-        <button type="button" className="editor-btn editor-btn-danger" disabled={saving} onClick={onArchive}>
+        <button type="button" className="editor-btn editor-btn-danger" disabled={saving} aria-busy={saving} onClick={onArchive}>
           {archiveLabel}
         </button>
       ) : null}

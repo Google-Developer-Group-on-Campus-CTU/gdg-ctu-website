@@ -196,7 +196,6 @@ export default function AdminEvents() {
       <div className="admin-page-head">
         <div>
           <h1>Events</h1>
-          <p className="admin-muted">Searchable table · ?scope=upcoming|past respected.</p>
         </div>
         <Link className="admin-new-btn" to={ADMIN_ENTITY_ROUTES.events.new}>+ New event</Link>
       </div>

@@ -29,7 +29,7 @@ import {
 } from '../ui/table';
 
 const WRAPPER_CLASS =
-  'overflow-hidden rounded-[12px] border border-[var(--m3-outline-variant)] bg-[var(--m3-surface-container-lowest)]';
+  'overflow-hidden rounded-[4px] border border-[var(--m3-outline-variant)] bg-[var(--m3-surface)]';
 
 const ALL = 'all';
 
@@ -42,7 +42,7 @@ function friendlyTableError(error) {
 }
 
 export function DataTableColumnHeader({ column, title }) {
-  if (!column.getCanSort()) return <span className="text-[11px] font-medium tracking-[0.5px] uppercase text-[var(--m3-on-surface-variant)]">{title}</span>;
+  if (!column.getCanSort()) return <span className="text-[14px] leading-5 font-medium text-[var(--m3-on-surface-variant)]">{title}</span>;
   const sorted = column.getIsSorted();
   const Icon = sorted === 'asc' ? ArrowUp : sorted === 'desc' ? ArrowDown : ArrowUpDown;
   return (
@@ -51,11 +51,14 @@ export function DataTableColumnHeader({ column, title }) {
       variant="ghost"
       size="sm"
       onClick={() => column.toggleSorting(sorted === 'asc')}
-      className="-ml-2 h-8 rounded-full px-2 text-[14px]"
+      className="-ml-3 flex h-12 min-h-[48px] min-w-[48px] items-center gap-2 rounded-full px-3 text-[14px] leading-5 font-medium"
       aria-label={`Sort by ${title}${sorted === 'asc' ? ' (sorted ascending)' : sorted === 'desc' ? ' (sorted descending)' : ''}`}
     >
       {title}
-      <Icon className="size-3.5" aria-hidden="true" />
+      <Icon
+        className={`size-[18px] shrink-0 ${sorted ? 'text-[var(--m3-primary)]' : 'text-[var(--m3-on-surface-variant)]'}`}
+        aria-hidden="true"
+      />
     </Button>
   );
 }
@@ -278,11 +281,21 @@ export function DataTable({
         renderEmptyState ?? <DefaultEmptyState title={emptyTitle} hint={emptyHint} />
       ) : (
         <div className={WRAPPER_CLASS}>
-          <div className="overflow-x-auto">
+          {/* NOTE: ui/table.tsx also renders an overflow-x-auto wrapper around
+              <table>; this outer region is the single keyboard-reachable scroll
+              region for this table. Do not add another scroll container here —
+              remove the inner one in table.tsx instead (out of scope for this file). */}
+          <div
+            className="overflow-x-auto [overscroll-behavior:contain]"
+            role="region"
+            aria-label="Table results"
+            tabIndex={0}
+          >
             <Table>
+            <caption className="sr-only">Table results</caption>
             <TableHeader className="border-b border-[var(--m3-outline-variant)] bg-[var(--m3-surface-container)]">
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                <TableRow key={headerGroup.id} className="h-14 hover:bg-transparent">
                   {headerGroup.headers.map((header) => {
                     const sortable = header.column.getCanSort();
                     const sorted = header.column.getIsSorted();
@@ -290,7 +303,7 @@ export function DataTable({
                       <TableHead
                         key={header.id}
                         scope="col"
-                        className="h-10 px-4 text-[12px] font-medium tracking-[0.5px] uppercase text-[var(--m3-on-surface-variant)]"
+                        className="h-14 px-4 text-[14px] leading-5 font-medium text-[var(--m3-on-surface-variant)]"
                         aria-sort={
                           sortable
                             ? sorted
@@ -313,9 +326,9 @@ export function DataTable({
             <TableBody>
               {loading
                 ? Array.from({ length: skeletonRows }).map((_, rowIndex) => (
-                    <TableRow key={`skeleton-${rowIndex}`} className="hover:bg-transparent">
+                    <TableRow key={`skeleton-${rowIndex}`} className="h-[52px] hover:bg-transparent">
                       {Array.from({ length: columnCount }).map((_, cellIndex) => (
-                        <TableCell key={`skeleton-${rowIndex}-${cellIndex}`} className="px-4 py-3">
+                        <TableCell key={`skeleton-${rowIndex}-${cellIndex}`} className="px-4 py-0">
                           <Skeleton className="h-4 w-full rounded-full" aria-hidden="true" />
                         </TableCell>
                       ))}
@@ -325,10 +338,10 @@ export function DataTable({
                     <TableRow
                       key={row.id}
                       data-state={row.getIsSelected?.() && 'selected'}
-                      className="hover:bg-[rgba(29,27,32,0.04)] data-[state=selected]:bg-[var(--m3-secondary-container)] border-b border-[var(--m3-outline-variant)] last:border-0"
+                      className="h-[52px] border-b border-[var(--m3-outline-variant)] last:border-0 hover:bg-[color-mix(in_srgb,var(--m3-on-surface)_8%,transparent)] data-[state=selected]:bg-[var(--m3-surface-container-highest)] [&[aria-disabled=true]]:text-[color-mix(in_srgb,var(--m3-on-surface)_38%,transparent)]"
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="px-4 py-3 text-[14px] leading-5 text-[var(--m3-on-surface)]">
+                        <TableCell key={cell.id} className="px-4 py-0 text-[14px] leading-5 text-[var(--m3-on-surface)]">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}
@@ -340,11 +353,11 @@ export function DataTable({
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <p className="text-[12px] font-medium tracking-[0.5px] text-[var(--m3-on-surface-variant)]" aria-live="polite">
+      <div className="mt-4 flex min-h-[52px] flex-wrap items-center gap-3">
+        <p className="text-[12px] leading-4 font-medium text-[var(--m3-on-surface-variant)]" aria-live="polite">
           Showing {from}–{to} of {total}
         </p>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2" role="group" aria-label="Pagination">
           <label className="sr-only" htmlFor="datatable-pagesize">
             Rows per page
           </label>

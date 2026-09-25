@@ -240,7 +240,6 @@ export default function AlbumDetail() {
       const row = normalizeItem(created?.item ?? created, albumId);
       setPhotos((list) => [...list, row]);
       setPickerId('');
-      setToast('Photo added from Media picker.');
     } catch (err) {
       setServerError(err?.body?.message ?? err?.message ?? 'Could not add photo.');
     } finally { setSaving(false); }
@@ -327,7 +326,7 @@ export default function AlbumDetail() {
   return (
     <section aria-label={isNew ? 'New album' : 'Edit album'}>
       <div className="admin-page-head">
-        <div><h1>{isNew ? 'New album' : values.title}</h1><p className="admin-muted">Manual create · Media picker · reorder · featured ≤ {MAX_FEATURED_PHOTOS}.</p></div>
+        <div><h1>{isNew ? 'New album' : values.title}</h1></div>
         <Link className="gdg-btn gdg-btn-secondary" to={ADMIN_ENTITY_ROUTES.gallery.list}>Back to albums</Link>
       </div>
       <DirtyGuardBanner blocker={blocker} />
@@ -437,7 +436,7 @@ export default function AlbumDetail() {
                   <button type="button" className="gdg-btn gdg-btn-primary" disabled={!pickerId || saving} onClick={addPhoto}>Add photo</button>
                   <span className="admin-muted" aria-live="polite">Featured {featuredCount}/{MAX_FEATURED_PHOTOS}</span>
                 </div>
-                {photos.length === 0 ? <p className="admin-muted">No photos yet — add from the Media picker (no new upload flow here).</p> : (
+                {photos.length === 0 ? null : (
                   <div className="admin-table-wrap">
                     <table className="admin-table">
                       <thead><tr><th scope="col">Media</th><th scope="col">Order</th><th scope="col">Featured</th><th scope="col">Actions</th></tr></thead>
