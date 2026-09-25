@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CalendarDays, Users, Handshake, Images, GalleryHorizontal, Layers, FileText, Mail, Settings, LogOut, MoreHorizontal } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, Handshake, Images, GalleryHorizontal, Layers, FileText, Inbox, Mail, Settings, LogOut, MoreHorizontal } from 'lucide-react';
 import { authClient } from '../../lib/auth-client';
 import { ADMIN_ENTITY_ROUTES } from '../../admin/editorial.js';
 import '../../styles/admin.css';
@@ -14,6 +14,7 @@ const NAV_ICONS = {
   '/admin/gallery-categories': Layers,
   '/admin/terms': FileText,
   '/admin/media': GalleryHorizontal,
+  '/admin/messages': Inbox,
   '/admin/invites': Mail,
   '/admin/users': Users,
   '/admin/settings': Settings,
@@ -33,7 +34,7 @@ const STORAGE_KEY = 'm3-admin-sidebar-collapsed';
 // ADMIN_NAV by path so labels/routes stay in sync with ADMIN_ENTITY_ROUTES.
 const NAV_GROUPS = [
   { heading: 'Overview', tos: ['/admin'] },
-  { heading: 'Content', tos: ['/admin/events', '/admin/team', '/admin/partners', '/admin/gallery', '/admin/gallery-categories', '/admin/terms'] },
+  { heading: 'Content', tos: ['/admin/events', '/admin/team', '/admin/partners', '/admin/gallery', '/admin/gallery-categories', '/admin/terms', '/admin/messages'] },
   { heading: 'System', tos: ['/admin/media', '/admin/invites', '/admin/users', '/admin/settings'] },
 ];
 

@@ -219,6 +219,7 @@ export const ADMIN_ENTITY_ROUTES = {
   galleryCategories: { label: 'Categories', list: '/admin/gallery-categories', new: '/admin/gallery-categories', detail: null, param: null },
   terms: { label: 'Terms', list: '/admin/terms', new: '/admin/terms/new', detail: (id) => safeDetailPath('/admin/terms', id), param: 'id' },
   media: { label: 'Media', list: '/admin/media', new: '/admin/media', detail: null, param: null },
+  messages: { label: 'Inbox', list: '/admin/messages', new: '/admin/messages', detail: null, param: null },
 };
 
 export function adminItemLabel(item, fallback = 'Untitled') {

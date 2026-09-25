@@ -6,6 +6,8 @@ import publicAdminInviteRoutes from "./admin-invites/public-admin-invite.routes.
 import authRoutes from "./auth/auth.routes.js";
 import eventRoutes from "./events/event.routes.js";
 import galleryCategoryRoutes from "./gallery-categories/gallery-category.routes.js";
+import contactMessagesRoutes from "./contact-messages/contact-messages.routes.js";
+import publicContactMessagesRoutes from "./contact-messages/public-contact-messages.routes.js";
 import mediaCollectionRoutes from "./media-collections/media-collections.routes.js";
 import mediaCollectionItemRoutes from "./media-collection-items/media-collection-items.routes.js";
 import mediaRoutes from "./media/media.routes.js";
@@ -41,6 +43,7 @@ protectedRouter.use(
       mediaCollectionItemRoutes,
 );
 protectedRouter.use("/gallery-categories", requireAuth, galleryCategoryRoutes);
+protectedRouter.use("/contact-messages", requireAuth, contactMessagesRoutes);
 protectedRouter.use("/terms", requireAuth, termsRoutes);
 protectedRouter.use("/member-terms", requireAuth, memberTermsRoutes);
 protectedRouter.use("/partners", requireAuth, partnerRoutes);
@@ -56,6 +59,7 @@ const publicMounts = [
       ["/public/gallery", publicGalleryRoutes],
       ["/public/terms", publicTermsRoutes],
       ["/public/admin-invites", publicAdminInviteRoutes],
+      ["/public/contact-messages", publicContactMessagesRoutes],
       ["/public/auth", publicAuthRoutes],
 ] as const;
 

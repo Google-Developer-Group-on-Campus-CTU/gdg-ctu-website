@@ -110,6 +110,16 @@ export const publicApi = {
   getGalleryCategories: () => getGalleryCategoriesList(),
   getFeaturedPhotos: () => getMany('/public/gallery/featured'),
   getHealth: () => apiFetch('/health'),
+  /**
+   * Public contact form (POST /public/contact-messages → 201).
+   * Write-only: errors propagate to the caller (no 404 tolerance —
+   * a missing route is a real failure the form must surface).
+   */
+  submitContact: (body) =>
+    apiFetch('/public/contact-messages', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };
 
 /* ---------- defensive field mapping (camelCase + snake_case) ---------- */

@@ -27,6 +27,7 @@ import GalleryCategories from './pages/admin/GalleryCategories.jsx';
 import AdminTerms from './pages/admin/Terms.jsx';
 import TermDetail from './pages/admin/TermDetail.jsx';
 import AdminMedia from './pages/admin/Media.jsx';
+import AdminMessages from './pages/admin/Messages.jsx';
 import AdminSettings from './pages/admin/Settings.jsx';
 import { ADMIN_ENTITY_ROUTES } from './admin/editorial.js';
 
@@ -89,6 +90,7 @@ const ADMIN_ENTITY_PAGES = {
   galleryCategories: { list: <GalleryCategories />, detail: null },
   terms: { list: <AdminTerms />, detail: <TermDetail /> },
   media: { list: <AdminMedia />, detail: null },
+  messages: { list: <AdminMessages />, detail: null },
 };
 
 // Derive the admin entity routes from the canonical map: the list route always;

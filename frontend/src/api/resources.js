@@ -25,6 +25,9 @@ const LIST_KEYS = [
   'memberTerms',
   'categories',
   'collections',
+  'messages',
+  'contactMessages',
+  'contact_messages',
 ];
 
 /** Normalize list payloads: backend may return an array or a keyed envelope. */
@@ -55,7 +58,7 @@ export function getStatus(item) {
 
 function unwrapOne(payload) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload ?? null;
-  for (const key of ['data', 'item', 'result', 'teamMember', 'event', 'partner', 'media', 'album', 'collection', 'term', 'memberTerm', 'category']) {
+  for (const key of ['data', 'item', 'result', 'teamMember', 'event', 'partner', 'media', 'album', 'collection', 'term', 'memberTerm', 'category', 'message', 'contactMessage', 'contact_message']) {
     const value = payload[key];
     if (value && typeof value === 'object' && !Array.isArray(value)) return value;
   }
@@ -123,6 +126,8 @@ export const galleryCategoriesApi = resource('/gallery-categories');
 /** Academic-term roster: terms own the date range, member-terms link team members per term. */
 export const termsApi = resource('/terms');
 export const memberTermsApi = resource('/member-terms');
+/** Contact-form inbox: public POST lives in public.js; admin CRUD is cookie-session protected. */
+export const messagesApi = resource('/contact-messages');
 export const mediaApi = {
   ...resource('/media'),
   /**
