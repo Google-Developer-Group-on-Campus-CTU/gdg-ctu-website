@@ -114,6 +114,11 @@ export default function AdminShell() {
   // redirects unauthenticated visits to /admin/login. A second useSession +
   // <Navigate> here double-subscribed and could flash-redirect on refetch.
 
+  // adminNewTargetFor returns null on paths with no composer (dashboard,
+  // system sections) — hide the +New button there instead of linking
+  // somewhere misleading.
+  const newTarget = adminNewTargetFor(location.pathname);
+
   const nav = (
     <nav aria-label="Admin primary" className="admin-nav">
       <ul>
@@ -175,9 +180,11 @@ export default function AdminShell() {
             />
           </form>
           <Identity />
-          <Link className="gdg-btn gdg-btn-primary admin-new-btn" to={adminNewTargetFor(location.pathname)}>
-            + New
-          </Link>
+          {newTarget ? (
+            <Link className="gdg-btn gdg-btn-primary admin-new-btn" to={newTarget}>
+              + New
+            </Link>
+          ) : null}
         </header>
 
         <main className="admin-main">

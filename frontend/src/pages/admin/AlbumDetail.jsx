@@ -88,7 +88,11 @@ function normalizeItem(item = {}, collectionId = '') {
 
 export default function AlbumDetail() {
   const { id } = useParams();
-  const isNew = id === 'new';
+  // The static `/admin/gallery/albums/new` route carries no `:id` param
+  // (useParams().id is undefined there); the detail route always supplies
+  // one. A missing param therefore means "new" — without this, the new
+  // form fires albumsApi.get(undefined) and renders the error state.
+  const isNew = id === 'new' || id === undefined;
   const navigate = useNavigate();
   const summaryRef = useRef(null);
   const { data: session } = authClient.useSession();

@@ -239,13 +239,22 @@ export function adminDetailPathFor(kind, item) {
   return entry.detail(id);
 }
 
-/** Longest-prefix match of the current admin path to its section's "new" target. */
+/** Shell paths that legitimately have no composer (dashboard + system sections). */
+const ADMIN_NEWLESS_PATHS = new Set(['/admin', '/admin/invites', '/admin/users', '/admin/settings']);
+
+/**
+ * Longest-prefix match of the current admin path to its section's "new"
+ * target. Returns `null` when the path has no composer (dashboard, system
+ * sections, unknown paths) — callers hide the +New button / pass no
+ * actionTo instead of linking somewhere misleading. Only genuinely
+ * unexpected paths warn; known shell paths are silent by design.
+ */
 export function adminNewTargetFor(pathname = '') {
   const entries = Object.values(ADMIN_ENTITY_ROUTES).sort((a, b) => b.list.length - a.list.length);
   const match = entries.find((e) => pathname === e.list || pathname.startsWith(`${e.list}/`));
-  if (!match) {
-    console.warn(`[admin] adminNewTargetFor: no section matches "${pathname}" — falling back to the events composer.`);
-    return ADMIN_ENTITY_ROUTES.events.new;
+  if (match) return match.new;
+  if (!ADMIN_NEWLESS_PATHS.has(pathname)) {
+    console.warn(`[admin] adminNewTargetFor: no section matches "${pathname}" — no New target.`);
   }
-  return match.new;
+  return null;
 }

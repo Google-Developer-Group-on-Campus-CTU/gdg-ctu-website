@@ -35,7 +35,11 @@ function toForm(item = {}) {
 
 export default function PartnerDetail() {
   const { id } = useParams();
-  const isNew = id === 'new';
+  // The static `/admin/partners/new` route carries no `:id` param
+  // (useParams().id is undefined there); the detail route always supplies
+  // one. A missing param therefore means "new" — without this, the new
+  // form fires partnersApi.get(undefined) and renders the error state.
+  const isNew = id === 'new' || id === undefined;
   const navigate = useNavigate();
   const summaryRef = useRef(null);
   const methods = useEditorForm({ schema: partnerEditorSchema, defaultValues: EMPTY });

@@ -5,6 +5,7 @@ import { albumItemsApi, contentApi, eventsApi, getId, mediaApi, teamApi } from '
 import { MEDIA_ALLOW, MEDIA_MAX_BYTES, useAdminList, useDebouncedValue } from '../../admin/editorial.js';
 import { DataTable, DataTableColumnHeader } from '../../components/admin/data-table.jsx';
 import { EditorCard, EditorField, EditorFooter } from '../../components/admin/form-shell.jsx';
+import { Form } from '../../components/ui/form';
 import { EmptyState, TypedConfirm } from '../../components/admin/shared.jsx';
 
 function thumbOf(m) {
@@ -247,7 +248,11 @@ export default function AdminMedia() {
       {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
 
       <EditorCard title="Upload media" eyebrow="Media">
-        <form onSubmit={upload} aria-label="Upload media">
+        {/* FormProvider wrapper: EditorField renders shadcn FormField/FormLabel,
+            whose useFormField() reads useFormContext() — without this provider
+            the Media page crashes on render (null context destructure). */}
+        <Form {...uploadForm}>
+          <form onSubmit={upload} aria-label="Upload media">
           <div className="editor-grid">
             <EditorField
               control={uploadControl}
@@ -269,7 +274,8 @@ export default function AdminMedia() {
             </EditorField>
           </div>
           <EditorFooter saving={uploading} isNew saveLabel="Upload" publishLabel="Upload" onPublish={() => upload()} />
-        </form>
+          </form>
+        </Form>
       </EditorCard>
 
       <div className="gdg-spacer-sm" />
