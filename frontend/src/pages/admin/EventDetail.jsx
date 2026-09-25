@@ -19,15 +19,11 @@ import {
 } from '../../components/admin/form-shell.jsx';
 import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
 import { Form } from '../../components/ui/form';
-import { Input } from '../../components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select';
-import { Button } from '../../components/ui/button';
+import { MuiInput } from '../../components/admin/mui-fields.jsx';
+import MuiButton from '@mui/material/Button';
+import MuiIconButton from '@mui/material/IconButton';
+import MuiSelect from '@mui/material/Select';
+import MuiMenuItem from '@mui/material/MenuItem';
 import { Popover } from '@base-ui/react/popover';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import MediaPicker from '../../components/admin/MediaPicker.jsx';
@@ -134,9 +130,8 @@ function formatDateTime(parts) {
 /**
  * Single combined date-and-time picker: a calendar month-grid inside a
  * popover with hour + minute selection in the same popover, one
- * `YYYY-MM-DDTHH:mm` form value out. Built from the shared shadcn Button +
- * Select primitives and the Base UI popover (same stack as components/ui) —
- * no new dependency, no separate date/time rows.
+ * `YYYY-MM-DDTHH:mm` form value out. Built from MUI Button + Select and
+ * the Base UI popover — no new dependency, no separate date/time rows.
  */
 function DateTimeField({ id, value, onChange }) {
   const parts = splitDateTime(value);
@@ -211,7 +206,7 @@ function DateTimeField({ id, value, onChange }) {
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <Popover.Trigger
         id={id}
-        render={<Button variant="outline" type="button" className="justify-start font-normal" />}
+        render={<MuiButton variant="outlined" type="button" className="justify-start font-normal" />}
       >
         <Calendar className="size-4 text-muted-foreground" aria-hidden="true" />
         <span className={currentDate ? undefined : 'text-muted-foreground'}>{triggerLabel}</span>
@@ -220,13 +215,13 @@ function DateTimeField({ id, value, onChange }) {
         <Popover.Positioner side="bottom" align="start" sideOffset={4} className="isolate z-50">
           <Popover.Popup className="w-max rounded-lg bg-popover p-3 text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none">
             <div className="flex items-center justify-between">
-              <Button type="button" variant="ghost" size="icon-sm" onClick={() => shiftMonth(-1)} aria-label="Previous month">
+              <MuiIconButton type="button" size="small" onClick={() => shiftMonth(-1)} aria-label="Previous month">
                 <ChevronLeft aria-hidden="true" />
-              </Button>
+              </MuiIconButton>
               <p className="text-sm font-medium" aria-live="polite">{MONTHS[view.month - 1]} {view.year}</p>
-              <Button type="button" variant="ghost" size="icon-sm" onClick={() => shiftMonth(1)} aria-label="Next month">
+              <MuiIconButton type="button" size="small" onClick={() => shiftMonth(1)} aria-label="Next month">
                 <ChevronRight aria-hidden="true" />
-              </Button>
+              </MuiIconButton>
             </div>
             <div className="grid grid-cols-7 gap-1" role="grid" aria-label="Choose a date">
               {WEEKDAYS.map((d) => (
@@ -238,56 +233,61 @@ function DateTimeField({ id, value, onChange }) {
                 const dayDate = new Date(view.year, view.month - 1, day);
                 const isToday = dayDate.toDateString() === today.toDateString();
                 return (
-                  <Button
+                  <MuiButton
                     // eslint-disable-next-line react/no-array-index-key
                     key={`${view.year}-${view.month}-${day}`}
                     type="button"
-                    size="icon"
-                    variant={isSelected ? 'default' : isToday ? 'outline' : 'ghost'}
+                    size="small"
+                    variant={isSelected ? 'contained' : isToday ? 'outlined' : 'text'}
+                    sx={{ minWidth: 40, width: 40, height: 40, padding: 0 }}
                     aria-pressed={isSelected}
                     aria-label={dayDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
                     onClick={() => pickDay(day)}
                   >
                     {day}
-                  </Button>
+                  </MuiButton>
                 );
               })}
             </div>
             <div className="mt-3 flex items-end gap-2">
               <label className="editor-field" htmlFor={`${id}-hour`}>
                 <span className="editor-label">Hour</span>
-                <Select value={selHour || undefined} onValueChange={(v) => setTime('hour', v)}>
-                  <SelectTrigger id={`${id}-hour`}>
-                    <SelectValue placeholder="HH" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {hours.map((h) => (
-                      <SelectItem key={h} value={h}>{h}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MuiSelect
+                  id={`${id}-hour`}
+                  size="small"
+                  value={selHour ?? ''}
+                  displayEmpty
+                  renderValue={(v) => v || 'HH'}
+                  onChange={(e) => setTime('hour', e.target.value)}
+                >
+                  {hours.map((h) => (
+                    <MuiMenuItem key={h} value={h}>{h}</MuiMenuItem>
+                  ))}
+                </MuiSelect>
               </label>
               <span className="pb-2 text-sm text-muted-foreground" aria-hidden="true">:</span>
               <label className="editor-field" htmlFor={`${id}-minute`}>
                 <span className="editor-label">Minute</span>
-                <Select value={selMinute || undefined} onValueChange={(v) => setTime('minute', v)}>
-                  <SelectTrigger id={`${id}-minute`}>
-                    <SelectValue placeholder="MM" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {minutes.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MuiSelect
+                  id={`${id}-minute`}
+                  size="small"
+                  value={selMinute ?? ''}
+                  displayEmpty
+                  renderValue={(v) => v || 'MM'}
+                  onChange={(e) => setTime('minute', e.target.value)}
+                >
+                  {minutes.map((m) => (
+                    <MuiMenuItem key={m} value={m}>{m}</MuiMenuItem>
+                  ))}
+                </MuiSelect>
               </label>
               <span className="flex-1" aria-hidden="true" />
-              <Button type="button" variant="ghost" size="sm" onClick={() => { onChange(''); setOpen(false); }}>
+              <MuiButton type="button" variant="text" size="small" onClick={() => { onChange(''); setOpen(false); }}>
                 Clear
-              </Button>
-              <Button type="button" size="sm" onClick={() => setOpen(false)}>
+              </MuiButton>
+              <MuiButton type="button" variant="contained" size="small" onClick={() => setOpen(false)}>
                 Done
-              </Button>
+              </MuiButton>
             </div>
           </Popover.Popup>
         </Popover.Positioner>
@@ -512,13 +512,13 @@ export default function EventDetail() {
             <EditorErrors errors={rhfErrors} serverError={serverError} summaryRef={summaryRef} />
             {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
             <EditorField control={control} name="title" label="Title" required>
-              {(field) => <Input {...field} placeholder="e.g. Build with AI Workshop" />}
+              {(field) => <MuiInput field={field} placeholder="e.g. Build with AI Workshop" />}
             </EditorField>
             {previewSlug ? (
               <p className="admin-muted" aria-live="polite">/events/{previewSlug}</p>
             ) : null}
             <EditorField control={control} name="short_description" label="Short description">
-              {(field) => <Input {...field} value={field.value ?? ''} placeholder="e.g. Intro AI workshop for students" />}
+              {(field) => <MuiInput field={field} value={field.value ?? ''} placeholder="e.g. Intro AI workshop for students" />}
             </EditorField>
             <EditorField control={control} name="description" label="Description (markdown)" required>
               {(field) => <textarea {...field} value={field.value ?? ''} rows={6} />}
@@ -548,7 +548,7 @@ export default function EventDetail() {
               name="location"
               label="Location"
             >
-              {(field) => <Input {...field} value={field.value ?? ''} placeholder="e.g. CTU Main Campus, Cebu City" />}
+              {(field) => <MuiInput field={field} value={field.value ?? ''} placeholder="e.g. CTU Main Campus, Cebu City" />}
             </EditorField>
             {embedUrl ? (
               <div>
@@ -565,10 +565,10 @@ export default function EventDetail() {
             ) : null}
             <div className="editor-grid">
               <EditorField control={control} name="externalUrl" label="External link" required>
-                {(field) => <Input {...field} value={field.value ?? ''} placeholder="https://…" />}
+                {(field) => <MuiInput field={field} value={field.value ?? ''} placeholder="https://…" />}
               </EditorField>
               <EditorField control={control} name="timezone" label="Timezone" required>
-                {(field) => <Input {...field} value={field.value ?? ''} placeholder="Asia/Manila" />}
+                {(field) => <MuiInput field={field} value={field.value ?? ''} placeholder="Asia/Manila" />}
               </EditorField>
             </div>
             <div className="editor-grid">

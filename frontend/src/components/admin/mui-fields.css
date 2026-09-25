@@ -1,0 +1,79 @@
+/* Mechanical MUI migration — neutralize the native-field rules for MUI
+   internals so the MUI outlined control (fieldset) owns border/padding.
+   No new visual decisions: the reset restores MUI defaults, M3 tokens still
+   come from mui-theme.jsx + the existing --m3-* roles. Specificity beats
+   `.admin-field input` (0,1,1), `.editor-field input…` (0,1,1), and the
+   `:focus` / `[aria-invalid]` variants (0,2,1 / 0,2,0). */
+
+.admin-field .mui-field .MuiOutlinedInput-input,
+.editor-field .mui-field .MuiOutlinedInput-input,
+.admin-toolbar .mui-field .MuiOutlinedInput-input {
+  width: 100%;
+  min-height: 0;
+  padding: 16px 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  font: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--m3-on-surface);
+}
+
+.admin-field .mui-field .MuiInputBase-sizeSmall > .MuiOutlinedInput-input,
+.admin-toolbar .mui-field .MuiInputBase-sizeSmall > .MuiOutlinedInput-input,
+.editor-field .mui-field .MuiInputBase-sizeSmall > .MuiOutlinedInput-input {
+  padding: 8.5px 14px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.admin-field .mui-field .MuiOutlinedInput-input:hover,
+.editor-field .mui-field .MuiOutlinedInput-input:hover,
+.admin-toolbar .mui-field .MuiOutlinedInput-input:hover {
+  border-color: transparent;
+}
+
+.admin-field .mui-field .MuiOutlinedInput-input:focus,
+.editor-field .mui-field .MuiOutlinedInput-input:focus,
+.admin-toolbar .mui-field .MuiOutlinedInput-input:focus {
+  outline: none;
+  border-color: transparent;
+}
+
+.admin-field .mui-field .MuiOutlinedInput-input[aria-invalid='true'],
+.editor-field .mui-field .MuiOutlinedInput-input[aria-invalid='true'] {
+  border: 0;
+}
+
+/* Keep the M3 placeholder token (matches the native placeholder rules). */
+.admin-field .mui-field .MuiOutlinedInput-input::placeholder,
+.editor-field .mui-field .MuiOutlinedInput-input::placeholder,
+.admin-toolbar .mui-field .MuiOutlinedInput-input::placeholder {
+  color: var(--m3-on-surface-variant);
+  opacity: 1;
+}
+
+/* MUI roots inherit the surrounding type (matters outside the admin
+   ThemeProvider, e.g. public Contact form on the default MUI theme). */
+.mui-field.MuiTextField-root,
+.mui-field .MuiInputBase-root {
+  font: inherit;
+}
+
+.mui-field.MuiTextField-root {
+  width: 100%;
+}
+
+.admin-toolbar .mui-search-field.MuiTextField-root {
+  min-width: 13rem;
+  flex: 1 1 0%;
+}
+
+@media (min-width: 640px) {
+  .admin-toolbar .mui-search-field.MuiTextField-root {
+    max-width: 320px;
+  }
+}

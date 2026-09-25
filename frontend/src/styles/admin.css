@@ -113,10 +113,25 @@
     align-items: center;
     gap: 4px;
     padding: 8px 4px;
-    width: 56px;
+    width: 64px;
     min-height: 56px;
     height: auto;
     text-align: center;
+  }
+  /* Collapsed rail keeps the icon-only active pill */
+  .admin-shell--collapsed .admin-nav-link.is-active,
+  .admin-shell--collapsed .admin-nav-link.is-active:hover { background: transparent; }
+  /* Collapsed rail keeps the icon-only hover pill (no full-row wash) */
+  .admin-shell--collapsed .admin-nav-link:not(.is-active):hover,
+  .admin-shell--collapsed .admin-nav-link:not(.is-active):focus-visible { background: transparent; }
+  .admin-shell--collapsed .admin-nav-link:not(.is-active):hover .admin-nav-icon,
+  .admin-shell--collapsed .admin-nav-link:not(.is-active):focus-visible .admin-nav-icon {
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+  }
+  .admin-shell--collapsed .admin-nav-icon { width: 64px; height: 32px; }
+  .admin-shell--collapsed .admin-nav-link.is-active .admin-nav-icon {
+    background: var(--m3-secondary-container);
+    color: var(--m3-on-secondary-container);
   }
   .admin-shell--collapsed .admin-nav-label { display: block !important; font-size: var(--m3-typescale-label-small-size); line-height: var(--m3-typescale-label-small-line); max-width: 72px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .admin-shell--collapsed .admin-nav ul { justify-items: center; gap: 8px; }
@@ -247,7 +262,7 @@
 
 /* admin-brand removed per M3 spec — header now hamburger + nav only, no brand text */
 
-/* M3 Navigation drawer items : 56dp, icon-only pill (user override) */
+/* M3 Navigation drawer items : 56dp row pill (expanded) / icon-only pill (rail/collapsed) */
 .admin-nav ul {
   list-style: none;
   margin: 4px 0 0;
@@ -262,7 +277,7 @@
   gap: 12px;
   min-height: 56px;
   padding: 0 24px 0 16px;
-  border-radius: 0;
+  border-radius: var(--m3-shape-corner-full);
   color: var(--m3-on-surface-variant);
   text-decoration: none;
   font-size: 14px;
@@ -272,12 +287,38 @@
   position: relative;
   background: transparent;
   transition: background var(--m3-motion-duration-short) var(--m3-motion-easing-standard),
-              color var(--m3-motion-duration-short) var(--m3-motion-easing-standard);
+              color var(--m3-motion-duration-short) var(--m3-motion-easing-standard),
+              transform var(--m3-motion-duration-short) var(--m3-motion-easing-standard);
 }
 
-.admin-nav-link:hover {
+.admin-nav-link:not(.is-active):hover {
   background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
   color: var(--m3-on-surface);
+}
+
+.admin-nav-link:not(.is-active):hover .admin-nav-icon {
+  background: transparent;
+  color: var(--m3-on-surface);
+  transform: scale(1.12);
+}
+
+/* Keyboard parity: focus gets the same row-pill highlight as hover */
+.admin-nav-link:not(.is-active):focus-visible {
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+  color: var(--m3-on-surface);
+}
+.admin-nav-link:not(.is-active):focus-visible .admin-nav-icon {
+  background: transparent;
+  color: var(--m3-on-surface);
+  transform: scale(1.12);
+}
+
+/* Pressed: tactile shrink on the row + icon, springs back on release */
+.admin-nav-link:active {
+  transform: scale(0.97);
+}
+.admin-nav-link:active .admin-nav-icon {
+  transform: scale(0.92);
 }
 
 .admin-nav-link:focus-visible {
@@ -285,20 +326,35 @@
   outline-offset: 2px;
 }
 
-/* Icon-only active indicator: pill lives on the icon, label stays bare */
+/* Entrance: nav items cascade in once when the shell mounts (stagger restarts per group) */
+@keyframes admin-nav-item-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: none; }
+}
+.admin-nav ul > li {
+  animation: admin-nav-item-in var(--m3-motion-duration-medium) var(--m3-motion-easing-emphasized) backwards;
+}
+.admin-nav ul > li:nth-child(2) { animation-delay: 30ms; }
+.admin-nav ul > li:nth-child(3) { animation-delay: 60ms; }
+.admin-nav ul > li:nth-child(4) { animation-delay: 90ms; }
+.admin-nav ul > li:nth-child(5) { animation-delay: 120ms; }
+.admin-nav ul > li:nth-child(6) { animation-delay: 150ms; }
+.admin-nav ul > li:nth-child(n+7) { animation-delay: 180ms; }
+
+/* Expanded drawer active indicator: full-width row pill (rail/collapsed use icon-only pill, scoped below) */
 .admin-nav-link.is-active {
-  background: transparent;
-  color: var(--m3-on-surface);
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
   font-weight: 700;
 }
 
 .admin-nav-link.is-active:hover {
-  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+  background: var(--m3-secondary-container);
 }
 
 .admin-nav-icon {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--m3-shape-corner-full);
   display: inline-flex;
   align-items: center;
@@ -307,13 +363,15 @@
   background: transparent;
   color: var(--m3-on-surface-variant);
   transition: background var(--m3-motion-duration-short) var(--m3-motion-easing-standard),
-              color var(--m3-motion-duration-short) var(--m3-motion-easing-standard);
+              color var(--m3-motion-duration-short) var(--m3-motion-easing-standard),
+              transform var(--m3-motion-duration-short) var(--m3-motion-easing-standard);
 }
 
 .admin-nav-link.is-active .admin-nav-icon {
-  background: var(--m3-secondary-container);
-  color: var(--m3-on-secondary-container);
+  background: transparent;
+  color: inherit;
   opacity: 1;
+  transform: scale(1.06);
 }
 
 .admin-nav-link:not(.is-active) .admin-nav-icon {
@@ -1342,12 +1400,27 @@
     align-items: center;
     gap: 4px;
     padding: 8px 4px;
-    width: 56px;
+    width: 64px;
     min-height: 56px;
     height: auto;
     border-radius: 0;
     background: transparent;
     text-align: center;
+  }
+  /* Rail keeps the icon-only active pill */
+  .admin-nav-link.is-active,
+  .admin-nav-link.is-active:hover { background: transparent; }
+  /* Rail keeps the icon-only hover pill (no full-row wash) */
+  .admin-nav-link:not(.is-active):hover,
+  .admin-nav-link:not(.is-active):focus-visible { background: transparent; }
+  .admin-nav-link:not(.is-active):hover .admin-nav-icon,
+  .admin-nav-link:not(.is-active):focus-visible .admin-nav-icon {
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+  }
+  .admin-nav-icon { width: 64px; height: 32px; }
+  .admin-nav-link.is-active .admin-nav-icon {
+    background: var(--m3-secondary-container);
+    color: var(--m3-on-secondary-container);
   }
   .admin-nav-link span:not(.admin-nav-icon) {
     display: block;
@@ -1535,6 +1608,16 @@
   .admin-shell [data-slot="skeleton"] {
     animation: none !important;
   }
+}
+
+/* Theme-toggle wipe (View Transitions API): disable the default crossfade
+   so only the JS-driven circular clip-path wipe from the toggle button
+   shows. This stylesheet loads only in the admin tree (AdminShell), so the
+   public site is unaffected. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }
 
 

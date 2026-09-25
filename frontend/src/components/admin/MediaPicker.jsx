@@ -5,6 +5,7 @@ import { pickImage, safeSrc } from '../../api/public.js';
 import { ADMIN_ENTITY_ROUTES } from '../../admin/editorial.js';
 import { hideImage } from './shared.jsx';
 import { ErrorState, Field, LoadingSkeleton, inputProps } from './shared.jsx';
+import { MuiSearchField } from './mui-fields.jsx';
 
 function shortId(id) {
   const text = String(id ?? '');
@@ -88,11 +89,10 @@ export default function MediaPicker({ id, label, hint, error, required, value = 
   return (
     <Field label={label} hint={hint} error={error} htmlFor={id} required={required}>
       <div className="admin-toolbar">
-        <input
-          {...inputProps(id, error)}
-          type="search"
+        <MuiSearchField
+          inputProps={inputProps(id, error)}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={setQuery}
           placeholder="Search filename, alt, or ID"
         />
         <Link to={ADMIN_ENTITY_ROUTES.media.list} className="gdg-btn gdg-btn-secondary">

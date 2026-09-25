@@ -112,6 +112,9 @@ export default function Navbar() {
           <NavLink to="/gallery" className={navLinkClass}>
             Gallery
           </NavLink>
+          <NavLink to="/contact" className={navLinkClass}>
+            Contact
+          </NavLink>
         </nav>
 
         <a
@@ -147,6 +150,9 @@ export default function Navbar() {
         </NavLink>
         <NavLink to="/gallery" className={navLinkClass} onClick={close}>
           Gallery
+        </NavLink>
+        <NavLink to="/contact" className={navLinkClass} onClick={close}>
+          Contact
         </NavLink>
         <a href={JOIN_FORM_URL} target="_blank" rel="noreferrer" onClick={close}>
           Join Us

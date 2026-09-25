@@ -16,7 +16,7 @@ import {
 } from '../../components/admin/form-shell.jsx';
 import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
 import { Form } from '../../components/ui/form';
-import { Input } from '../../components/ui/input';
+import { MuiInput } from '../../components/admin/mui-fields.jsx';
 import MediaPicker from '../../components/admin/MediaPicker.jsx';
 
 const EMPTY = {
@@ -165,10 +165,10 @@ export default function TeamDetail() {
             {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
             <div className="editor-grid">
               <EditorField control={control} name="firstName" label="First name" required>
-                {(field) => <Input {...field} />}
+                {(field) => <MuiInput field={field} />}
               </EditorField>
               <EditorField control={control} name="lastName" label="Last name" required>
-                {(field) => <Input {...field} />}
+                {(field) => <MuiInput field={field} />}
               </EditorField>
               <EditorField
                 control={control}
@@ -177,10 +177,10 @@ export default function TeamDetail() {
                 required
                 hint={slugCheckError ?? (slugDup ? 'Slug is already in use.' : 'Auto-fills from name until edited.')}
               >
-                {(field) => <Input {...field} onChange={(e) => { setSlugTouched(true); field.onChange(slugify(e.target.value)); }} />}
+                {(field) => <MuiInput field={field} onChange={(e) => { setSlugTouched(true); field.onChange(slugify(e.target.value)); }} />}
               </EditorField>
               <EditorField control={control} name="roleTitle" label="Role title (≤ 80)" required>
-                {(field) => <Input {...field} maxLength={80} />}
+                {(field) => <MuiInput field={field} maxLength={80} />}
               </EditorField>
             </div>
             <EditorField control={control} name="bio" label="Bio">
@@ -188,13 +188,13 @@ export default function TeamDetail() {
             </EditorField>
             <div className="editor-grid">
               <EditorField control={control} name="department" label="Department (nullable)">
-                {(field) => <Input {...field} value={field.value ?? ''} />}
+                {(field) => <MuiInput field={field} value={field.value ?? ''} />}
               </EditorField>
               <EditorField control={control} name="program" label="Program (nullable)">
-                {(field) => <Input {...field} value={field.value ?? ''} />}
+                {(field) => <MuiInput field={field} value={field.value ?? ''} />}
               </EditorField>
               <EditorField control={control} name="yearSection" label="Year / section (nullable)">
-                {(field) => <Input {...field} value={field.value ?? ''} />}
+                {(field) => <MuiInput field={field} value={field.value ?? ''} />}
               </EditorField>
             </div>
             <EditorField
@@ -217,12 +217,12 @@ export default function TeamDetail() {
               )}
             </EditorField>
             <EditorField control={control} name="profileAlt" label="Photo alt text">
-              {(field) => <Input {...field} value={field.value ?? ''} />}
+              {(field) => <MuiInput field={field} value={field.value ?? ''} />}
             </EditorField>
             <div className="editor-grid">
               {['linkedin_url', 'github_url', 'website_url'].map((key) => (
                 <EditorField key={key} control={control} name={key} label={key.replace('_', ' ')}>
-                  {(field) => <Input {...field} value={field.value ?? ''} placeholder="https://…" />}
+                  {(field) => <MuiInput field={field} value={field.value ?? ''} placeholder="https://…" />}
                 </EditorField>
               ))}
             </div>

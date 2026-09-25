@@ -16,7 +16,7 @@ import {
 } from '../../components/admin/form-shell.jsx';
 import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
 import { Form } from '../../components/ui/form';
-import { Input } from '../../components/ui/input';
+import { MuiInput } from '../../components/admin/mui-fields.jsx';
 import MediaPicker from '../../components/admin/MediaPicker.jsx';
 
 const EMPTY = { name: '', slug: '', logoMediaId: '', logoAlt: '', websiteUrl: '', tier: 'community', description: '', display_order: 0, is_active: true, status: 'draft' };
@@ -139,7 +139,7 @@ export default function PartnerDetail() {
             {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
             <div className="editor-grid">
               <EditorField control={control} name="name" label="Name" required>
-                {(field) => <Input {...field} />}
+                {(field) => <MuiInput field={field} />}
               </EditorField>
               <EditorField
                 control={control}
@@ -148,7 +148,7 @@ export default function PartnerDetail() {
                 required
                 hint={slugCheckError ?? (slugDup ? 'Slug is already in use.' : 'Auto-fills from name until edited.')}
               >
-                {(field) => <Input {...field} onChange={(e) => { setSlugTouched(true); field.onChange(slugify(e.target.value)); }} />}
+                {(field) => <MuiInput field={field} onChange={(e) => { setSlugTouched(true); field.onChange(slugify(e.target.value)); }} />}
               </EditorField>
             </div>
             <div className="editor-grid">
@@ -173,12 +173,12 @@ export default function PartnerDetail() {
                 )}
               </EditorField>
               <EditorField control={control} name="logoAlt" label="Logo alt text" required>
-                {(field) => <Input {...field} value={field.value ?? ''} />}
+                {(field) => <MuiInput field={field} value={field.value ?? ''} />}
               </EditorField>
             </div>
             <div className="editor-grid">
               <EditorField control={control} name="websiteUrl" label="Website (https)">
-                {(field) => <Input {...field} value={field.value ?? ''} placeholder="https://…" />}
+                {(field) => <MuiInput field={field} value={field.value ?? ''} placeholder="https://…" />}
               </EditorField>
               <EditorField control={control} name="tier" label="Tier" required plain>
                 {(field) => (

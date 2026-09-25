@@ -17,7 +17,12 @@ import {
 } from '../../components/admin/form-shell.jsx';
 import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
 import { Form } from '../../components/ui/form';
-import { Input } from '../../components/ui/input';
+import { MuiInput } from '../../components/admin/mui-fields.jsx';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
 import { authClient } from '../../lib/auth-client';
 
 const EMPTY = { title: '', slug: '', coverMediaId: '', eventId: '', categoryId: '', date: '', description: '', is_featured: false, is_active: true };
@@ -360,7 +365,7 @@ export default function AlbumDetail() {
               {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
               <div className="editor-grid">
                 <EditorField control={control} name="title" label="Title" required>
-                  {(field) => <Input {...field} />}
+                  {(field) => <MuiInput field={field} />}
                 </EditorField>
                 <EditorField
                   control={control}
@@ -369,17 +374,17 @@ export default function AlbumDetail() {
                   required
                   hint={slugCheckError ?? (slugDup ? 'Slug is already in use.' : 'Auto-fills from title until edited.')}
                 >
-                  {(field) => <Input {...field} onChange={(e) => { setSlugTouched(true); field.onChange(slugify(e.target.value)); }} />}
+                  {(field) => <MuiInput field={field} onChange={(e) => { setSlugTouched(true); field.onChange(slugify(e.target.value)); }} />}
                 </EditorField>
               </div>
               <div className="editor-grid">
                 <EditorField control={control} name="coverMediaId" label="Cover media ID" required>
-                  {(field) => <Input {...field} value={field.value ?? ''} />}
+                  {(field) => <MuiInput field={field} value={field.value ?? ''} />}
                 </EditorField>
               </div>
               <div className="editor-grid">
                 <EditorField control={control} name="eventId" label="Linked event ID (optional)">
-                  {(field) => <Input {...field} value={field.value ?? ''} />}
+                  {(field) => <MuiInput field={field} value={field.value ?? ''} />}
                 </EditorField>
                 <EditorField
                   control={control}
@@ -438,25 +443,25 @@ export default function AlbumDetail() {
                 </div>
                 {photos.length === 0 ? null : (
                   <div className="admin-table-wrap">
-                    <table className="admin-table">
-                      <thead><tr><th scope="col">Media</th><th scope="col">Order</th><th scope="col">Featured</th><th scope="col">Actions</th></tr></thead>
-                      <tbody>
+                    <Table className="admin-table">
+                      <TableHead><TableRow><TableCell scope="col">Media</TableCell><TableCell scope="col">Order</TableCell><TableCell scope="col">Featured</TableCell><TableCell scope="col">Actions</TableCell></TableRow></TableHead>
+                      <TableBody>
                         {photos.map((p, i) => (
-                          <tr key={p.media_id ?? i}>
-                            <td>{p.caption ?? mediaName(p.media_id ?? p.mediaId)}</td>
-                            <td>{p.order ?? i}</td>
-                            <td>
+                          <TableRow key={p.media_id ?? i}>
+                            <TableCell>{p.caption ?? mediaName(p.media_id ?? p.mediaId)}</TableCell>
+                            <TableCell>{p.order ?? i}</TableCell>
+                            <TableCell>
                               <input type="checkbox" checked={!!p.is_featured} disabled={saving} onChange={() => toggleFeaturePhoto(p)} aria-label={`Feature photo ${i + 1}`} />
-                            </td>
-                            <td>
+                            </TableCell>
+                            <TableCell>
                               <button type="button" onClick={() => movePhoto(i, -1)} disabled={saving || i === 0} aria-label={`Move photo ${i + 1} up`}>↑</button>{' '}
                               <button type="button" onClick={() => movePhoto(i, 1)} disabled={saving || i === photos.length - 1} aria-label={`Move photo ${i + 1} down`}>↓</button>{' '}
                               <button type="button" onClick={() => removePhoto(p)} disabled={saving}>Remove</button>
-                            </td>
-                          </tr>
+                            </TableCell>
+                          </TableRow>
                         ))}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </>

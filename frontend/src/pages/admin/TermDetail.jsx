@@ -16,7 +16,12 @@ import {
 } from '../../components/admin/form-shell.jsx';
 import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
 import { Form } from '../../components/ui/form';
-import { Input } from '../../components/ui/input';
+import { MuiInput } from '../../components/admin/mui-fields.jsx';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
 import MediaPicker from '../../components/admin/MediaPicker.jsx';
 
 const EMPTY = { name: '', startDate: '', endDate: '', isCurrent: false };
@@ -280,7 +285,7 @@ export default function TermDetail() {
             <EditorErrors errors={rhfErrors} serverError={serverError} summaryRef={summaryRef} />
             {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
             <EditorField control={control} name="name" label="Name (≤ 20 chars)" required>
-              {(field) => <Input {...field} maxLength={20} />}
+              {(field) => <MuiInput field={field} maxLength={20} />}
             </EditorField>
             <div className="editor-grid">
               <EditorField control={control} name="startDate" label="Start date" required>
@@ -338,36 +343,36 @@ export default function TermDetail() {
             ) : null}
             {!rosterLoading && !rosterError && assignments.length > 0 ? (
               <div className="admin-table-wrap">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Member</th>
-                      <th scope="col">Role</th>
-                      <th scope="col">Order</th>
-                      <th scope="col">Active</th>
-                      <th scope="col">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table className="admin-table">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell scope="col">Member</TableCell>
+                      <TableCell scope="col">Role</TableCell>
+                      <TableCell scope="col">Order</TableCell>
+                      <TableCell scope="col">Active</TableCell>
+                      <TableCell scope="col">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
                     {assignments.map((a, i) => {
                       const rid = getId(a);
                       const memberId = a.memberId ?? a.member_id;
                       const member = memberById(memberId);
                       const active = (a.isActive ?? a.is_active) !== false;
                       return (
-                        <tr key={rid ?? `${memberId}-${i}`}>
-                          <td>{member ? memberName(member) : <span className="admin-muted">{String(memberId ?? '').slice(0, 8)}…</span>}</td>
-                          <td>{a.role || '—'}</td>
-                          <td>{a.displayOrder ?? a.display_order ?? 0}</td>
-                          <td>
+                        <TableRow key={rid ?? `${memberId}-${i}`}>
+                          <TableCell>{member ? memberName(member) : <span className="admin-muted">{String(memberId ?? '').slice(0, 8)}…</span>}</TableCell>
+                          <TableCell>{a.role || '—'}</TableCell>
+                          <TableCell>{a.displayOrder ?? a.display_order ?? 0}</TableCell>
+                          <TableCell>
                             <Toggle
                               id={`roster-active-${rid ?? i}`}
                               label="Active in term"
                               checked={active}
                               onChange={(v) => toggleAssignmentActive(a, v)}
                             />
-                          </td>
-                          <td>
+                          </TableCell>
+                          <TableCell>
                             <button
                               type="button"
                               className="gdg-btn gdg-btn-secondary admin-danger"
@@ -376,12 +381,12 @@ export default function TermDetail() {
                             >
                               Remove
                             </button>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             ) : null}
             <form onSubmit={(e) => handleAssignSubmit(assign, () => focusEditorErrors(rosterSummaryRef))(e)} noValidate>
@@ -399,7 +404,7 @@ export default function TermDetail() {
                   )}
                 </EditorField>
                 <EditorField control={assignControl} name="role" label="Role" required>
-                  {(field) => <Input {...field} value={field.value ?? ''} placeholder="e.g. Lead, Core member" />}
+                  {(field) => <MuiInput field={field} value={field.value ?? ''} placeholder="e.g. Lead, Core member" />}
                 </EditorField>
               </div>
               <div className="editor-grid">

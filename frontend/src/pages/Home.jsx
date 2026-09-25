@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Controller } from 'react-hook-form';
+import TextField from '@mui/material/TextField';
+import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
 import {
   formatDate,
   mapAlbum,
@@ -11,6 +15,7 @@ import {
   usePublicFeed,
 } from '../api/public.js';
 import { FeedSkeleton, friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
+import { useContactForm } from '../components/contact-form.js';
 import '../styles/home.css';
 
 const pillars = [
@@ -375,6 +380,160 @@ function PartnersStrip() {
 
 const MOMENT_CHIP_COLORS = ['red', 'blue', 'green', 'yellow'];
 
+function HomeContactStrip() {
+  const { form, sending, sent, submitError, statusRef, onSubmit, showForm } = useContactForm();
+  const { control } = form;
+
+  return (
+    <section id="contact" className="jh-contact section-frame" aria-label="Contact us">
+      <div className="section-rule" />
+      <div className="section-heading compact">
+        <h2>Get in Touch</h2>
+        <p>
+          Questions or ideas? Send us a message
+          <br />
+          and we will get back to you.
+        </p>
+      </div>
+      <div className="cta-card">
+        <div className="window-dots" aria-hidden="true">
+          <i className="red" />
+          <i className="blue" />
+          <i className="green" />
+          <i className="yellow" />
+        </div>
+        {sent ? (
+          <div>
+            <Alert ref={statusRef} tabIndex={-1} severity="success" sx={{ mb: 2 }}>
+              <AlertTitle>Message sent</AlertTitle>
+              Thanks for reaching out — we will get back to you soon.
+            </Alert>
+            <p className="contact-actions">
+              <button type="button" className="small-green-btn" onClick={showForm}>
+                Send another message
+              </button>
+            </p>
+          </div>
+        ) : (
+          <form className="contact-form" onSubmit={onSubmit} noValidate aria-label="Contact form">
+            {submitError ? (
+              <Alert ref={statusRef} tabIndex={-1} severity="error" sx={{ mb: 2 }}>
+                {submitError}
+              </Alert>
+            ) : null}
+            <div className="contact-grid">
+              <div className="contact-field">
+                <Controller
+                  name="name"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      id="home-contact-name"
+                      label="Name"
+                      placeholder="Your name"
+                      autoComplete="name"
+                      required
+                      fullWidth
+                      variant="outlined"
+                      disabled={sending}
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                      slotProps={fieldState.error ? { formHelperText: { role: 'alert' } } : undefined}
+                    />
+                  )}
+                />
+              </div>
+              <div className="contact-field">
+                <Controller
+                  name="email"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      id="home-contact-email"
+                      label="Email"
+                      placeholder="you@example.com"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      fullWidth
+                      variant="outlined"
+                      disabled={sending}
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                      slotProps={fieldState.error ? { formHelperText: { role: 'alert' } } : undefined}
+                    />
+                  )}
+                />
+              </div>
+            </div>
+            <div className="contact-field">
+              <Controller
+                name="subject"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    id="home-contact-subject"
+                    label="Subject"
+                    placeholder="What is this about?"
+                    fullWidth
+                    variant="outlined"
+                    disabled={sending}
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message ?? 'Optional'}
+                    slotProps={fieldState.error ? { formHelperText: { role: 'alert' } } : undefined}
+                    inputProps={{ maxLength: 255 }}
+                  />
+                )}
+              />
+            </div>
+            <div className="contact-field">
+              <Controller
+                name="message"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    id="home-contact-message"
+                    label="Message"
+                    placeholder="How can we help?"
+                    multiline
+                    minRows={5}
+                    fullWidth
+                    variant="outlined"
+                    required
+                    disabled={sending}
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    slotProps={fieldState.error ? { formHelperText: { role: 'alert' } } : undefined}
+                    inputProps={{ maxLength: 2000 }}
+                  />
+                )}
+              />
+            </div>
+            <p className="contact-actions">
+              <button
+                type="submit"
+                className="small-green-btn"
+                disabled={sending}
+                aria-busy={sending}
+              >
+                {sending ? 'Sending…' : (
+                  <>
+                    Send message <span className="arrow-icon">↗</span>
+                  </>
+                )}
+              </button>
+            </p>
+          </form>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function MomentsStrip() {
   const { data: categoryData } = usePublicFeed(
     () => publicApi.getGalleryCategories().then((rows) => rows.map(mapGalleryCategory)),
@@ -673,6 +832,8 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      <HomeContactStrip />
     </div>
   );
 }

@@ -8,25 +8,22 @@ import {
   useLegacyTable as useReactTable,
 } from '@tanstack/react-table/legacy';
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Card, CardContent } from '../ui/card';
-import { Input } from '../ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
-import { Skeleton } from '../ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../ui/table';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import Skeleton from '@mui/material/Skeleton';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TablePagination from '@mui/material/TablePagination';
+import TableRow from '@mui/material/TableRow';
+import { MuiSearchField } from './mui-fields.jsx';
 
 const WRAPPER_CLASS =
   'overflow-hidden rounded-[4px] border border-[var(--m3-outline-variant)] bg-[var(--m3-surface)]';
@@ -48,10 +45,11 @@ export function DataTableColumnHeader({ column, title }) {
   return (
     <Button
       type="button"
-      variant="ghost"
-      size="sm"
+      variant="text"
+      size="small"
       onClick={() => column.toggleSorting(sorted === 'asc')}
       className="-ml-3 flex h-12 min-h-[48px] min-w-[48px] items-center gap-2 rounded-full px-3 text-[14px] leading-5 font-medium"
+      sx={{ minWidth: 48, color: 'var(--m3-on-surface-variant)' }}
       aria-label={`Sort by ${title}${sorted === 'asc' ? ' (sorted ascending)' : sorted === 'desc' ? ' (sorted descending)' : ''}`}
     >
       {title}
@@ -66,15 +64,17 @@ export function DataTableColumnHeader({ column, title }) {
 function DefaultEmptyState({ title, hint }) {
   return (
     <Card className={WRAPPER_CLASS}>
-      <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-        <span
-          className="flex size-12 items-center justify-center rounded-full bg-[var(--m3-secondary-container)] text-[var(--m3-on-secondary-container)]"
-          aria-hidden="true"
-        >
-          <Search className="size-6" />
-        </span>
-        <p className="font-heading text-[22px] leading-7 font-normal text-[var(--m3-on-surface)]">{title}</p>
-        {hint ? <p className="text-sm text-[var(--m3-on-surface-variant)] max-w-[40ch]">{hint}</p> : null}
+      <CardContent sx={{ padding: 0, '&:last-child': { paddingBottom: 0 } }}>
+        <div className="flex flex-col items-center gap-3 py-10 text-center">
+          <span
+            className="flex size-12 items-center justify-center rounded-full bg-[var(--m3-secondary-container)] text-[var(--m3-on-secondary-container)]"
+            aria-hidden="true"
+          >
+            <Search className="size-6" aria-hidden="true" />
+          </span>
+          <p className="font-heading text-[22px] leading-7 font-normal text-[var(--m3-on-surface)]">{title}</p>
+          {hint ? <p className="text-sm text-[var(--m3-on-surface-variant)] max-w-[40ch]">{hint}</p> : null}
+        </div>
       </CardContent>
     </Card>
   );
@@ -83,19 +83,21 @@ function DefaultEmptyState({ title, hint }) {
 function DefaultErrorState({ error, onRetry, requestId }) {
   return (
     <Card className={WRAPPER_CLASS}>
-      <CardContent className="flex flex-col items-start gap-3 py-8">
-        <div role="alert" className="flex flex-col gap-1">
-          <p className="font-heading text-[16px] font-medium text-[var(--m3-on-surface)]">Something went wrong</p>
-          <p className="text-sm text-[var(--m3-on-surface-variant)]">{friendlyTableError(error)}</p>
-          {requestId ? (
-            <p className="text-xs text-[var(--m3-on-surface-variant)]">Request ID: {requestId}</p>
+      <CardContent sx={{ padding: 0, '&:last-child': { paddingBottom: 0 } }}>
+        <div className="flex flex-col items-start gap-3 py-8 px-4">
+          <div role="alert" className="flex flex-col gap-1">
+            <p className="font-heading text-[16px] font-medium text-[var(--m3-on-surface)]">Something went wrong</p>
+            <p className="text-sm text-[var(--m3-on-surface-variant)]">{friendlyTableError(error)}</p>
+            {requestId ? (
+              <p className="text-xs text-[var(--m3-on-surface-variant)]">Request ID: {requestId}</p>
+            ) : null}
+          </div>
+          {onRetry ? (
+            <Button type="button" variant="outlined" size="small" className="rounded-full" onClick={onRetry}>
+              Retry
+            </Button>
           ) : null}
         </div>
-        {onRetry ? (
-          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onRetry}>
-            Retry
-          </Button>
-        ) : null}
       </CardContent>
     </Card>
   );
@@ -189,10 +191,16 @@ export function DataTable({
   const total = manualPagination
     ? (rowCount ?? data.length)
     : table.getFilteredRowModel().rows.length;
-  const from = total === 0 ? 0 : pageIndex * pageSize + 1;
-  const to = manualPagination
-    ? pageIndex * pageSize + visibleRows.length
-    : Math.min((pageIndex + 1) * pageSize, total);
+
+  // Clamp the page after deletions shrink the result set, so the footer
+  // never strands the user on an empty page.
+  const maxPageIndex = Math.max(0, Math.ceil(total / pageSize) - 1);
+  useEffect(() => {
+    if (pageIndex > maxPageIndex) {
+      table.setPageIndex(maxPageIndex);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageIndex, maxPageIndex]);
 
   const searchColumn = table.getColumn(searchColumnId);
   const activeSearch = searchValue ?? searchColumn?.getFilterValue() ?? '';
@@ -219,6 +227,7 @@ export function DataTable({
 
   const columnCount = table.getAllColumns().length || columns.length || 1;
   const skeletonRows = table.getState().pagination.pageSize;
+  const sortedPageSizeOptions = [...pageSizeOptions].sort((a, b) => a - b);
 
   if (!loading && error) {
     if (renderError) {
@@ -232,45 +241,39 @@ export function DataTable({
   return (
     <div className={className}>
       <div className="mb-4 flex flex-wrap items-center gap-3" role="search">
-        <div className="relative min-w-52 flex-1 sm:max-w-[320px]">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[var(--m3-on-surface-variant)]"
-            aria-hidden="true"
-          />
-          <label className="sr-only" htmlFor={`datatable-search-${searchColumnId}`}>
-            {searchPlaceholder}
-          </label>
-          <Input
+        <div className="min-w-52 flex-1 sm:max-w-[320px]">
+          <MuiSearchField
             id={`datatable-search-${searchColumnId}`}
-            type="search"
-            className="h-10 rounded-full bg-[var(--m3-surface-container-high)] border-transparent pr-4 pl-12 text-[14px] placeholder:text-[var(--m3-on-surface-variant)]"
-            placeholder={searchPlaceholder}
+            label={searchPlaceholder}
             value={activeSearch}
-            onChange={(e) => handleSearch(e.target.value)}
+            placeholder={searchPlaceholder}
             disabled={loading}
+            onChange={handleSearch}
           />
         </div>
         {showScope ? (
-          <>
-            <label className="sr-only" htmlFor="datatable-scope">
+          <FormControl size="small" disabled={loading}>
+            <InputLabel id="datatable-scope-label" className="sr-only">
               {scopeLabel}
-            </label>
-            <Select value={activeScope} onValueChange={handleScope} disabled={loading}>
-              <SelectTrigger
-                id="datatable-scope"
-                className="h-10 rounded-full border-[var(--m3-outline)] bg-transparent px-4"
-              >
-                <SelectValue placeholder={scopePlaceholder} />
-              </SelectTrigger>
-              <SelectContent>
-                {scopes.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+            </InputLabel>
+            <Select
+              id="datatable-scope"
+              labelId="datatable-scope-label"
+              value={activeScope}
+              label={scopeLabel}
+              displayEmpty
+              renderValue={(selected) =>
+                scopes.find((option) => option.value === selected)?.label ?? scopePlaceholder
+              }
+              onChange={(e) => handleScope(e.target.value)}
+            >
+              {scopes.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
             </Select>
-          </>
+          </FormControl>
         ) : null}
         <span className="text-[12px] font-medium tracking-[0.5px] text-[var(--m3-on-surface-variant)]" aria-live="polite">
           {loading ? loadingLabel : `${total} result${total === 1 ? '' : 's'}`}
@@ -281,123 +284,103 @@ export function DataTable({
         renderEmptyState ?? <DefaultEmptyState title={emptyTitle} hint={emptyHint} />
       ) : (
         <div className={WRAPPER_CLASS}>
-          {/* NOTE: ui/table.tsx also renders an overflow-x-auto wrapper around
-              <table>; this outer region is the single keyboard-reachable scroll
-              region for this table. Do not add another scroll container here —
-              remove the inner one in table.tsx instead (out of scope for this file). */}
-          <div
-            className="overflow-x-auto [overscroll-behavior:contain]"
+          {/* Single keyboard-reachable scroll region for this table:
+              TableContainer is the scroller; TablePagination stays outside
+              it below. Do not add another scroll container here. */}
+          <TableContainer
             role="region"
             aria-label="Table results"
             tabIndex={0}
+            sx={{ overscrollBehavior: 'contain', maxWidth: '100%' }}
           >
             <Table>
-            <caption className="sr-only">Table results</caption>
-            <TableHeader className="border-b border-[var(--m3-outline-variant)] bg-[var(--m3-surface-container)]">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="h-14 hover:bg-transparent">
-                  {headerGroup.headers.map((header) => {
-                    const sortable = header.column.getCanSort();
-                    const sorted = header.column.getIsSorted();
-                    return (
-                      <TableHead
-                        key={header.id}
-                        scope="col"
-                        className="h-14 px-4 text-[14px] leading-5 font-medium text-[var(--m3-on-surface-variant)]"
-                        aria-sort={
-                          sortable
-                            ? sorted
-                              ? sorted === 'asc'
-                                ? 'ascending'
-                                : 'descending'
-                              : 'none'
-                            : undefined
-                        }
+              <caption className="sr-only">Table results</caption>
+              <TableHead>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id} sx={{ height: 56 }}>
+                    {headerGroup.headers.map((header) => {
+                      const sortable = header.column.getCanSort();
+                      const sorted = header.column.getIsSorted();
+                      return (
+                        <TableCell
+                          key={header.id}
+                          scope="col"
+                          sx={{ height: 56 }}
+                          {...(sortable
+                            ? {
+                                'aria-sort': sorted
+                                  ? sorted === 'asc'
+                                    ? 'ascending'
+                                    : 'descending'
+                                  : 'none',
+                              }
+                            : {})}
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableHead>
+              <TableBody>
+                {loading
+                  ? Array.from({ length: skeletonRows }).map((_, rowIndex) => (
+                      <TableRow key={`skeleton-${rowIndex}`} sx={{ height: 52 }}>
+                        {Array.from({ length: columnCount }).map((_, cellIndex) => (
+                          <TableCell key={`skeleton-${rowIndex}-${cellIndex}`} sx={{ paddingTop: 0, paddingBottom: 0 }}>
+                            <Skeleton variant="rounded" width="100%" height={16} aria-hidden="true" />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  : visibleRows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected?.() && 'selected'}
+                        sx={{ height: 52 }}
+                        className="border-b border-[var(--m3-outline-variant)] last:border-0 hover:bg-[color-mix(in_srgb,var(--m3-on-surface)_8%,transparent)] data-[state=selected]:bg-[var(--m3-surface-container-highest)] [&[aria-disabled=true]]:text-[color-mix(in_srgb,var(--m3-on-surface)_38%,transparent)]"
                       >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {loading
-                ? Array.from({ length: skeletonRows }).map((_, rowIndex) => (
-                    <TableRow key={`skeleton-${rowIndex}`} className="h-[52px] hover:bg-transparent">
-                      {Array.from({ length: columnCount }).map((_, cellIndex) => (
-                        <TableCell key={`skeleton-${rowIndex}-${cellIndex}`} className="px-4 py-0">
-                          <Skeleton className="h-4 w-full rounded-full" aria-hidden="true" />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                : visibleRows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected?.() && 'selected'}
-                      className="h-[52px] border-b border-[var(--m3-outline-variant)] last:border-0 hover:bg-[color-mix(in_srgb,var(--m3-on-surface)_8%,transparent)] data-[state=selected]:bg-[var(--m3-surface-container-highest)] [&[aria-disabled=true]]:text-[color-mix(in_srgb,var(--m3-on-surface)_38%,transparent)]"
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="px-4 py-0 text-[14px] leading-5 text-[var(--m3-on-surface)]">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-            </TableBody>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id} sx={{ paddingTop: 0, paddingBottom: 0 }}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+              </TableBody>
             </Table>
-          </div>
+          </TableContainer>
         </div>
       )}
 
-      <div className="mt-4 flex min-h-[52px] flex-wrap items-center gap-3">
-        <p className="text-[12px] leading-4 font-medium text-[var(--m3-on-surface-variant)]" aria-live="polite">
-          Showing {from}–{to} of {total}
-        </p>
-        <div className="ml-auto flex items-center gap-2" role="group" aria-label="Pagination">
-          <label className="sr-only" htmlFor="datatable-pagesize">
-            Rows per page
-          </label>
-          <Select
-            value={String(pageSize)}
-            onValueChange={(value) => table.setPageSize(Number(value))}
-            disabled={loading}
-          >
-            <SelectTrigger id="datatable-pagesize" className="h-10 rounded-full border-[var(--m3-outline)]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {pageSizeOptions.map((size) => (
-                <SelectItem key={size} value={String(size)}>
-                  {size} / page
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="rounded-full"
-            onClick={() => table.previousPage()}
-            disabled={loading || !table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="rounded-full"
-            onClick={() => table.nextPage()}
-            disabled={loading || !table.getCanNextPage()}
-          >
-            Next
-          </Button>
-        </div>
+      <div className="mt-4 flex min-h-[52px] flex-wrap items-center">
+        <TablePagination
+          component="div"
+          sx={{ marginLeft: 'auto', maxWidth: '100%' }}
+          count={total}
+          page={Math.min(pageIndex, maxPageIndex)}
+          rowsPerPage={pageSize}
+          rowsPerPageOptions={sortedPageSizeOptions}
+          labelRowsPerPage="Rows per page"
+          labelDisplayedRows={({ from: labelFrom, to: labelTo, count: labelCount }) =>
+            `Showing ${labelCount === 0 ? 0 : labelFrom}–${labelTo} of ${labelCount}`
+          }
+          slotProps={{ displayedRows: { 'aria-live': 'polite' } }}
+          showFirstButton={false}
+          showLastButton={false}
+          getItemAriaLabel={(type) =>
+            type === 'previous' ? 'Previous' : type === 'next' ? 'Next' : type
+          }
+          disabled={loading}
+          onPageChange={(_e, nextPage) => table.setPageIndex(nextPage)}
+          onRowsPerPageChange={(e) => {
+            table.setPageSize(parseInt(e.target.value, 10));
+            table.setPageIndex(0);
+          }}
+        />
       </div>
       {loading ? <span className="sr-only" role="status">{loadingLabel}</span> : null}
     </div>

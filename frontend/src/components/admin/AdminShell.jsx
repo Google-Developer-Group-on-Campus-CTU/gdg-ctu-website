@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CalendarDays, Users, Handshake, Images, GalleryHorizontal, Layers, FileText, Inbox, Mail, Settings, LogOut, MoreHorizontal } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, Handshake, Images, GalleryHorizontal, Layers, FileText, Inbox, Mail, Settings, LogOut, MoreHorizontal, Moon, Sun } from 'lucide-react';
+import IconButton from '@mui/material/IconButton';
 import { authClient } from '../../lib/auth-client';
 import { ADMIN_ENTITY_ROUTES } from '../../admin/editorial.js';
+import { AdminMuiProvider, useAdminThemeMode } from './mui-theme.jsx';
 import '../../styles/admin.css';
 
 const NAV_ICONS = {
@@ -155,6 +158,60 @@ function Breadcrumbs() {
   );
 }
 
+/** Admin-only light/dark toggle (MUI theme mode, persisted). Public site unaffected. */
+function AdminThemeToggle() {
+  const { mode, toggleMode } = useAdminThemeMode();
+  const dark = mode === 'dark';
+  const handleClick = (e) => {
+    const reduceMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Circular clip-path wipe from the button center; instant swap fallback
+    // without the API or under reduced motion. flushSync commits the mode
+    // synchronously so the transition captures the new frame (React batches
+    // otherwise and the wipe would reveal an unchanged snapshot).
+    if (
+      !reduceMotion &&
+      typeof document !== 'undefined' &&
+      typeof document.startViewTransition === 'function'
+    ) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const maxRadius = Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y),
+      );
+      document.startViewTransition(() => {
+        flushSync(() => toggleMode());
+      });
+      document.documentElement.animate(
+        {
+          clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${maxRadius}px at ${x}px ${y}px)`],
+        },
+        {
+          duration: 450,
+          easing: 'ease-out',
+          pseudoElement: '::view-transition-new(root)',
+        },
+      );
+      return;
+    }
+    toggleMode();
+  };
+  return (
+    <IconButton
+      type="button"
+      onClick={handleClick}
+      aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+      sx={{ color: 'var(--m3-on-surface-variant)' }}
+    >
+      {dark ? <Sun size={20} aria-hidden="true" /> : <Moon size={20} aria-hidden="true" />}
+    </IconButton>
+  );
+}
+
 function SidebarIdentity() {
   const { data: session } = authClient.useSession();
   const navigate = useNavigate();
@@ -248,6 +305,7 @@ export default function AdminShell() {
   const shellClass = `admin-shell${collapsed ? ' admin-shell--collapsed' : ''}`;
 
   return (
+    <AdminMuiProvider>
     <div className={shellClass}>
       <aside className="admin-sidebar" aria-label="Admin navigation" id="admin-sidebar">
         <div className="admin-sidebar-top">
@@ -274,6 +332,7 @@ export default function AdminShell() {
             {sectionContext?.label ?? 'Admin'}
           </span>
           <span style={{ flex: 1 }} aria-hidden="true" />
+          <AdminThemeToggle />
           <span data-slot="primary-action" style={{ display: 'inline-flex', alignItems: 'center' }} />
         </header>
 
@@ -311,5 +370,6 @@ export default function AdminShell() {
         </div>
       ) : null}
     </div>
+    </AdminMuiProvider>
   );
 }

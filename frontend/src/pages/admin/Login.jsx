@@ -15,29 +15,6 @@ import {
 } from '../../components/admin/AuthForm.jsx';
 import '../../styles/login.css';
 
-function GoogleGIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-      <path
-        fill="#4285F4"
-        d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47a5.54 5.54 0 0 1-2.4 3.63v3.02h3.88c2.27-2.09 3.54-5.17 3.54-8.89z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.88-3.01c-1.07.72-2.45 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.95H1.28v3.11A11.99 11.99 0 0 0 12 24z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.29 14.28A7.19 7.19 0 0 1 4.91 12c0-.79.14-1.56.38-2.28V6.61H1.28a11.99 11.99 0 0 0 0 10.78l4.01-3.11z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.18 15.24 0 12 0 7.7 0 3.99 2.47 1.28 6.61l4.01 3.11C6.23 6.88 8.88 4.75 12 4.75z"
-      />
-    </svg>
-  );
-}
-
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { data: session, isPending } = authClient.useSession();
@@ -122,22 +99,6 @@ export default function AdminLogin() {
         return;
       }
       navigate('/admin', { replace: true });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleGoogle = async () => {
-    setFormError(null);
-    setBusy(true);
-    try {
-      const { error } = await authClient.signIn.social({
-        provider: 'google',
-        callbackURL: '/admin',
-      });
-      if (error) {
-        setFormError(error.message || 'Google sign-in failed. Try again.');
-      }
     } finally {
       setBusy(false);
     }
@@ -251,23 +212,6 @@ export default function AdminLogin() {
                   : 'Sign in'}
             </button>
           </form>
-
-          <div className="login-divider" aria-hidden="true">
-            <span>or</span>
-          </div>
-
-          <button type="button" className="login-google" onClick={handleGoogle} disabled={busy}>
-            <GoogleGIcon />
-            Continue with Google
-          </button>
-
-          {setupNeeded ? (
-            <p className="login-switch">The first Google account you sign in with also becomes the site admin.</p>
-          ) : (
-            <p className="login-switch">
-              Need an account? Ask an admin for an invite link, then <Link to="/admin/register">register</Link>.
-            </p>
-          )}
         </>
       )}
       <Link className="login-back gdg-back-link" to="/">

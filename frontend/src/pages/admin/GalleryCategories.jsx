@@ -19,8 +19,13 @@ import {
   useSlugUniqueness,
 } from '../../components/admin/form-shell.jsx';
 import { EmptyState, ErrorState, LoadingSkeleton, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
+import { MuiInput, MuiSearchField } from '../../components/admin/mui-fields.jsx';
 import { Form } from '../../components/ui/form';
-import { Input } from '../../components/ui/input';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
 
 const EMPTY = { name: '', slug: '', display_order: 0, is_active: true };
 
@@ -256,13 +261,12 @@ export default function GalleryCategories() {
       {!loading && !error ? (
         <>
           <div className="admin-toolbar">
-            <label className="admin-visually-hidden" htmlFor="category-search">Search categories</label>
-            <input
+            <MuiSearchField
               id="category-search"
-              type="search"
-              placeholder="Search categories…"
+              label="Search categories"
               value={q}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={setQuery}
+              placeholder="Search categories…"
             />
             <span className="admin-muted" aria-live="polite">{rows.length} {rows.length === 1 ? 'category' : 'categories'}</span>
           </div>
@@ -275,27 +279,27 @@ export default function GalleryCategories() {
             />
           ) : (
             <div className="admin-table-wrap">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Slug</th>
-                    <th scope="col">Order</th>
-                    <th scope="col">Active</th>
-                    <th scope="col">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="admin-table">
+                <TableHead>
+                  <TableRow>
+                    <TableCell scope="col">Name</TableCell>
+                    <TableCell scope="col">Slug</TableCell>
+                    <TableCell scope="col">Order</TableCell>
+                    <TableCell scope="col">Active</TableCell>
+                    <TableCell scope="col">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
                   {rows.map((c, i) => {
                     const cid = getId(c);
                     const active = (c.is_active ?? c.isActive) !== false;
                     return (
-                      <tr key={cid ?? c.slug ?? i}>
-                        <td>{c.name ?? '(unnamed)'}</td>
-                        <td><span className="admin-muted">{c.slug ?? '—'}</span></td>
-                        <td>{c.display_order ?? c.displayOrder ?? 0}</td>
-                        <td>{active ? 'Yes' : 'No'}</td>
-                        <td>
+                      <TableRow key={cid ?? c.slug ?? i}>
+                        <TableCell>{c.name ?? '(unnamed)'}</TableCell>
+                        <TableCell><span className="admin-muted">{c.slug ?? '—'}</span></TableCell>
+                        <TableCell>{c.display_order ?? c.displayOrder ?? 0}</TableCell>
+                        <TableCell>{active ? 'Yes' : 'No'}</TableCell>
+                        <TableCell>
                           <button type="button" className="gdg-btn gdg-btn-secondary" onClick={(e) => openEdit(c, e)}>
                             Edit
                           </button>{' '}
@@ -308,12 +312,12 @@ export default function GalleryCategories() {
                           >
                             Delete
                           </button>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
           <p className="admin-muted" style={{ marginTop: 12 }}>
@@ -340,7 +344,7 @@ export default function GalleryCategories() {
                 <EditorErrors errors={rhfErrors} serverError={serverError} summaryRef={summaryRef} />
                 <div className="editor-grid">
                   <EditorField control={control} name="name" label="Name" required>
-                    {(field) => <Input {...field} />}
+                    {(field) => <MuiInput field={field} />}
                   </EditorField>
                   <EditorField
                     control={control}
@@ -349,7 +353,7 @@ export default function GalleryCategories() {
                     required
                     hint={slugCheckError ?? (slugDup ? 'Slug is already in use.' : 'Auto-fills from name until edited.')}
                   >
-                    {(field) => <Input {...field} onChange={(e) => { setSlugTouched(true); field.onChange(slugify(e.target.value)); }} />}
+                    {(field) => <MuiInput field={field} onChange={(e) => { setSlugTouched(true); field.onChange(slugify(e.target.value)); }} />}
                   </EditorField>
                 </div>
                 <div className="editor-grid">
