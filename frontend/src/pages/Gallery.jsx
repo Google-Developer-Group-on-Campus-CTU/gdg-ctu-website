@@ -1,72 +1,56 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { formatDate, mapAlbum, mapGalleryCategory, mapPhoto, publicApi, usePublicFeed } from '../api/public.js';
 import { friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
 import '../styles/gallery.css';
 
-/** Fallback button styles cycled for admin-added categories beyond the seeded three. */
-const CATEGORY_BTN_CLASSES = ['btn-events', 'btn-workshops', 'btn-community', 'btn-all'];
-
-function categoryBtnClass(slug, index) {
-  const known = { events: 'btn-events', workshops: 'btn-workshops', community: 'btn-community' };
-  if (slug && known[slug]) return known[slug];
-  return CATEGORY_BTN_CLASSES[index % CATEGORY_BTN_CLASSES.length];
-}
-
-function AlbumDetail({ slug }) {  const { data, loading, error, retry } = usePublicFeed(
+function AlbumDetail({ slug }) {
+  const { data, loading, error, retry } = usePublicFeed(
     () => publicApi.getAlbumBySlug(slug).then((a) => (a ? mapAlbum(a) : null)),
     `album-${slug}`,
   );
 
   return (
     <div className="page-gallery">
-      <div className="album-detail">
-        <div className="album-detail-head">
-          <Link to="/gallery" className="gdg-btn gdg-btn-secondary">← All albums</Link>
-          {loading ? (
-            <div className="gallery-state" role="status" aria-label="Loading album">
-              <div className="box is-skeleton" aria-hidden="true">
-                <div className="box-skeleton-media" />
-                <div className="box-skeleton-lines">
-                  <div className="gal-skeleton-line" />
-                  <div className="gal-skeleton-line short" />
-                </div>
-              </div>
-              <span className="gdg-visually-hidden">Loading album…</span>
+      <div className="album-detail section-frame">
+        <Link to="/gallery" className="back-pill">← All albums</Link>
+        {loading ? (
+          <div className="detail-skeleton" role="status" aria-label="Loading album">
+            <div className="skel-photo" aria-hidden="true" />
+            <div className="skel-line" aria-hidden="true" />
+            <div className="skel-line short" aria-hidden="true" />
+            <span className="gdg-visually-hidden">Loading album…</span>
+          </div>
+        ) : null}
+        {!loading && (error || !data) ? (
+          <div className="gal-error" role="alert">
+            <p>{error ? friendlyFeedError(error) : 'This album is not published.'}</p>
+            <button type="button" onClick={retry}>Retry</button>
+          </div>
+        ) : null}
+        {!loading && !error && data ? (
+          <>
+            <h2>{data.title}</h2>
+            {data.description ? <p className="sub">{data.description}</p> : null}
+            <div className="detail-meta">
+              {data.categoryName ? <span>{data.categoryName}</span> : null}
+              {data.date ? <span>{formatDate(data.date)}</span> : null}
+              <span>{data.items.length} Photos</span>
             </div>
-          ) : null}
-          {!loading && (error || !data) ? (
-            <div className="gallery-state">
-              <div className="gal-error" role="alert">
-                <p>{error ? friendlyFeedError(error) : 'This album is not published.'}</p>
-                <button type="button" onClick={retry}>Retry</button>
-              </div>
-            </div>
-          ) : null}
-          {!loading && !error && data ? (
-            <>
-              <h2>{data.title}</h2>
-              {data.description ? <p className="gdg-desc">{data.description}</p> : null}
-              <div className="album-detail-meta">
-                {data.categoryName ? <span>{data.categoryName}</span> : null}
-                {data.date ? <span>{formatDate(data.date)}</span> : null}
-                <span>{data.items.length} Photos</span>
-              </div>
-            </>
-          ) : null}
-        </div>
+          </>
+        ) : null}
 
         {!loading && !error && data?.items?.length ? (
-          <div className="album-grid">
+          <div className="detail-grid">
             {data.items.map((photo) => (
-              <div key={photo.id} className="album-photo-card gdg-card">
+              <figure key={photo.id} className="detail-photo">
                 {photo.url ? (
                   <img src={photo.url} alt={photo.alt} loading="lazy" onError={hideImage} />
                 ) : (
-                  <div className="card-featured-fallback" aria-hidden="true">No image</div>
+                  <div className="photo-fallback" aria-hidden="true">No image</div>
                 )}
-                {photo.caption ? <p>{photo.caption}</p> : null}
-              </div>
+                {photo.caption ? <figcaption>{photo.caption}</figcaption> : null}
+              </figure>
             ))}
           </div>
         ) : null}
@@ -110,94 +94,66 @@ function GalleryList() {
   );
 
   const albumsEmpty = !albumsLoading && !albumsError && (!albumsData || albumsData.length === 0);
-
-  const carouselRef = useRef(null);
-  const wrapperRef = useRef(null);
-  const [showLeft, setShowLeft] = useState(false);
-  const [showRight, setShowRight] = useState(false);
-
-  const updateFades = useCallback(() => {
-    const el = carouselRef.current;
-    if (!el) return;
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    const pos = el.scrollLeft;
-    setShowLeft(pos > 5);
-    setShowRight(pos < maxScroll - 5);
-  }, []);
-
-  useEffect(() => {
-    const el = carouselRef.current;
-    if (!el) return;
-    updateFades();
-    el.addEventListener('scroll', updateFades, { passive: true });
-    window.addEventListener('resize', updateFades);
-    return () => {
-      el.removeEventListener('scroll', updateFades);
-      window.removeEventListener('resize', updateFades);
-    };
-  }, [updateFades, featuredData, featuredLoading]);
-
-  useEffect(() => {
-    updateFades();
-  }, [featuredData, updateFades]);
-
-  const scrollLeft = useCallback(() => {
-    carouselRef.current?.scrollBy({ left: -220, behavior: 'smooth' });
-  }, []);
-
-  const scrollRight = useCallback(() => {
-    carouselRef.current?.scrollBy({ left: 220, behavior: 'smooth' });
-  }, []);
-
   const featuredEmpty = !featuredLoading && !featuredError && (!featuredData || featuredData.length === 0);
+  const featuredPhoto = !featuredLoading && !featuredError && featuredData?.length ? featuredData[0] : null;
 
   return (
     <div className="page-gallery">
-      <div className="hero">
-        <img className="doodle doodle-1" src="/layout-assets/gallery/Group 168.png" alt="" aria-hidden="true" />
-        <img className="doodle doodle-2" src="/layout-assets/gallery/Group 170.png" alt="" aria-hidden="true" />
-        <img className="doodle doodle-3" src="/layout-assets/gallery/Group 169.png" alt="" aria-hidden="true" />
-        <img className="doodle doodle-4" src="/layout-assets/gallery/Group 171.png" alt="" aria-hidden="true" />
+      {/* ---------- HERO ---------- */}
+      <section className="gal-hero" aria-labelledby="gallery-title">
+        <img className="gal-deco gal-deco-star" src="/layout-assets/home/star-no-bg.png" alt="" aria-hidden="true" />
+        <img className="gal-deco gal-deco-arrow" src="/layout-assets/home/arrow-no-bg.png" alt="" aria-hidden="true" />
+        <img className="gal-deco gal-deco-globe" src="/layout-assets/home/globe-no-bg.png" alt="" aria-hidden="true" />
+        <img className="gal-deco gal-deco-heart" src="/layout-assets/home/heart-no-bg.png" alt="" aria-hidden="true" />
 
-        <button className="gallery-btn" type="button" disabled>
-          <span className="dot" aria-hidden="true" />
-          GALLERY
-        </button>
+        <div className="gal-hero-content">
+          <div className="eyebrow"><span /> GALLERY</div>
+          <h1 id="gallery-title">
+            See the community<br />
+            in{' '}
+            <span className="action-card" aria-label="Action">
+              <span className="c-blue">A</span>
+              <span className="c-red">C</span>
+              <span className="c-yellow">T</span>
+              <span className="c-blue">I</span>
+              <span className="c-green">O</span>
+              <span className="c-red">N</span>
+            </span>
+          </h1>
+          <p className="sub">
+            Workshops, events, late-night builds, new connections, and the
+            moments in between.
+          </p>
+          <a className="green-pill" href="#captured-moments">
+            View the gallery <span aria-hidden="true">↓</span>
+          </a>
+        </div>
+      </section>
 
-        <h1>See the community</h1>
-        <h1>
-          in <img src="/layout-assets/gallery/action logo.png" className="action-img" alt="in action" />
-        </h1>
+      {/* ---------- CAPTURED MOMENTS ---------- */}
+      <section id="captured-moments" className="gal-captured section-frame" aria-label="Captured moments">
+        <div className="section-rule" />
+        <img className="gal-deco gal-deco-globe-captured" src="/layout-assets/home/globe-no-bg.png" alt="" aria-hidden="true" />
+        <img className="gal-deco gal-deco-star-captured" src="/layout-assets/home/star-no-bg.png" alt="" aria-hidden="true" />
+        <h2>Captured Moments</h2>
 
-        <p>Workshops, events, late-night builds, new connections, and the</p>
-        <p>moments in between.</p>
-
-        <a href="#captured-moments" className="cta-btn">
-          View the gallery
-          <div aria-hidden="true">
-            <span className="arrow-down">↓</span>
-          </div>
-        </a>
-
-        <hr id="captured-moments" />
-
-        <h1 className="captured-title">Captured Moments</h1>
-
-        <div className="captured-buttons" role="group" aria-label="Filter albums">
+        <div className="filter-pills" role="tablist" aria-label="Filter albums">
           <button
             type="button"
-            className={`btn-all ${filter === 'all' ? 'is-active' : ''}`}
-            aria-pressed={filter === 'all'}
+            role="tab"
+            aria-selected={filter === 'all'}
+            className={`filter-pill${filter === 'all' ? ' active' : ''}`}
             onClick={() => setFilter('all')}
           >
             All
           </button>
-          {categories.map((c, idx) => (
+          {categories.map((c) => (
             <button
               key={c.slug ?? c.id}
               type="button"
-              className={`${categoryBtnClass(c.slug, idx)} ${filter === c.slug ? 'is-active' : ''}`}
-              aria-pressed={filter === c.slug}
+              role="tab"
+              aria-selected={filter === c.slug}
+              className={`filter-pill${filter === c.slug ? ' active' : ''}`}
               onClick={() => setFilter(c.slug)}
             >
               {c.name}
@@ -205,164 +161,111 @@ function GalleryList() {
           ))}
         </div>
 
-        <div className="box-row">
-          {albumsLoading ? (
-            Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="box is-skeleton" aria-hidden="true">
-                <div className="box-skeleton-media" />
-                <div className="box-skeleton-lines">
-                  <div className="gal-skeleton-line" />
-                  <div className="gal-skeleton-line short" />
-                  <div className="gal-skeleton-line tiny" />
-                </div>
-              </div>
-            ))
-          ) : null}
+        {albumsLoading ? (
+          <div className="album-grid" aria-hidden="true">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="album-skeleton" />
+            ))}
+          </div>
+        ) : null}
 
-          {!albumsLoading && albumsError ? (
-            <div className="gallery-state">
-              <div className="gal-error" role="alert">
-                <p>{friendlyFeedError(albumsError)}</p>
-                <button type="button" onClick={albumsRetry}>Retry</button>
-              </div>
-            </div>
-          ) : null}
+        {!albumsLoading && albumsError ? (
+          <div className="gal-error" role="alert">
+            <p>{friendlyFeedError(albumsError)}</p>
+            <button type="button" onClick={albumsRetry}>Retry</button>
+          </div>
+        ) : null}
 
-          {albumsEmpty ? (
-            <div className="gallery-state">
-              <div className="gal-empty">
-                <strong>
-                  {activeLabel
-                    ? `No ${activeLabel.toLowerCase()} albums yet.`
-                    : 'No albums published yet — check back soon.'}
-                </strong>
-                <span>
-                  {activeLabel
-                    ? 'Try another filter or check All.'
-                    : 'We are curating new galleries from recent GDGoC events.'}
-                </span>
-              </div>
-            </div>
-          ) : null}
+        {albumsEmpty ? (
+          <div className="gal-empty" role="status">
+            <strong>
+              {activeLabel
+                ? `No ${activeLabel.toLowerCase()} albums yet.`
+                : 'No albums published yet — check back soon.'}
+            </strong>
+            <span>
+              {activeLabel
+                ? 'Try another filter or check All.'
+                : 'We are curating new galleries from recent GDGoC events.'}
+            </span>
+          </div>
+        ) : null}
 
-          {!albumsLoading && !albumsError && (albumsData ?? []).length > 0 ? (
-            (albumsData ?? []).map((album) => (
+        {!albumsLoading && !albumsError && (albumsData ?? []).length > 0 ? (
+          <div className="album-grid">
+            {(albumsData ?? []).map((album) => (
               <Link
                 key={album.id}
                 to={album.slug ? `/gallery/${album.slug}` : '/gallery'}
-                className="box"
+                className="moment"
                 aria-label={`Open album ${album.title}`}
               >
-                <div className="box-media">
-                  {album.coverUrl ? (
-                    <img src={album.coverUrl} alt={album.coverAlt} loading="lazy" onError={hideImage} />
-                  ) : (
-                    <div className="box-fallback" aria-hidden="true">
-                      {album.title.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-                <div className="box-body">
-                  <h3>{album.title}</h3>
-                  {album.description ? <p>{album.description}</p> : null}
-                  <div className="box-meta">
-                    {album.categoryName ? <span>{album.categoryName}</span> : null}
-                    {album.date ? <span>{formatDate(album.date)}</span> : null}
-                    <span>{album.photoCount} Photos</span>
+                {album.coverUrl ? (
+                  <img src={album.coverUrl} alt={album.coverAlt} loading="lazy" onError={hideImage} />
+                ) : (
+                  <div className="photo-fallback" aria-hidden="true">
+                    {album.title.charAt(0).toUpperCase()}
                   </div>
-                </div>
+                )}
               </Link>
-            ))
-          ) : null}
-        </div>
-
-        <hr />
-
-        <button className="featured-moment-btn" type="button" disabled>
-          <span className="feat-dot" aria-hidden="true" />
-          FEATURED MOMENT
-        </button>
-
-        <h1>One community.</h1>
-        <h1>Countless moments.</h1>
-
-        <div
-          ref={wrapperRef}
-          className={`carousel-wrapper ${showLeft ? 'show-left' : ''} ${showRight ? 'show-right' : ''}`.trim()}
-        >
-          <button
-            type="button"
-            className="carousel-arrow carousel-arrow--left"
-            aria-label="Scroll featured left"
-            onClick={scrollLeft}
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            className="carousel-arrow carousel-arrow--right"
-            aria-label="Scroll featured right"
-            onClick={scrollRight}
-          >
-            ›
-          </button>
-
-          <div ref={carouselRef} className="carousel" id="carousel">
-            {featuredLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="card-featured is-skeleton" aria-hidden="true" />
-              ))
-            ) : null}
-
-            {!featuredLoading && featuredError ? (
-              <div className="carousel-state">
-                <div className="gal-error" role="alert">
-                  <p>{friendlyFeedError(featuredError)}</p>
-                  <button type="button" onClick={featuredRetry}>Retry</button>
-                </div>
-              </div>
-            ) : null}
-
-            {featuredEmpty ? (
-              <div className="carousel-state">
-                <div className="gal-empty">
-                  <strong>No featured moments yet.</strong>
-                  <span>Highlights will appear here once albums are featured.</span>
-                </div>
-              </div>
-            ) : null}
-
-            {!featuredLoading && !featuredError && featuredData?.length ? (
-              featuredData.map((photo) => (
-                <div key={photo.id} className="card-featured">
-                  {photo.url ? (
-                    <img src={photo.url} alt={photo.alt} loading="lazy" onError={hideImage} />
-                  ) : (
-                    <div className="card-featured-fallback" aria-hidden="true">No image</div>
-                  )}
-                  {photo.caption ? <div className="card-caption">{photo.caption}</div> : null}
-                </div>
-              ))
-            ) : null}
+            ))}
           </div>
-        </div>
+        ) : null}
+      </section>
 
-        <hr />
+      {/* ---------- FEATURED MOMENT ---------- */}
+      <section className="gal-featured section-frame" aria-labelledby="featured-title">
+        <div className="section-rule" />
+        <div className="eyebrow"><span className="dot-green" /> FEATURED MOMENT</div>
+        <h2 id="featured-title">One community.<br />Countless moments.</h2>
 
-        <div className="box-event">
-          <div className="dots" aria-hidden="true">
-            <span className="dot dot-red" />
-            <span className="dot dot-blue" />
-            <span className="dot dot-green" />
-            <span className="dot dot-yellow" />
+        {featuredLoading ? (
+          <div className="featured-skeleton" aria-hidden="true" />
+        ) : null}
+
+        {!featuredLoading && featuredError ? (
+          <div className="gal-error" role="alert">
+            <p>{friendlyFeedError(featuredError)}</p>
+            <button type="button" onClick={featuredRetry}>Retry</button>
           </div>
-          <h2>Where you there?</h2>
-          <p>Find yourself, tag your teammates, and relive the moments.</p>
-          <Link to="/contact" className="register">
-            Follow our community <span className="arrow-diagonal" aria-hidden="true">↗</span>
+        ) : null}
+
+        {featuredEmpty ? (
+          <div className="gal-empty" role="status">
+            <strong>No featured moments yet.</strong>
+            <span>Highlights will appear here once albums are featured.</span>
+          </div>
+        ) : null}
+
+        {featuredPhoto ? (
+          <figure className="featured-card">
+            {featuredPhoto.url ? (
+              <img src={featuredPhoto.url} alt={featuredPhoto.alt} loading="lazy" onError={hideImage} />
+            ) : (
+              <div className="photo-fallback" aria-hidden="true">No image</div>
+            )}
+            {featuredPhoto.caption ? <figcaption>{featuredPhoto.caption}</figcaption> : null}
+          </figure>
+        ) : null}
+      </section>
+
+      {/* ---------- FINAL CTA ---------- */}
+      <section className="gal-final section-frame" aria-labelledby="final-title">
+        <div className="section-rule" />
+        <div className="final-card">
+          <div className="final-dots" aria-hidden="true">
+            <span className="dot-red" />
+            <span className="dot-blue" />
+            <span className="dot-green" />
+            <span className="dot-yellow" />
+          </div>
+          <h2 id="final-title">Were you there?</h2>
+          <p className="sub">Find yourself, tag your teammates, and relive the moments.</p>
+          <Link to="/contact" className="green-pill">
+            Follow our community <span aria-hidden="true">↗</span>
           </Link>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

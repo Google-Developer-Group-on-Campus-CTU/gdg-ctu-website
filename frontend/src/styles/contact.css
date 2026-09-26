@@ -1,0 +1,349 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=swap');
+
+/* ==========================================================
+   .page-contact — contact page on the landing baseline system
+   (page bg #FAFAFA, ink #0B0B0B, 2px borders, flat faces)
+   ========================================================== */
+
+.page-contact {
+  --ink: #0b0b0b;
+  --blue: #4285f4;
+  --red: #ea4335;
+  --yellow: #fbbc05;
+  --green: #34a853;
+  --cta: #6cff7e;
+  --muted: #3c4043;
+  background: #fafafa;
+  color: var(--ink);
+  font-family: "Google Sans Flex", "Google Sans", system-ui, sans-serif;
+  overflow-x: clip;
+}
+
+.page-contact *, .page-contact *::before, .page-contact *::after { box-sizing: border-box; }
+.page-contact img { max-width: 100%; }
+.page-contact a { color: inherit; text-decoration: none; }
+
+.page-contact .section-frame {
+  width: min(1160px, calc(100% - 48px));
+  margin: 0 auto;
+  position: relative;
+}
+
+.page-contact .section-rule {
+  height: 2px;
+  margin: 0 0 38px;
+  background: var(--ink);
+  transform: rotate(-0.13deg);
+}
+
+.page-contact .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 15px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.page-contact .eyebrow span {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--red);
+}
+
+.page-contact .eyebrow .dot-blue { background: var(--blue); }
+.page-contact .eyebrow .dot-green { background: var(--green); }
+
+.page-contact h1 {
+  margin: 26px 0 18px;
+  font-size: clamp(32px, 5.8vw, 76px);
+  font-weight: 430;
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+
+.page-contact h2 {
+  margin: 24px 0 14px;
+  font-size: clamp(26px, 4.5vw, 56px);
+  font-weight: 430;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+
+.page-contact .sub {
+  max-width: 700px;
+  margin: 0 auto;
+  color: var(--muted);
+  font-size: clamp(14px, 1.6vw, 18px);
+  font-weight: 300;
+  line-height: 1.55;
+}
+
+.page-contact .c-blue { color: var(--blue); }
+.page-contact .c-red { color: var(--red); }
+.page-contact .c-yellow { color: var(--yellow); }
+.page-contact .c-green { color: var(--green); }
+
+.page-contact .green-pill,
+.page-contact .white-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 28px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: clamp(15px, 2vw, 20px);
+  font-weight: 400;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.page-contact .green-pill { background: var(--cta); color: #000; }
+.page-contact .white-pill { background: #fff; color: var(--ink); }
+
+.page-contact .green-pill span,
+.page-contact .white-pill span { font-size: 1.3em; line-height: 0.7; }
+
+.page-contact .green-pill.sm,
+.page-contact .white-pill.sm {
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.page-contact .green-pill.sm span,
+.page-contact .white-pill.sm span { font-size: 1.2em; }
+
+/* ---------- decos (behind content) ---------- */
+.page-contact .ct-deco {
+  position: absolute;
+  z-index: 0;
+  object-fit: contain;
+  pointer-events: none;
+  max-width: 100%;
+}
+
+.page-contact .ct-hero .ct-deco-star { top: 64px; left: 6%; width: clamp(48px, 6vw, 84px); transform: rotate(12deg); }
+.page-contact .ct-hero .ct-deco-arrow { top: 30px; right: 9%; width: clamp(72px, 9vw, 132px); transform: rotate(-14deg); }
+.page-contact .ct-hero .ct-deco-globe { top: 54%; left: 1%; width: clamp(110px, 13vw, 182px); transform: rotate(8deg); }
+.page-contact .ct-hero .ct-deco-heart { top: 44%; right: 2%; width: clamp(60px, 8vw, 108px); transform: rotate(-24deg); }
+.page-contact .ct-form .ct-deco-star-form { top: 90px; right: 4%; width: clamp(44px, 6vw, 76px); transform: rotate(-28deg); }
+.page-contact .ct-form .ct-deco-heart-form { bottom: 12%; left: 2%; width: clamp(56px, 7vw, 96px); transform: rotate(22deg); }
+.page-contact .ct-connect .ct-deco-globe-connect { bottom: 8%; left: 1%; width: clamp(88px, 11vw, 148px); transform: rotate(-10deg); }
+.page-contact .ct-connect .ct-deco-arrow-connect { top: 80px; right: 4%; width: clamp(72px, 9vw, 128px); transform: rotate(14deg); }
+
+/* ---------- 1 hero ---------- */
+.page-contact .ct-hero {
+  position: relative;
+  padding: 64px 20px 72px;
+  text-align: center;
+  overflow: clip;
+}
+
+.page-contact .ct-hero-content {
+  position: relative;
+  z-index: 1;
+  width: min(920px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.page-contact .talk-card {
+  display: inline-flex;
+  gap: 0;
+  padding: 6px 16px 8px;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 8px 10px 0 var(--ink);
+  transform: rotate(-3deg);
+  font-size: 0.72em;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  vertical-align: baseline;
+}
+
+.page-contact .ct-hero .sub { margin-bottom: 30px; }
+
+/* ---------- 2 form + info ---------- */
+.page-contact .ct-form {
+  padding: 56px 0 72px;
+  text-align: center;
+  scroll-margin-top: 84px;
+}
+
+.page-contact .form-card {
+  max-width: 760px;
+  margin: 36px auto 0;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 28px;
+  padding: clamp(24px, 4vw, 44px);
+  text-align: left;
+}
+
+.page-contact .contact-form h3 {
+  margin: 0 0 20px;
+  font-size: clamp(20px, 2.4vw, 26px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-align: center;
+}
+
+.page-contact .field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.page-contact .field { margin-bottom: 16px; }
+
+.page-contact .form-actions { margin: 22px 0 0; text-align: center; }
+.page-contact .form-sent .form-actions { margin-top: 18px; }
+
+/* MUI field + button baseline overrides (scoped — admin untouched) */
+.page-contact .MuiOutlinedInput-root { border-radius: 16px; font-family: inherit; }
+.page-contact .MuiOutlinedInput-root:not(.Mui-error) .MuiOutlinedInput-notchedOutline {
+  border: 2px solid var(--ink);
+}
+/* Pin MUI v9's outlined floating-label geometry to its own defaults
+   (verified live: translate(14px, 16px), shrink translate(14px, -9px)
+   scale(0.75), input padding 16.5px 14px). If anything in the cascade ever
+   beats MUI's transform/padding rules, boxes collapse short and labels end
+   up straddling the top border with no notch — these scoped guards make
+   that failure mode impossible while staying inert when MUI applies. */
+.page-contact .MuiOutlinedInput-input { padding: 16.5px 14px; }
+.page-contact .MuiOutlinedInput-root.MuiOutlinedInput-multiline { padding: 16.5px 14px; }
+.page-contact .MuiInputLabel-outlined { transform: translate(14px, 16px) scale(1); }
+.page-contact .MuiInputLabel-outlined.MuiInputLabel-shrink {
+  transform: translate(14px, -9px) scale(0.75);
+}
+/* The invisible legend inside the fieldset is what cuts the border notch
+   for the shrunk floating label: it must measure in the same font as the
+   visible label, or the label overflows the cut and sits half-outside the
+   box in focused/filled/error states. */
+.page-contact .MuiOutlinedInput-notchedOutline legend,
+.page-contact .MuiOutlinedInput-notchedOutline legend > span {
+  font-family: inherit;
+}
+.page-contact .MuiOutlinedInput-root:hover:not(.Mui-error):not(.Mui-disabled) .MuiOutlinedInput-notchedOutline {
+  border-color: var(--ink);
+}
+.page-contact .MuiOutlinedInput-root.Mui-focused:not(.Mui-error) .MuiOutlinedInput-notchedOutline {
+  border-color: var(--ink);
+}
+.page-contact .MuiInputLabel-root { color: var(--muted); font-family: inherit; }
+.page-contact .MuiInputLabel-root.Mui-focused:not(.Mui-error) { color: var(--ink); }
+.page-contact .MuiFormHelperText-root { font-family: inherit; }
+
+.page-contact .MuiButton-contained {
+  background: var(--cta);
+  color: #000;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 12px 30px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: none;
+  box-shadow: none;
+}
+
+.page-contact .MuiButton-contained:hover { background: var(--cta); box-shadow: none; transform: translateY(-2px); }
+.page-contact .MuiButton-contained:disabled { opacity: 0.6; }
+
+.page-contact .MuiButton-outlined {
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 10px 24px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: none;
+  background: #fff;
+}
+
+.page-contact .MuiButton-outlined:hover { border: 2px solid var(--ink); background: #fff; }
+
+.page-contact .info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 920px;
+  margin: 28px auto 0;
+  text-align: left;
+}
+
+.page-contact .info-card {
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.page-contact .info-card h3 {
+  margin: 0 0 8px;
+  font-size: clamp(18px, 2.2vw, 22px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.page-contact .info-card p {
+  margin: 0 0 18px;
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 1.55;
+  color: var(--muted);
+  flex: 1;
+}
+
+.page-contact .info-card .green-pill.sm,
+.page-contact .info-card .white-pill.sm { align-self: flex-start; }
+
+/* ---------- 3 connect ---------- */
+.page-contact .ct-connect { padding: 56px 0 96px; text-align: center; }
+
+.page-contact .connect-row {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+/* ---------- responsive — 700 (baseline breakpoint) ---------- */
+@media (max-width: 700px) {
+  .page-contact .section-frame { width: min(100% - 32px, 560px); }
+  .page-contact .section-rule { margin-bottom: 32px; }
+
+  .page-contact .ct-hero { padding: 44px 16px 52px; }
+  .page-contact .ct-hero h1 { font-size: clamp(30px, 9vw, 44px); }
+  .page-contact .ct-deco { width: 44px; }
+  .page-contact .ct-hero .ct-deco-globe,
+  .page-contact .ct-form .ct-deco-heart-form,
+  .page-contact .ct-connect .ct-deco-globe-connect { display: none; }
+
+  .page-contact .ct-form { padding: 44px 0 60px; }
+  .page-contact .field-row { grid-template-columns: 1fr; }
+  .page-contact .info-grid { grid-template-columns: 1fr; gap: 14px; }
+
+  .page-contact .connect-row .green-pill,
+  .page-contact .connect-row .white-pill { font-size: 14px; padding: 11px 22px; }
+}

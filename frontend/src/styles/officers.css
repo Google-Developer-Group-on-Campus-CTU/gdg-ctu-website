@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&family=Google+Sans:wght@400;500;700&display=swap');
 
 /* ==========================================================
-   .page-officers — James layout port, fully scoped
-   No bare .hero / .carousel / .footer — shell owns those
+   .page-officers — team page on the landing baseline system
+   (page bg #FAFAFA, ink #0B0B0B, 2px borders, 24-28px radii)
    ========================================================== */
 
 .page-officers {
@@ -10,11 +10,15 @@
   --off-red: #ea4335;
   --off-yellow: #fbbc05;
   --off-green: #34a853;
-  --off-ink: #111;
-  --off-muted: #5f6368;
-  --off-card: #d9d9d9;
-  --off-border: #e8eaed;
-  background: #fff;
+  --off-amber: #f9a825;
+  --off-ink: #0b0b0b;
+  --off-muted: #3c4043;
+  --off-cta: #6cff7e;
+  --tint-yellow: #fcefB4;
+  --tint-blue: #cde9f7;
+  --tint-pink: #f8dada;
+  --tint-green: #cdeac8;
+  background: #fafafa;
   color: var(--off-ink);
   font-family: "Google Sans Flex", "Google Sans", system-ui, sans-serif;
   overflow-x: clip;
@@ -29,188 +33,246 @@
 
 .page-officers * {
   box-sizing: border-box;
+}
+
+.page-officers .c-blue { color: var(--off-blue); }
+.page-officers .c-red { color: var(--off-red); }
+.page-officers .c-yellow { color: var(--off-yellow); }
+.page-officers .c-green { color: var(--off-green); }
+
+.page-officers .section-frame {
+  width: min(1160px, calc(100% - 48px));
+  margin: 0 auto;
+  position: relative;
+}
+
+.page-officers .section-rule {
+  height: 2px;
+  margin: 0 0 38px;
+  background: var(--off-ink);
+  transform: rotate(-0.13deg);
+}
+
+.page-officers h2 {
+  margin: 0 auto 36px;
+  font-size: clamp(26px, 4.5vw, 56px);
+  font-weight: 430;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-align: center;
   overflow-wrap: anywhere;
 }
 
-/* ---------- team-hero ---------- */
+/* ---------- hero ---------- */
 .page-officers .team-hero {
   position: relative;
   width: 100%;
-  height: 345px;
+  padding: 64px 20px 72px;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  overflow: hidden;
-  background: #fff;
-}
-
-.page-officers .team-intro {
-  text-align: center;
-  margin-top: 68px;
-  position: relative;
-  z-index: 2;
-}
-
-.page-officers .team-label {
-  width: 148px;
-  height: 34px;
-  margin: 0 auto 18px;
-  border: 1px solid #999;
-  border-radius: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #222;
-  background: #fff;
-}
-
-.page-officers .team-label span {
-  width: 10px;
-  height: 10px;
-  background: var(--off-red);
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.page-officers .team-intro h1 {
-  font-size: clamp(28px, 7vw, 52px);
-  font-weight: 400;
-  line-height: 1.08;
-  letter-spacing: clamp(-1.2px, -0.18vw, -2px);
-  margin: 0 0 12px;
-  color: var(--off-ink);
-  overflow-wrap: anywhere;
-}
-
-.page-officers .team-intro p {
-  font-size: clamp(13px, 3.4vw, 14px);
-  line-height: 1.5;
-  color: #333;
-  margin: 0 auto;
-  max-width: 560px;
-  padding: 0 clamp(8px, 2vw, 0px);
-  overflow-wrap: anywhere;
+  overflow: clip;
+  box-sizing: border-box;
 }
 
 .page-officers .hero-picture {
   position: absolute;
-  z-index: 1;
+  z-index: 0;
   display: block;
   object-fit: contain;
   pointer-events: none;
   user-select: none;
 }
 
-/* Decorative positions matching layout — desktop */
+/* Decorative positions matching layout — desktop (shapes stay behind .team-intro) */
 .page-officers .hero-picture--star {
-  left: 18%;
-  top: 70px;
-  width: 90px;
-  height: 90px;
+  left: 16%;
+  top: 64px;
+  width: 64px;
+  height: 64px;
+  transform: rotate(12deg);
 }
 
 .page-officers .hero-picture--arrow {
-  right: 10%;
-  top: 50px;
-  width: 100px;
-  height: 100px;
+  right: 12%;
+  top: 44px;
+  width: 124px;
+  height: 124px;
   transform: rotate(-30deg);
 }
 
 .page-officers .hero-picture--heart {
-  right: 6%;
-  bottom: 10px;
-  width: 80px;
-  height: 100px;
+  right: 5%;
+  bottom: 14px;
+  width: 72px;
+  height: 92px;
   transform: rotate(30deg);
 }
 
 .page-officers .hero-picture--globe {
-  left: 22%;
-  bottom: 12px;
-  width: 100px;
-  height: 80px;
+  left: 20%;
+  bottom: 8px;
+  width: 150px;
+  height: 120px;
   transform: rotate(14deg);
 }
 
-/* ---------- departments + grid (replaces slider/viewport/track) ---------- */
-.page-officers .departments {
-  width: 100%;
-  padding-bottom: 10px;
+.page-officers .team-intro {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  width: min(920px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.page-officers .department {
-  width: 100%;
-  max-width: 100%;
-  padding: 18px clamp(16px, 4vw, 48px) 52px;
-  overflow: clip;
-  box-sizing: border-box;
+.page-officers .team-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--off-ink);
+  background: #fff;
+  border: 1.5px solid var(--off-ink);
+  border-radius: 999px;
+  padding: 7px 15px;
+  margin-bottom: 22px;
 }
 
-.page-officers .department + .department {
-  padding-top: 0;
+.page-officers .team-label span {
+  width: 9px;
+  height: 9px;
+  background: var(--off-red);
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.page-officers .department h2 {
-  font-size: clamp(20px, 5vw, 27px);
-  font-weight: 400;
-  letter-spacing: -0.8px;
+.page-officers .team-intro h1 {
+  font-size: clamp(32px, 5.8vw, 76px);
+  font-weight: 430;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
   margin: 0 0 18px;
   color: var(--off-ink);
   overflow-wrap: anywhere;
 }
 
-.page-officers .department-head {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  flex-wrap: wrap;
+.page-officers .people-card {
+  display: inline-flex;
+  gap: 0;
+  padding: 6px 16px 8px;
+  border: 2px solid var(--off-ink);
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 8px 10px 0 var(--off-ink);
+  transform: rotate(-3deg);
+  font-size: 0.82em;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  vertical-align: baseline;
 }
 
-.page-officers .department-count {
-  font-size: 13px;
-  font-weight: 600;
+.page-officers .team-intro p {
+  max-width: 700px;
+  margin: 0 auto 28px;
+  font-size: clamp(14px, 1.6vw, 18px);
+  font-weight: 300;
+  line-height: 1.55;
   color: var(--off-muted);
-  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
 }
 
-/* Grid replaces .team-slider > .team-viewport > .team-track */
+.page-officers .hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 28px;
+  border: 2px solid var(--off-ink);
+  border-radius: 999px;
+  background: var(--off-cta);
+  color: #000;
+  font-size: clamp(15px, 2vw, 20px);
+  font-weight: 400;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.page-officers .hero-cta span { font-size: 1.3em; line-height: 0.7; }
+
+.page-officers .officers-term-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 22px;
+  font-size: 13px;
+  color: var(--off-muted);
+}
+
+.page-officers .officers-term-filter select {
+  font: inherit;
+  color: var(--off-ink);
+  background: #fff;
+  border: 2px solid var(--off-ink);
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+/* ---------- roster: exec + core ---------- */
+.page-officers .roster { padding-bottom: 8px; }
+
+.page-officers .exec-section,
+.page-officers .core-section {
+  padding: 56px 0 72px;
+  text-align: center;
+  scroll-margin-top: 84px;
+}
+
+/* Grid: 3 portrait cards per row */
 .page-officers .team-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: clamp(10px, 2vw, 12px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 920px;
+  margin: 0 auto;
   min-width: 0;
 }
 
-/* ---------- team-card ---------- */
+/* ---------- member card: pastel mat + photo + pills ---------- */
 .page-officers .team-card {
   position: relative;
-  height: 580px;
-  min-height: 320px;
   background: #fff;
-  border-radius: 18px;
-  overflow: hidden;
+  border: 2px solid var(--off-ink);
+  border-radius: 28px;
+  padding: 14px;
   cursor: pointer;
-  border: 1px solid #e9e9e9;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
   min-width: 0;
   -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s ease;
 }
 
-.page-officers .team-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 16px 32px rgba(0,0,0,0.14);
-}
+.page-officers .team-card:hover { transform: translateY(-4px); }
 
 .page-officers .team-card:focus-visible {
   outline: 2px solid var(--off-blue);
   outline-offset: 2px;
+}
+
+.page-officers .team-card.tint-yellow { background: var(--tint-yellow); }
+.page-officers .team-card.tint-blue { background: var(--tint-blue); }
+.page-officers .team-card.tint-pink { background: var(--tint-pink); }
+.page-officers .team-card.tint-green { background: var(--tint-green); }
+
+.page-officers .card-photo-wrap {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  background: #d9d9d9;
 }
 
 .page-officers .card-photo {
@@ -221,122 +283,122 @@
   object-fit: cover;
   object-position: center top;
   display: block;
-  background: var(--off-card);
 }
 
-.page-officers .card-photo--fallback {
-  background: linear-gradient(135deg, #e8eaf0 0%, #d9d9d9 100%);
-  display: grid;
-  place-items: center;
-  color: #6b7280;
-  font-weight: 700;
-  font-size: 2.6rem;
-}
-
-.page-officers .card-info {
+.page-officers .card-logo {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 16px 18px 18px;
-  background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.72) 55%, rgba(0,0,0,0) 100%);
-  color: #fff;
-  transform: translateY(100%);
-  opacity: 0;
-  transition: transform 0.32s ease, opacity 0.32s ease;
-  pointer-events: none;
-  z-index: 3;
+  top: 10px;
+  left: 10px;
+  width: 44px;
+  height: auto;
+  z-index: 2;
 }
 
-.page-officers .team-card:hover .card-info,
-.page-officers .team-card:focus-within .card-info {
-  transform: translateY(0);
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.page-officers .card-name {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 4px;
-  letter-spacing: -0.2px;
-  line-height: 1.2;
-  color: #fff;
-}
-
-.page-officers .card-role {
-  font-size: 12px;
-  margin: 0 0 10px;
-  opacity: 0.92;
-  line-height: 1.3;
-  color: #f1f1f1;
-}
-
-.page-officers .card-links {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.page-officers .card-links a,
-.page-officers .card-links span {
-  font-size: 11px;
-  color: #fff;
-  text-decoration: none;
-  border: 1px solid rgba(255,255,255,0.6);
-  border-radius: 10px;
-  padding: 7px 10px;
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
-  box-sizing: border-box;
-  transition: 0.2s ease;
-  line-height: 1;
-}
-
-.page-officers .card-links a:hover {
+.page-officers .card-role-pill {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  max-width: calc(100% - 74px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   background: #fff;
-  color: #334;
+  border: 2px solid var(--off-ink);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--off-ink);
 }
 
-/* shimmer as fallback background */
-.page-officers .team-card.is-loading {
-  background: linear-gradient(90deg, #d9d9d9 0%, #e8e8e8 50%, #d9d9d9 100%);
-  background-size: 200% 100%;
-  animation: off-shimmer 1.4s ease-in-out infinite;
+.page-officers .card-name-pill {
+  position: absolute;
+  left: 22px;
+  bottom: -4px;
+  z-index: 2;
+  border: 2px solid var(--off-ink);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--off-ink);
+  max-width: calc(100% - 44px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.page-officers .team-card.is-loading .card-photo {
-  opacity: 0;
+.page-officers .card-name-pill.name-yellow { background: var(--off-yellow); }
+.page-officers .card-name-pill.name-blue { background: var(--off-blue); }
+.page-officers .card-name-pill.name-red { background: var(--off-red); }
+.page-officers .card-name-pill.name-green { background: var(--off-green); }
+
+/* ---------- core department tabs + panel ---------- */
+.page-officers .dept-tabs {
+  display: flex;
+  align-items: stretch;
+  max-width: 920px;
+  margin: 0 auto -2px;
+  padding: 0 8px;
+  position: relative;
+  z-index: 1;
 }
 
-.page-officers .team-card.is-error {
-  background: #d9d9d9;
+.page-officers .dept-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 2px solid var(--off-ink);
+  border-bottom: 0;
+  border-radius: 14px 14px 0 0;
+  padding: 12px 8px;
+  font-family: inherit;
+  font-size: clamp(11px, 1.6vw, 14px);
+  font-weight: 600;
+  color: var(--off-ink);
+  cursor: pointer;
+  opacity: 0.72;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-@keyframes off-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+.page-officers .dept-tab + .dept-tab { margin-left: -2px; }
+.page-officers .dept-tab.active { opacity: 1; font-weight: 700; transform: translateY(-4px); }
+.page-officers .dept-tab.tab-amber { background: var(--off-amber); }
+.page-officers .dept-tab.tab-red { background: var(--off-red); }
+.page-officers .dept-tab.tab-blue { background: var(--off-blue); }
+.page-officers .dept-tab.tab-green { background: var(--off-green); }
+.page-officers .dept-tab.tab-yellow { background: var(--off-yellow); }
+
+.page-officers .core-panel {
+  max-width: 920px;
+  margin: 0 auto;
+  background: #fff;
+  border: 2px solid var(--off-ink);
+  border-radius: 24px;
+  padding: 28px clamp(14px, 3vw, 28px) 32px;
 }
 
-/* ---------- skeleton component (converts team.css shimmer) ---------- */
+/* ---------- skeleton component ---------- */
 .page-officers .officers-skeleton-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 920px;
+  margin: 0 auto;
 }
 
 .page-officers .officer-skeleton-card {
-  height: 580px;
-  border-radius: 18px;
+  border-radius: 24px;
   overflow: hidden;
   background: #fff;
-  border: 1px solid #eee;
+  border: 2px solid var(--off-ink);
 }
 
 .page-officers .skeleton-photo {
-  height: 100%;
-  height: 430px;
+  height: 320px;
   background: linear-gradient(90deg, #e8eaed 0%, #f1f3f4 50%, #e8eaed 100%);
   background-size: 200% 100%;
   animation: off-shimmer 1.4s ease-in-out infinite;
@@ -356,28 +418,30 @@
   animation: off-shimmer 1.4s ease-in-out infinite;
 }
 
-.page-officers .skeleton-line.short {
-  width: 62%;
-}
+.page-officers .skeleton-line.short { width: 62%; }
+.page-officers .skeleton-line.tiny { width: 42%; height: 10px; }
 
-.page-officers .skeleton-line.tiny {
-  width: 42%;
-  height: 10px;
+@keyframes off-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* ---------- states: loading, error, empty ---------- */
 .page-officers .officers-state {
-  padding: 18px clamp(16px, 4vw, 48px);
+  width: min(1160px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 18px 0;
   box-sizing: border-box;
   max-width: 100%;
 }
 
 .page-officers .officers-error {
   background: #fce8e6;
-  border: 1px solid var(--off-red);
-  border-radius: 12px;
+  border: 2px solid var(--off-red);
+  border-radius: 20px;
   padding: 1rem 1.25rem;
-  margin: 0 clamp(16px, 4vw, 48px) 18px;
+  width: min(1160px, calc(100% - 48px));
+  margin: 0 auto 18px;
   box-sizing: border-box;
   max-width: 100%;
 }
@@ -390,13 +454,14 @@
 }
 
 .page-officers .officers-empty {
-  margin: 0 clamp(16px, 4vw, 48px);
+  width: min(1160px, calc(100% - 48px));
+  margin: 0 auto;
   padding: 36px clamp(16px, 4vw, 24px);
-  border: 1px dashed #cfd4da;
-  border-radius: 16px;
+  border: 2px dashed #cfd4da;
+  border-radius: 20px;
   text-align: center;
   color: var(--off-muted);
-  background: #f8f9fc;
+  background: #fff;
   box-sizing: border-box;
   overflow-wrap: anywhere;
 }
@@ -435,11 +500,11 @@
   max-width: 100%;
   max-height: min(90vh, 90dvh);
   background: #fff;
-  border-radius: 20px;
+  border: 2px solid var(--off-ink);
+  border-radius: 24px;
   overflow: hidden;
   display: flex;
   align-items: stretch;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.25);
   z-index: 1;
   animation: off-popIn 0.3s ease;
   box-sizing: border-box;
@@ -454,7 +519,7 @@
   min-width: 44px;
   min-height: 44px;
   background: #fff;
-  border: 1px solid #e8eaed;
+  border: 2px solid var(--off-ink);
   border-radius: 50%;
   font-size: 20px;
   line-height: 1;
@@ -584,19 +649,12 @@
 
 /* ---------- more than a role + join card ---------- */
 .page-officers .more-role {
-  width: 100%;
-  max-width: 100%;
-  padding: 0 clamp(16px, 4vw, 40px) 40px;
-  background: #fff;
+  width: min(1160px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 56px 0 96px;
   box-sizing: border-box;
   overflow: clip;
-}
-
-.page-officers .role-line {
-  width: calc(100% - 10px);
-  height: 1px;
-  background: #222;
-  margin: 0 auto 34px;
+  position: relative;
 }
 
 .page-officers .role-content {
@@ -605,6 +663,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-bottom: 56px;
 }
 
 .page-officers .role-badge {
@@ -612,47 +671,46 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 18px;
-  border: 1px solid #999;
-  border-radius: 20px;
+  padding: 7px 15px;
+  border: 1.5px solid var(--off-ink);
+  border-radius: 999px;
   background: #fff;
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.5px;
-  color: #222;
-  white-space: nowrap;
-  margin-bottom: 20px;
+  letter-spacing: 0.08em;
+  margin-bottom: 26px;
 }
 
 .page-officers .role-badge span {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--off-green);
+  flex-shrink: 0;
 }
 
 .page-officers .roles {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 13px;
   flex-wrap: wrap;
+  gap: clamp(14px, 3vw, 34px);
+  margin-bottom: 22px;
 }
 
 .page-officers .role-item {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: clamp(24px, 3vw, 30px);
-  font-weight: 400;
-  letter-spacing: -1px;
+  gap: 12px;
+  font-size: clamp(28px, 5vw, 56px);
+  font-weight: 430;
+  letter-spacing: -0.04em;
 }
 
 .page-officers .role-dot {
-  width: 13px;
-  height: 13px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  display: inline-block;
   flex-shrink: 0;
 }
 
@@ -662,38 +720,33 @@
 .page-officers .role-dot.green { background: var(--off-green); }
 
 .page-officers .role-description {
-  margin: 18px 0 0;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #333;
-  text-align: center;
+  margin: 0;
+  font-size: clamp(14px, 1.6vw, 18px);
+  font-weight: 300;
+  line-height: 1.55;
+  color: var(--off-muted);
 }
 
 .page-officers .join-card {
-  width: min(760px, 100%);
-  max-width: none;
-  height: 350px;
-  margin: 40px auto 0;
-  border: 1px solid #111;
-  border-radius: 12px;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 60px 32px 64px;
+  border: 2px solid var(--off-ink);
+  border-radius: 28px;
   position: relative;
   background: #fff;
-  overflow: hidden;
 }
 
 .page-officers .join-dots {
-  position: absolute;
-  left: 21px;
-  top: 20px;
   display: flex;
-  gap: 7px;
+  gap: 8px;
+  margin-bottom: 30px;
 }
 
 .page-officers .join-dots .dot {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 1px solid #111;
   display: block;
 }
 
@@ -704,29 +757,21 @@
 
 .page-officers .join-content {
   width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding-top: 12px;
   text-align: center;
 }
 
-.page-officers .join-content h2 {
-  margin: 0 0 9px;
-  font-size: clamp(22px, 5vw, 29px);
-  font-weight: 400;
-  letter-spacing: -0.8px;
-  color: var(--off-ink);
-  overflow-wrap: anywhere;
-}
+.page-officers .join-content h2 { margin: 0 0 12px; }
 
 .page-officers .join-content p {
-  margin: 0 0 15px;
-  font-size: clamp(13px, 3.4vw, 14px);
-  color: #222;
-  padding: 0 16px;
+  max-width: 700px;
+  margin: 0 auto 28px;
+  font-size: clamp(14px, 1.6vw, 18px);
+  font-weight: 300;
+  line-height: 1.55;
+  color: var(--off-muted);
   overflow-wrap: anywhere;
 }
 
@@ -734,176 +779,56 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   min-height: 44px;
-  height: auto;
-  padding: 10px 18px;
-  border: 1px solid #111;
-  border-radius: 22px;
-  background: #5bd66f;
-  color: #111;
+  padding: 10px 24px;
+  border: 2px solid var(--off-ink);
+  border-radius: 999px;
+  background: var(--off-cta);
+  color: #000;
   text-decoration: none;
-  font-size: clamp(12px, 3vw, 13px);
+  font-size: 15px;
   font-weight: 600;
   transition: 0.2s ease;
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
 
-.page-officers .community-btn:hover {
-  transform: scale(1.04);
-  background: #4fce62;
-}
+.page-officers .community-btn:hover { transform: translateY(-2px); }
 
-.page-officers .gdg-card-meta {
-  opacity: 0.85;
-  margin-top: 2px;
-  font-size: 11px;
-}
+.page-officers .gdg-muted { color: #777; }
 
-.page-officers .gdg-card-desc {
-  opacity: 0;
-  height: 0;
-  overflow: hidden;
-  margin: 0;
-}
-
-.page-officers .gdg-muted {
-  color: #777;
-}
-
-/* Fluid type + gutters for 480/768 safety */
-@media (max-width: 768px) {
-  .page-officers .team-hero { height: 340px; }
-  .page-officers .team-intro p { max-width: 90vw; }
-}
-
-/* ---------- responsive ---------- */
-@media (max-width: 900px) {
-  .page-officers .team-grid,
-  .page-officers .officers-skeleton-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .page-officers .department {
-    padding-left: 35px;
-    padding-right: 35px;
-  }
-  .page-officers .officers-state,
-  .page-officers .officers-error,
-  .page-officers .officers-empty {
-    margin-left: 35px;
-    margin-right: 35px;
-  }
-  .page-officers .officers-state { padding-left: 0; padding-right: 0; }
-  .page-officers .team-card,
-  .page-officers .officer-skeleton-card {
-    height: 440px;
-  }
-  .page-officers .skeleton-photo { height: 320px; }
-  .page-officers .officers-error { margin-left: 35px; margin-right: 35px; }
-  .page-officers .more-role { padding-left: 25px; padding-right: 25px; }
-  .page-officers .join-card { height: 260px; }
-  .page-officers .hero-picture--star { left: 8%; width: 70px; height: 70px; }
-  .page-officers .hero-picture--arrow { right: 6%; width: 70px; height: 70px; }
-  .page-officers .hero-picture--globe { left: 12%; width: 70px; height: 70px; }
-  .page-officers .hero-picture--heart { right: 4%; width: 70px; height: 70px; }
-}
-
+/* ---------- responsive — 700 (baseline breakpoint) ---------- */
 @media (max-width: 700px) {
-  .page-officers .team-grid,
-  .page-officers .officers-skeleton-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .page-officers .team-card,
-  .page-officers .officer-skeleton-card {
-    height: 400px;
-  }
-  .page-officers .skeleton-photo { height: 290px; }
-  .page-officers .team-hero { height: 360px; }
-  .page-officers .team-intro { margin-top: 52px; padding: 0 20px; }
-  .page-officers .officer-modal-card {
-    flex-direction: column;
-    max-height: 92vh;
-  }
-  .page-officers .officer-modal-photo {
-    flex: 0 0 auto;
-    width: 100%;
-    height: 340px;
-    min-height: 220px;
-  }
-  .page-officers .officer-modal-body { padding: 22px 20px 22px; }
-  .page-officers .officer-modal-body h3 { font-size: 20px; }
-}
+  .page-officers .section-frame { width: min(100% - 32px, 560px); }
+  .page-officers .section-rule { margin-bottom: 32px; }
 
-@media (max-width: 550px) {
-  .page-officers .team-grid,
-  .page-officers .officers-skeleton-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-  .page-officers .team-card,
-  .page-officers .officer-skeleton-card {
-    height: 480px;
-    border-radius: 18px;
-  }
-  .page-officers .department {
-    padding: 10px 20px 36px;
-  }
-  .page-officers .department h2 { font-size: clamp(20px, 6vw, 24px); }
-  .page-officers .officers-state,
-  .page-officers .officers-error,
-  .page-officers .officers-empty {
-    margin-left: 20px;
-    margin-right: 20px;
-  }
-  .page-officers .officers-state { padding-left: 0; padding-right: 0; }
-  .page-officers .team-intro h1 {
-    font-size: clamp(28px, 8vw, 42px);
-    letter-spacing: -1.2px;
-  }
-  .page-officers .team-intro p { font-size: clamp(12.5px, 3.6vw, 13px); }
-  .page-officers .hero-picture--star { left: 4%; top: 62px; width: 52px; height: 52px; }
-  .page-officers .hero-picture--arrow { right: 4%; top: 42px; width: 52px; height: 52px; }
-  .page-officers .hero-picture--globe { left: 4%; bottom: 18px; width: 52px; height: 52px; }
-  .page-officers .hero-picture--heart { right: 4%; bottom: 8px; width: 52px; height: 52px; }
-  .page-officers .more-role { padding-left: 18px; padding-right: 18px; }
-  .page-officers .role-item { font-size: clamp(18px, 5vw, 20px); }
-  .page-officers .join-card { height: 220px; margin-top: 28px; }
-  .page-officers .join-content h2 { font-size: clamp(20px, 6vw, 26px); }
-  .page-officers .skeleton-photo { height: 360px; }
-}
+  .page-officers .team-hero { padding: 44px 16px 52px; }
+  .page-officers .team-intro h1 { font-size: clamp(30px, 9vw, 44px); }
+  .page-officers .people-card { font-size: 0.8em; }
+  .page-officers .hero-picture { width: 44px; height: auto; }
+  .page-officers .hero-picture--globe,
+  .page-officers .hero-picture--heart { display: none; }
 
-@media (max-width: 480px) {
-  .page-officers .department { padding-left: 16px; padding-right: 16px; }
-  .page-officers .officers-state,
-  .page-officers .officers-error,
-  .page-officers .officers-empty { margin-left: 16px; margin-right: 16px; }
-  .page-officers .more-role { padding-left: 16px; padding-right: 16px; }
-  .page-officers .join-card { height: auto; min-height: 210px; padding-bottom: 20px; }
+  .page-officers .exec-section,
+  .page-officers .core-section { padding: 44px 0 60px; }
+
+  .page-officers .team-grid,
+  .page-officers .officers-skeleton-grid { grid-template-columns: 1fr; gap: 14px; }
+
+  .page-officers .dept-tabs { overflow-x: auto; padding-bottom: 4px; }
+  .page-officers .dept-tab { flex: 0 0 auto; padding: 10px 16px; }
+  .page-officers .core-panel { padding: 20px 14px 24px; }
+
+  .page-officers .more-role { padding: 44px 0 80px; }
+  .page-officers .role-content { margin-bottom: 44px; }
+  .page-officers .roles { gap: 12px 18px; }
+  .page-officers .role-dot { width: 16px; height: 16px; }
+  .page-officers .join-card { padding: 48px 20px 52px; }
+
   .page-officers .officer-modal { padding: 16px; }
-}
-
-@media (max-width: 390px) {
-  .page-officers .team-intro { padding: 0 16px; }
-  .page-officers .team-card,
-  .page-officers .officer-skeleton-card { height: 450px; }
-  .page-officers .skeleton-photo { height: 330px; }
-  .page-officers .officer-modal-photo { height: 300px; }
-}
-
-@media (max-width: 380px) {
-  .page-officers .team-card,
-  .page-officers .officer-skeleton-card { height: 440px; }
-}
-
-@media (max-width: 360px) {
-  .page-officers .team-intro h1 { font-size: clamp(26px, 7.5vw, 30px); }
-  .page-officers .team-card,
-  .page-officers .officer-skeleton-card { height: 420px; }
-  .page-officers .skeleton-photo { height: 310px; }
-  .page-officers .department { padding-left: 14px; padding-right: 14px; }
-  .page-officers .officers-state,
-  .page-officers .officers-error,
-  .page-officers .officers-empty { margin-left: 14px; margin-right: 14px; }
-  .page-officers .join-card { margin-top: 24px; }
+  .page-officers .officer-modal-card { flex-direction: column; max-height: 92vh; }
+  .page-officers .officer-modal-photo { flex: 0 0 auto; width: 100%; height: 340px; min-height: 220px; }
+  .page-officers .officer-modal-body { padding: 22px 20px; }
+  .page-officers .officer-modal-body h3 { font-size: 20px; }
 }

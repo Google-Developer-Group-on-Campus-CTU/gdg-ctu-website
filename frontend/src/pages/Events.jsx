@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { formatDate, mapEvent, publicApi, usePublicFeed } from '../api/public.js';
 import { FeedError, FeedSkeleton, friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
 import '../styles/events.css';
 
-const SCOPES = ['upcoming', 'past'];
+const REGISTER_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLSe8XGfS83u5u3bbwqaUlHYmYlTNqPuYPl1aULCb8xMrN91jaQ/viewform?pli=1';
 
 const TRACKS = [
   {
@@ -77,15 +78,37 @@ const TRACKS = [
   },
 ];
 
+const PAST_CATS = [
+  { id: 'all', label: 'All Events', tone: 'cat-red' },
+  { id: 'meetups', label: 'Meetups', tone: 'cat-yellow' },
+  { id: 'workshops', label: 'Workshops', tone: 'cat-green' },
+  { id: 'talks', label: 'Talks', tone: 'cat-blue' },
+  { id: 'competitions', label: 'Competitions', tone: 'cat-blue' },
+];
+
+const DATE_TONES = ['tone-yellow', 'tone-green', 'tone-blue'];
+const LOC_TONES = ['tone-yellow', 'tone-green'];
+
+// The CMS has no event taxonomy, so past-event filter pills group events by
+// keyword match over title + descriptions. Anything unmatched lands in
+// Meetups so no published event ever vanishes from every filter.
+function eventCategory(e) {
+  const text = `${e.title ?? ''} ${e.short ?? ''} ${e.description ?? ''}`.toLowerCase();
+  if (/workshop|hands-on|hands on|lab\b|study jam|bootcamp|codelab/.test(text)) return 'workshops';
+  if (/competition|hackathon|contest|challenge|venture|olympiad/.test(text)) return 'competitions';
+  if (/talk\b|speaker|session|summit|techconnect|conference|seminar|keynote/.test(text)) return 'talks';
+  return 'meetups';
+}
+
 function EventDetail({ slug }) {
   const { data, loading, error, retry } = usePublicFeed(
     () => publicApi.getEventBySlug(slug).then((e) => (e ? mapEvent(e) : null)),
     `event-${slug}`,
   );
   return (
-    <div className="gdg-container">
-      <section className="gdg-section">
-        <Link to="/events" className="gdg-btn gdg-btn-secondary">
+    <div className="page-events">
+      <div className="event-detail section-frame">
+        <Link to="/events" className="back-pill">
           ← All events
         </Link>
         {loading ? <FeedSkeleton count={1} label="Loading event…" /> : null}
@@ -93,30 +116,30 @@ function EventDetail({ slug }) {
           <FeedError message={error ? friendlyFeedError(error) : 'This event is not published.'} onRetry={retry} />
         ) : null}
         {!loading && !error && data ? (
-          <>
-            <span className="gdg-badge">Event</span>
+          <article className="detail-card">
+            <span className="eyebrow"><span /> Event</span>
             <h2>{data.title}</h2>
             {data.coverUrl ? (
-              <img className="gdg-photo" src={data.coverUrl} alt={data.coverAlt} onError={hideImage} />
+              <img className="detail-photo" src={data.coverUrl} alt={data.coverAlt} onError={hideImage} />
             ) : null}
-            {data.short ? <p className="gdg-subtitle">{data.short}</p> : null}
-            {data.description ? <p>{data.description}</p> : null}
-            <div className="gdg-card-meta">
+            {data.short ? <p className="sub">{data.short}</p> : null}
+            {data.description ? <p className="detail-desc">{data.description}</p> : null}
+            <div className="detail-meta">
               {data.startAt ? <span>Starts: {formatDate(data.startAt)}</span> : null}
               {data.endAt ? <span>Ends: {formatDate(data.endAt)}</span> : null}
               {data.location ? <span>{data.location}</span> : null}
               {data.timezone ? <span>{data.timezone}</span> : null}
             </div>
             {data.externalUrl ? (
-              <div className="gdg-btn-row">
-                <a href={data.externalUrl} target="_blank" rel="noreferrer" className="gdg-btn gdg-btn-primary">
+              <div className="detail-actions">
+                <a href={data.externalUrl} target="_blank" rel="noreferrer" className="green-pill">
                   Join
                 </a>
               </div>
             ) : null}
-          </>
+          </article>
         ) : null}
-      </section>
+      </div>
     </div>
   );
 }
@@ -127,48 +150,50 @@ export default function Events() {
   return <EventsList />;
 }
 
+function PastCard({ event, idx }) {
+  const meta = [event.location, event.status].filter(Boolean).join('  |  ');
+  return (
+    <Link
+      to={event.slug ? `/events/${event.slug}` : '/events'}
+      className="past-card"
+      aria-label={event.title}
+    >
+      <div className="past-top">
+        {event.coverUrl ? (
+          <img className="past-photo" src={event.coverUrl} alt={event.coverAlt} loading="lazy" onError={hideImage} />
+        ) : (
+          <div className="past-photo past-photo--fallback" aria-hidden="true">
+            {event.title.charAt(0).toUpperCase()}
+          </div>
+        )}
+        <div className="past-head">
+          <h3>{event.title}</h3>
+          {event.startAt ? (
+            <span className={`mini-pill ${DATE_TONES[idx % DATE_TONES.length]}`}>{formatDate(event.startAt)}</span>
+          ) : null}
+        </div>
+      </div>
+      <p className="past-desc">{event.short || event.description || 'No description.'}</p>
+      {meta ? (
+        <span className={`past-loc ${LOC_TONES[idx % LOC_TONES.length]}`}>{meta}</span>
+      ) : null}
+    </Link>
+  );
+}
+
 function EventsList() {
-  const [params, setParams] = useSearchParams();
-  const scope = SCOPES.includes(params.get('scope')) ? params.get('scope') : 'upcoming';
-  const { data, loading, error, retry } = usePublicFeed(
-    () => publicApi.getEvents(scope).then((rows) => rows.map(mapEvent)),
-    `events-${scope}`,
+  const { data: upcomingData, loading: upcomingLoading, error: upcomingError, retry: upcomingRetry } = usePublicFeed(
+    () => publicApi.getEvents('upcoming').then((rows) => rows.map(mapEvent)),
+    'events-upcoming',
+  );
+  const { data: pastData, loading: pastLoading, error: pastError, retry: pastRetry } = usePublicFeed(
+    () => publicApi.getEvents('past').then((rows) => rows.map(mapEvent)),
+    'events-past',
   );
 
-  const carouselRef = useRef(null);
-  const [showLeft, setShowLeft] = useState(false);
-  const [showRight, setShowRight] = useState(false);
+  const [cat, setCat] = useState('all');
+  const [visible, setVisible] = useState(4);
   const [flipState, setFlipState] = useState({ zoomedId: null, flippedId: null });
-
-  const updateFades = useCallback(() => {
-    const el = carouselRef.current;
-    if (!el) return;
-    if (el.scrollWidth <= el.clientWidth) {
-      setShowLeft(false);
-      setShowRight(false);
-      return;
-    }
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    const pos = el.scrollLeft;
-    setShowLeft(pos > 5);
-    setShowRight(pos < maxScroll - 5);
-  }, []);
-
-  useEffect(() => {
-    const el = carouselRef.current;
-    if (!el) return;
-    updateFades();
-    el.addEventListener('scroll', updateFades, { passive: true });
-    window.addEventListener('resize', updateFades);
-    return () => {
-      el.removeEventListener('scroll', updateFades);
-      window.removeEventListener('resize', updateFades);
-    };
-  }, [updateFades, data, loading]);
-
-  useEffect(() => {
-    updateFades();
-  }, [data, updateFades]);
 
   useEffect(() => {
     function onKey(e) {
@@ -178,142 +203,90 @@ function EventsList() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  const scrollLeft = useCallback(() => {
-    carouselRef.current?.scrollBy({ left: -220, behavior: 'smooth' });
-  }, []);
-
-  const scrollRight = useCallback(() => {
-    carouselRef.current?.scrollBy({ left: 220, behavior: 'smooth' });
-  }, []);
-
   const clearFlip = useCallback(() => setFlipState({ zoomedId: null, flippedId: null }), []);
 
-  const isEmpty = !loading && !error && (!data || data.length === 0);
+  const upcomingEmpty = !upcomingLoading && !upcomingError && (!upcomingData || upcomingData.length === 0);
+
+  const filteredPast = useMemo(() => {
+    const rows = pastData ?? [];
+    if (cat === 'all') return rows;
+    return rows.filter((e) => eventCategory(e) === cat);
+  }, [pastData, cat]);
+
+  const shownPast = filteredPast.slice(0, visible);
 
   return (
     <div className="page-events">
-      <div className="hero">
-        <img className="doodle doodle-1" src="/layout-assets/events/Group 168.png" alt="" aria-hidden="true" />
-        <img className="doodle doodle-2" src="/layout-assets/events/Group 170.png" alt="" aria-hidden="true" />
-        <img className="doodle doodle-3" src="/layout-assets/events/Group 169.png" alt="" aria-hidden="true" />
-        <img className="doodle doodle-4" src="/layout-assets/events/Group 171.png" alt="" aria-hidden="true" />
+      {/* ---------- HERO ---------- */}
+      <section className="ev-hero" aria-labelledby="events-title">
+        <img className="ev-deco ev-deco-star" src="/layout-assets/home/star-no-bg.png" alt="" aria-hidden="true" />
+        <img className="ev-deco ev-deco-arrow" src="/layout-assets/home/arrow-no-bg.png" alt="" aria-hidden="true" />
+        <img className="ev-deco ev-deco-globe" src="/layout-assets/home/globe-no-bg.png" alt="" aria-hidden="true" />
+        <img className="ev-deco ev-deco-heart" src="/layout-assets/home/heart-no-bg.png" alt="" aria-hidden="true" />
 
-        <button className="events-btn" type="button" disabled>
-          <span className="dot" aria-hidden="true" />
-          EVENTS
-        </button>
-
-        <h1>
-          <img src="/layout-assets/events/learn logo.png" className="learn-img" alt="Learn" /> and
-        </h1>
-        <h1>build something</h1>
-
-        <p>From hands-on workshops to community meetups, discover the</p>
-        <p>events where CTU students learn, connect, and build together.</p>
-
-        <a href="#upcoming-events" className="cta-btn">
-          View Upcoming Events
-          <span className="arrow-down" aria-hidden="true">
-            ↓
-          </span>
-        </a>
-
-        <hr id="upcoming-events" />
-
-        <button className="upcoming-events-btn" type="button" disabled>
-          <span className="up-dot" aria-hidden="true" />
-          UPCOMING EVENTS
-        </button>
-
-        <h1>What&apos;s happening next</h1>
-      </div>
-
-      <div className="page-events__tabs-wrap">
-        <div className="gdg-tabs" role="tablist" aria-label="Event scopes">
-          {SCOPES.map((s) => (
-            <button
-              key={s}
-              type="button"
-              role="tab"
-              aria-selected={scope === s}
-              className={scope === s ? 'is-active' : ''}
-              onClick={() => setParams({ scope: s })}
-            >
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </button>
-          ))}
+        <div className="ev-hero-content">
+          <div className="eyebrow"><span /> EVENTS</div>
+          <h1 id="events-title">
+            <span className="learn-card" aria-label="Learn">
+              <span className="c-blue">L</span>
+              <span className="c-red">E</span>
+              <span className="c-yellow">A</span>
+              <span className="c-blue">R</span>
+              <span className="c-green">N</span>
+            </span>{' '}
+            and<br />build something
+          </h1>
+          <p className="sub">
+            From hands-on workshops to community meetups, discover the
+            events where CTU students learn, connect, and build together.
+          </p>
+          <a className="green-pill" href="#upcoming-events">
+            View Upcoming Events <span aria-hidden="true">↓</span>
+          </a>
         </div>
-      </div>
+      </section>
 
-      {loading ? (
-        <div className="page-events__section">
-          <FeedSkeleton label={`Loading ${scope} events…`} />
-        </div>
-      ) : null}
-      {!loading && error ? (
-        <div className="gdg-feed-error">
-          <FeedError message={friendlyFeedError(error)} onRetry={retry} />
-        </div>
-      ) : null}
+      {/* ---------- UPCOMING ---------- */}
+      <section id="upcoming-events" className="ev-upcoming section-frame" aria-labelledby="upcoming-title">
+        <div className="section-rule" />
+        <div className="eyebrow"><span className="dot-yellow" /> UPCOMING EVENT</div>
+        <h2 id="upcoming-title">What&apos;s happening next</h2>
 
-      <div className={`carousel-wrapper ${showLeft ? 'show-left' : ''} ${showRight ? 'show-right' : ''}`.trim()}>
-        <button type="button" className="carousel-arrow-left" aria-label="Scroll left" onClick={scrollLeft}>
-          ‹
-        </button>
-        <button type="button" className="carousel-arrow-right" aria-label="Scroll right" onClick={scrollRight}>
-          ›
-        </button>
+        {upcomingLoading ? <FeedSkeleton label="Loading upcoming events…" /> : null}
+        {!upcomingLoading && upcomingError ? (
+          <div className="gdg-feed-error" role="alert">
+            <FeedError message={friendlyFeedError(upcomingError)} onRetry={upcomingRetry} />
+          </div>
+        ) : null}
 
-        <div ref={carouselRef} className="carousel" id="carousel">
-          {isEmpty ? (
-            <div className="carousel-empty-state">
-              <p>No {scope} events right now. We&apos;re cooking up something</p>
-              <p>exciting for the next sprint! Follow our socials or check back soon!</p>
-              <Link to="/contact" className="register gdg-follow-btn">
-                Follow our community <span className="arrow-diagonal" aria-hidden="true">↗</span>
-              </Link>
-            </div>
-          ) : null}
+        {!upcomingLoading && !upcomingError && upcomingData?.length ? (
+          <div className="past-grid">
+            {upcomingData.slice(0, 4).map((event, idx) => (
+              <PastCard key={event.id} event={event} idx={idx} />
+            ))}
+          </div>
+        ) : null}
 
-          {!loading && !error && data?.length
-            ? data.map((event) => (
-                <Link
-                  key={event.id}
-                  to={event.slug ? `/events/${event.slug}` : '/events'}
-                  className="card card--cms"
-                >
-                  {event.coverUrl ? (
-                    <img src={event.coverUrl} alt={event.coverAlt} loading="lazy" onError={hideImage} />
-                  ) : (
-                    <div className="gdg-card-placeholder" aria-hidden="true">
-                      {event.title.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="card__body">
-                    <h3>{event.title}</h3>
-                    <p>{event.short || event.description || 'No description.'}</p>
-                    <div className="card__meta">
-                      {event.startAt ? <span>{formatDate(event.startAt)}</span> : null}
-                      {event.location ? <span>{event.location}</span> : null}
-                      {event.status ? <span className="card__tag">{event.status}</span> : null}
-                    </div>
-                  </div>
-                </Link>
-              ))
-            : null}
-        </div>
-      </div>
+        {upcomingEmpty ? (
+          <div className="empty-state">
+            <p className="sub">
+              No upcoming events right now. We&apos;re cooking up something
+              exciting for the next sprint! Follow our socials or check back soon!
+            </p>
+            <Link to="/contact" className="green-pill">
+              Follow our community <span aria-hidden="true">↗</span>
+            </Link>
+          </div>
+        ) : null}
+      </section>
 
-      <hr />
-
-      <div className="page-events__featured">
-        <button className="featured-events-btn" type="button" disabled>
-          <span className="feat-dot" aria-hidden="true" />
-          FEATURED EVENTS
-        </button>
-
-        <h1>More to learn.</h1>
-        <h1>More to build.</h1>
+      {/* ---------- CORE TRACKS ---------- */}
+      <section className="ev-tracks section-frame" aria-labelledby="tracks-title">
+        <div className="section-rule" />
+        <img className="ev-deco ev-deco-globe-tracks" src="/layout-assets/home/globe-no-bg.png" alt="" aria-hidden="true" />
+        <img className="ev-deco ev-deco-star-tracks" src="/layout-assets/home/star-no-bg.png" alt="" aria-hidden="true" />
+        <div className="eyebrow"><span /> CORE TRACKS</div>
+        <h2 id="tracks-title">More to learn.<br />More to build.</h2>
 
         <div className="track-containers">
           {TRACKS.map((track) => {
@@ -360,7 +333,7 @@ function EventsList() {
                           }
                         }}
                       >
-                        Explore Track ⟳
+                        Explore Track <span aria-hidden="true">⟳</span>
                       </button>
                     </div>
                   </div>
@@ -400,7 +373,7 @@ function EventsList() {
                           setFlipState((prev) => ({ ...prev, flippedId: null }));
                         }}
                       >
-                        Back to Track ⟳
+                        Back to Track <span aria-hidden="true">⟳</span>
                       </button>
                     </div>
                   </div>
@@ -415,77 +388,73 @@ function EventsList() {
           onClick={clearFlip}
           aria-hidden={flipState.zoomedId ? 'false' : 'true'}
         />
-      </div>
+      </section>
 
-      <hr />
+      {/* ---------- PAST EVENTS ---------- */}
+      <section className="ev-past section-frame" aria-labelledby="past-title">
+        <div className="section-rule" />
+        <img className="ev-deco ev-deco-heart-past" src="/layout-assets/home/heart-no-bg.png" alt="" aria-hidden="true" />
+        <img className="ev-deco ev-deco-arrow-past" src="/layout-assets/home/arrow-no-bg.png" alt="" aria-hidden="true" />
+        <div className="eyebrow"><span className="dot-blue" /> PAST EVENTS</div>
+        <h2 id="past-title">What we&apos;ve<br />built together</h2>
 
-      <div className="page-events__past">
-        <button className="past-events-btn" type="button" disabled>
-          <span className="past-dot" aria-hidden="true" />
-          PAST EVENTS
-        </button>
+        <div className="cat-pills" role="tablist" aria-label="Filter past events">
+          {PAST_CATS.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              role="tab"
+              aria-selected={cat === c.id}
+              className={`cat-pill ${c.tone}${cat === c.id ? ' active' : ''}`}
+              onClick={() => { setCat(c.id); setVisible(4); }}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
 
-        <h1>What we&apos;ve</h1>
-        <h1>built together</h1>
-
-        {isEmpty && scope === 'past' ? (
-          <p className="gdg-subtitle gdg-mt-md">
-            No past events right now — check back soon.
-          </p>
+        {pastLoading ? <FeedSkeleton label="Loading past events…" /> : null}
+        {!pastLoading && pastError ? (
+          <div className="gdg-feed-error" role="alert">
+            <FeedError message={friendlyFeedError(pastError)} onRetry={pastRetry} />
+          </div>
+        ) : null}
+        {!pastLoading && !pastError && filteredPast.length === 0 ? (
+          <p className="sub">No past events right now — check back soon.</p>
         ) : null}
 
-        <div className="card-rows">
-          {!loading && !error && data?.length
-            ? data.map((event) => (
-                <Link
-                  key={event.id}
-                  to={event.slug ? `/events/${event.slug}` : '/events'}
-                  className="card-past card-past--cms"
-                >
-                  {event.coverUrl ? (
-                    <img src={event.coverUrl} alt={event.coverAlt} loading="lazy" onError={hideImage} />
-                  ) : (
-                    <div className="gdg-card-placeholder gdg-card-placeholder-sm" aria-hidden="true">
-                      {event.title.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="card__body">
-                    <h3>{event.title}</h3>
-                    <p>{event.short || event.description || 'No description.'}</p>
-                    <div className="card__meta">
-                      {event.startAt ? <span>{formatDate(event.startAt)}</span> : null}
-                      {event.location ? <span>{event.location}</span> : null}
-                      {event.status ? <span className="card__tag">{event.status}</span> : null}
-                    </div>
-                  </div>
-                </Link>
-              ))
-            : null}
+        {!pastLoading && !pastError && shownPast.length > 0 ? (
+          <div className="past-grid">
+            {shownPast.map((event, idx) => (
+              <PastCard key={event.id} event={event} idx={idx} />
+            ))}
+          </div>
+        ) : null}
 
-          {!loading && !error && isEmpty && scope !== 'past'
-            ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="card-past" aria-hidden="true" />)
-            : null}
+        {!pastLoading && !pastError && visible < filteredPast.length ? (
+          <button type="button" className="green-pill load-more" onClick={() => setVisible((v) => v + 4)}>
+            Load More <span aria-hidden="true">↓</span>
+          </button>
+        ) : null}
+      </section>
+
+      {/* ---------- FINAL CTA ---------- */}
+      <section className="ev-final section-frame" aria-labelledby="final-title">
+        <div className="section-rule" />
+        <div className="final-card">
+          <div className="final-dots" aria-hidden="true">
+            <span className="dot-red" />
+            <span className="dot-blue" />
+            <span className="dot-green" />
+            <span className="dot-yellow" />
+          </div>
+          <h2 id="final-title">Don&apos;t just watch from<br />the sidelines.</h2>
+          <p className="sub">Come learn, meet people, and build something with us.</p>
+          <a className="green-pill" href={REGISTER_URL} target="_blank" rel="noreferrer">
+            Register now <span aria-hidden="true">↗</span>
+          </a>
         </div>
-      </div>
-
-      <hr />
-
-      <div className="box-event">
-        <div className="dots" aria-hidden="true">
-          <span className="dot dot-red" />
-          <span className="dot dot-blue" />
-          <span className="dot dot-green" />
-          <span className="dot dot-yellow" />
-        </div>
-
-        <h2>Don&apos;t just watch from</h2>
-        <h2>the sidelines.</h2>
-        <p>Come learn, meet people, and build something with us.</p>
-
-        <Link to="/contact" className="register">
-          Register now <span className="arrow-diagonal" aria-hidden="true">↗</span>
-        </Link>
-      </div>
+      </section>
     </div>
   );
 }

@@ -1,12 +1,9 @@
-import { TIER_ORDER, publicApi, sortPartners, usePublicFeed } from '../api/public.js';
+import { Link } from 'react-router-dom';
+import { publicApi, sortPartners, usePublicFeed } from '../api/public.js';
 import { FeedError, FeedSkeleton, friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
+import '../styles/partners.css';
 
-const TIER_LABELS = {
-  platinum: 'Platinum Partners',
-  gold: 'Gold Partners',
-  silver: 'Silver Partners',
-  community: 'Community Partners',
-};
+const CARD_BGS = ['bg-white', 'bg-magenta', 'bg-dark'];
 
 export default function Partners() {
   const { data, loading, error, retry } = usePublicFeed(
@@ -14,60 +11,116 @@ export default function Partners() {
     'partners-all',
   );
 
-  const groups = (data ?? []).reduce((acc, p) => {
-    const tier = TIER_ORDER[p.tier] !== undefined ? p.tier : 'community';
-    (acc[tier] ??= []).push(p);
-    return acc;
-  }, {});
-  const orderedTiers = Object.keys(groups).sort((a, b) => (TIER_ORDER[a] ?? 9) - (TIER_ORDER[b] ?? 9));
+  const partners = data ?? [];
+  const empty = !loading && !error && partners.length === 0;
 
   return (
-    <div className="gdg-container">
-      <section className="gdg-section">
-        <span className="gdg-badge">Our Partners</span>
-        <h2>
-          Trusted <span className="gdg-gradient-text">Partners</span>
-        </h2>
-        <p className="gdg-subtitle">
-          We proudly collaborate with leading technology companies, academic
-          institutions, and developer communities.
-        </p>
+    <main className="page-partners">
+      {/* ---------- HERO ---------- */}
+      <section className="pt-hero" aria-labelledby="partners-title">
+        <img className="pt-deco pt-deco-star" src="/layout-assets/home/star-no-bg.png" alt="" aria-hidden="true" />
+        <img className="pt-deco pt-deco-arrow" src="/layout-assets/home/arrow-no-bg.png" alt="" aria-hidden="true" />
+        <img className="pt-deco pt-deco-globe" src="/layout-assets/home/globe-no-bg.png" alt="" aria-hidden="true" />
+        <img className="pt-deco pt-deco-heart" src="/layout-assets/home/heart-no-bg.png" alt="" aria-hidden="true" />
+
+        <div className="pt-hero-content">
+          <div className="eyebrow"><span /> OUR PARTNERS</div>
+          <h1 id="partners-title">
+            Better{' '}
+            <span className="together-card" aria-label="Together">
+              <span className="c-blue">T</span>
+              <span className="c-red">O</span>
+              <span className="c-yellow">G</span>
+              <span className="c-blue">E</span>
+              <span className="c-green">T</span>
+              <span className="c-red">H</span>
+              <span className="c-blue">E</span>
+              <span className="c-green">R</span>
+            </span>
+          </h1>
+          <p className="sub">
+            We work with organizations, communities, and industry partners
+            who help create better opportunities for CTU students.
+          </p>
+          <a className="green-pill" href="#partners-roster">
+            Meet our partners <span aria-hidden="true">↓</span>
+          </a>
+        </div>
       </section>
 
-      {loading ? <FeedSkeleton count={4} label="Loading partners…" /> : null}
-      {!loading && error ? <FeedError message={friendlyFeedError(error)} onRetry={retry} /> : null}
-      {!loading && !error && (!data || data.length === 0) ? (
-        <p className="gdg-subtitle">No partners published yet — check back soon.</p>
-      ) : null}
+      {/* ---------- ROSTER ---------- */}
+      <section id="partners-roster" className="pt-roster section-frame" aria-label="Our partners">
+        <div className="section-rule" />
+        <img className="pt-deco pt-deco-heart-roster" src="/layout-assets/home/heart-no-bg.png" alt="" aria-hidden="true" />
+        <img className="pt-deco pt-deco-star-roster" src="/layout-assets/home/star-no-bg.png" alt="" aria-hidden="true" />
+        <div className="eyebrow"><span className="dot-green" /> WHY WE EXIST</div>
+        <h2>Connected to the<br />community</h2>
+        <p className="sub">
+          Our partners help us bring ideas beyond the classroom through knowledge-
+          sharing, mentorship, events, resources, and opportunities.
+        </p>
 
-      {!loading && !error && data?.length
-        ? orderedTiers.map((tier) => (
-          <section key={tier} className="gdg-section" aria-label={TIER_LABELS[tier] ?? tier}>
-            <h2>{TIER_LABELS[tier] ?? tier}</h2>
-            <div className="gdg-grid">
-              {groups[tier].map((partner) => (
-                <div key={partner.id} className="gdg-card">
-                  {partner.logoUrl ? (
-                    <img className="gdg-photo" src={partner.logoUrl} alt={partner.logoAlt} loading="lazy" onError={hideImage} />
-                  ) : (
-                    <div className="gdg-photo-fallback">{partner.name.charAt(0)}</div>
-                  )}
-                  <p><span className="gdg-tag">{partner.tier}</span></p>
-                  <h3>{partner.name}</h3>
-                  {partner.description ? <p>{partner.description}</p> : null}
-                  {partner.website ? (
-                    <div className="gdg-btn-row">
-                      <a href={partner.website} target="_blank" rel="noreferrer" className="gdg-btn gdg-btn-secondary">
-                        Visit site
-                      </a>
-                    </div>
-                  ) : null}
+        {loading ? <FeedSkeleton count={3} label="Loading partners…" /> : null}
+        {!loading && error ? (
+          <div className="gdg-feed-error" role="alert">
+            <FeedError message={friendlyFeedError(error)} onRetry={retry} />
+          </div>
+        ) : null}
+        {empty ? (
+          <p className="sub">No partners published yet — check back soon.</p>
+        ) : null}
+
+        {!loading && !error && partners.length > 0 ? (
+          <div className="partner-grid">
+            {partners.map((partner, idx) => {
+              const body = partner.logoUrl ? (
+                <img src={partner.logoUrl} alt={partner.logoAlt} loading="lazy" onError={hideImage} />
+              ) : (
+                <span className="partner-fallback" aria-hidden="true">{partner.name.charAt(0)}</span>
+              );
+              const cardClass = `partner-card ${CARD_BGS[idx % CARD_BGS.length]}`;
+              return partner.website ? (
+                <a
+                  key={partner.id}
+                  className={cardClass}
+                  href={partner.website}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`${partner.name} (opens in a new tab)`}
+                  title={partner.name}
+                >
+                  {body}
+                </a>
+              ) : (
+                <div key={partner.id} className={cardClass} aria-label={partner.name} title={partner.name}>
+                  {body}
                 </div>
-              ))}
-            </div>
-          </section>
-        ))
-        : null}
-    </div>
+              );
+            })}
+          </div>
+        ) : null}
+      </section>
+
+      {/* ---------- FINAL CTA ---------- */}
+      <section className="pt-final section-frame" aria-labelledby="final-title">
+        <div className="section-rule" />
+        <div className="final-card">
+          <div className="final-dots" aria-hidden="true">
+            <span className="dot-red" />
+            <span className="dot-blue" />
+            <span className="dot-green" />
+            <span className="dot-yellow" />
+          </div>
+          <h2 id="final-title">Let&apos;s build something useful</h2>
+          <p className="sub">
+            Interested in creating opportunities for the next generation of
+            builders?
+          </p>
+          <Link to="/contact" className="green-pill">
+            Partner with us <span aria-hidden="true">↗</span>
+          </Link>
+        </div>
+      </section>
+    </main>
   );
 }

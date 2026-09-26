@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { mapMember, mapTerm, publicApi, usePublicFeed } from '../api/public.js';
 import { FeedError, friendlyFeedError } from '../components/FeedStates.jsx';
 import '../styles/officers.css';
 
 const FALLBACK_PHOTO = '/layout-assets/officers/gdg-team-2024.jpg';
+const REGISTER_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLSe8XGfS83u5u3bbwqaUlHYmYlTNqPuYPl1aULCb8xMrN91jaQ/viewform?pli=1';
 const HERO_SRC = {
-  star: '/layout-assets/star-no-bg.png',
-  arrow: '/layout-assets/arrow-no-bg.png',
-  heart: '/layout-assets/heart-no-bg.png',
-  globe: '/layout-assets/globe-no-bg.png',
+  star: '/layout-assets/home/star-no-bg.png',
+  arrow: '/layout-assets/home/arrow-no-bg.png',
+  heart: '/layout-assets/home/heart-no-bg.png',
+  globe: '/layout-assets/home/globe-no-bg.png',
 };
+const CARD_LOGO = '/layout-assets/home/gdg-logo.png';
 
 const DEPARTMENT_ORDER = [
   'Executive Board',
@@ -21,10 +23,32 @@ const DEPARTMENT_ORDER = [
   'Finance',
 ];
 
+const CARD_TINTS = ['tint-yellow', 'tint-blue', 'tint-pink', 'tint-green'];
+const NAME_TONES = ['name-yellow', 'name-blue', 'name-red', 'name-green'];
+
 function departmentRank(name) {
   const lower = String(name).toLowerCase();
   const idx = DEPARTMENT_ORDER.findIndex((k) => lower.includes(k.toLowerCase()));
   return idx === -1 ? 99 : idx;
+}
+
+function isExecutiveDept(name) {
+  return String(name).toLowerCase().includes('executive');
+}
+
+function deptTabTone(name) {
+  const lower = String(name).toLowerCase();
+  if (lower.includes('operation')) return 'tab-amber';
+  if (lower.includes('technolog')) return 'tab-red';
+  if (lower.includes('creative')) return 'tab-blue';
+  if (lower.includes('community')) return 'tab-green';
+  if (lower.includes('financ')) return 'tab-blue';
+  return 'tab-yellow';
+}
+
+function deptTabLabel(name) {
+  const label = String(name).trim();
+  return /department/i.test(label) ? label : `${label} Department`;
 }
 
 function groupByDepartment(members) {
@@ -59,7 +83,7 @@ function OfficersSkeleton({ count = 8 }) {
   );
 }
 
-function OfficerCard({ member, onSelect }) {
+function OfficerCard({ member, tint, nameTone, onSelect }) {
   // `imgSrc` is derived during render — no effect-sync. The parent keys each
   // card by photo URL too, so a CMS photo swap remounts the card and resets
   // the error flag without a setState-in-effect cycle.
@@ -70,9 +94,6 @@ function OfficerCard({ member, onSelect }) {
     setImgFailed(true);
   }, []);
 
-  const meta = [member.program, member.yearSection].filter(Boolean).join(' · ');
-  const desc = member.bio || '';
-
   const onKey = useCallback((e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -81,15 +102,15 @@ function OfficerCard({ member, onSelect }) {
   }, [member, onSelect]);
 
   return (
-    <div
+    <article
       role="button"
       tabIndex={0}
-      className="team-card"
+      className={`team-card ${tint}`}
       onClick={() => onSelect(member)}
       onKeyDown={onKey}
       aria-label={`View details for ${member.name}, ${member.role}`}
     >
-      {imgSrc ? (
+      <div className="card-photo-wrap">
         <img
           key={member.photoUrl}
           className="card-photo"
@@ -98,25 +119,11 @@ function OfficerCard({ member, onSelect }) {
           loading="lazy"
           onError={handleError}
         />
-      ) : (
-        <div className="card-photo card-photo--fallback" aria-hidden="true">
-          {member.name.charAt(0)}
-        </div>
-      )}
-      <div className="card-info">
-        <h4 className="card-name">{member.name}</h4>
-        <p className="card-role">{member.role || 'Team Member'}</p>
-        {meta ? <p className="card-role gdg-card-meta">{meta}</p> : null}
-        {desc ? <p className="card-role gdg-card-desc">{desc}</p> : null}
-        {(member.linkedin || member.github || member.website) && (
-          <div className="card-links">
-            {member.github ? <a href={member.github} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>GitHub</a> : null}
-            {member.linkedin ? <a href={member.linkedin} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>LinkedIn</a> : null}
-            {member.website && !member.github && !member.linkedin ? <a href={member.website} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>Website</a> : null}
-          </div>
-        )}
+        <img className="card-logo" src={CARD_LOGO} alt="" aria-hidden="true" loading="lazy" />
+        <span className="card-role-pill">{member.role || 'Team Member'}</span>
       </div>
-    </div>
+      <span className={`card-name-pill ${nameTone}`}>{member.name}</span>
+    </article>
   );
 }
 
@@ -213,7 +220,28 @@ export default function Officers() {
     return groupByDepartment(data);
   }, [data]);
 
+  const execMembers = useMemo(
+    () => grouped.filter(([dept]) => isExecutiveDept(dept)).flatMap(([, members]) => members),
+    [grouped],
+  );
+  const coreGroups = useMemo(
+    () => grouped.filter(([dept]) => !isExecutiveDept(dept)),
+    [grouped],
+  );
+
+  // Department tab selection is derived during render — falls back to the
+  // first core department whenever the selection is missing.
+  const [selectedDept, setSelectedDept] = useState(null);
+  const activeDeptName = coreGroups.some(([dept]) => dept === selectedDept)
+    ? selectedDept
+    : (coreGroups[0]?.[0] ?? null);
+  const activeDeptMembers = coreGroups.find(([dept]) => dept === activeDeptName)?.[1] ?? [];
+
   const isEmpty = !loading && !error && (!data || data.length === 0);
+  const cardStyle = (idx) => ({
+    tint: CARD_TINTS[idx % CARD_TINTS.length],
+    nameTone: NAME_TONES[idx % NAME_TONES.length],
+  });
 
   return (
     <div className="page-officers">
@@ -225,8 +253,22 @@ export default function Officers() {
 
         <div className="team-intro">
           <div className="team-label"><span aria-hidden="true" />MEET THE TEAM</div>
-          <h1>The people behind<br />the community</h1>
+          <h1>
+            The{' '}
+            <span className="people-card" aria-label="People">
+              <span className="c-blue">P</span>
+              <span className="c-red">E</span>
+              <span className="c-yellow">O</span>
+              <span className="c-blue">P</span>
+              <span className="c-green">L</span>
+              <span className="c-red">E</span>
+            </span>{' '}
+            behind<br />the community
+          </h1>
           <p>A team of students who plan, create, organize, and build the experiences behind GDGoC - CTU.</p>
+          <a className="hero-cta" href="#team-roster">
+            Explore the team <span aria-hidden="true">↓</span>
+          </a>
           {terms.length > 0 ? (
             <div className="officers-term-filter">
               <label htmlFor="officers-term">S.Y.</label>
@@ -267,28 +309,60 @@ export default function Officers() {
         </div>
       ) : null}
 
-      {!loading && !error && grouped.length > 0 ? (
-        <div className="departments">
-          {grouped.map(([dept, members]) => (
-            <section key={dept} className="department" aria-label={dept}>
-              <div className="department-head">
-                <h2>{dept}</h2>
-                <span className="department-count">{members.length} {members.length === 1 ? 'member' : 'members'}</span>
-              </div>
+      {!loading && !error && (execMembers.length > 0 || coreGroups.length > 0) ? (
+        <div id="team-roster" className="roster section-frame">
+          {execMembers.length > 0 ? (
+            <section className="exec-section" aria-label="Executive officers">
+              <div className="section-rule" />
+              <h2>Executive Officers</h2>
               <div className="team-grid">
-                {members.map((m) => (
-                  <OfficerCard key={`${m.id || m.name}-${m.photoUrl}`} member={m} onSelect={setSelected} />
-                ))}
+                {execMembers.map((m, idx) => {
+                  const style = cardStyle(idx);
+                  return (
+                    <OfficerCard key={`${m.id || m.name}-${m.photoUrl}`} member={m} tint={style.tint} nameTone={style.nameTone} onSelect={setSelected} />
+                  );
+                })}
               </div>
             </section>
-          ))}
+          ) : null}
+
+          {coreGroups.length > 0 ? (
+            <section className="core-section" aria-label="Core team officers">
+              <div className="section-rule" />
+              <h2>Core Team Officers</h2>
+              <div className="dept-tabs" role="tablist" aria-label="Filter by department">
+                {coreGroups.map(([dept]) => (
+                  <button
+                    key={dept}
+                    type="button"
+                    role="tab"
+                    aria-selected={dept === activeDeptName}
+                    className={`dept-tab ${deptTabTone(dept)}${dept === activeDeptName ? ' active' : ''}`}
+                    onClick={() => setSelectedDept(dept)}
+                  >
+                    {deptTabLabel(dept)}
+                  </button>
+                ))}
+              </div>
+              <div className="core-panel">
+                <div className="team-grid">
+                  {activeDeptMembers.map((m, idx) => {
+                    const style = cardStyle(idx);
+                    return (
+                      <OfficerCard key={`${m.id || m.name}-${m.photoUrl}`} member={m} tint={style.tint} nameTone={style.nameTone} onSelect={setSelected} />
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          ) : null}
         </div>
       ) : null}
 
       {selected ? <OfficerModal key={selected.id || selected.name} member={selected} onClose={() => setSelected(null)} /> : null}
 
-      <section className="more-role" aria-label="More than a role">
-        <div className="role-line" aria-hidden="true" />
+      <section className="more-role section-frame" aria-label="More than a role">
+        <div className="section-rule" />
         <div className="role-content">
           <div className="role-badge"><span aria-hidden="true" />MORE THAN A ROLE</div>
           <div className="roles">
@@ -306,7 +380,14 @@ export default function Officers() {
           <div className="join-content">
             <h2>Join Us</h2>
             <p>There&apos;s always room for another builder</p>
-            <Link to="/contact" className="community-btn">Join the community <span aria-hidden="true">↗</span></Link>
+            <a
+              className="community-btn"
+              href={REGISTER_URL}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Register now <span aria-hidden="true">↗</span>
+            </a>
           </div>
         </div>
       </section>

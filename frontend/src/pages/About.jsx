@@ -1,292 +1,222 @@
-import { Link } from 'react-router-dom';
-import { publicApi, sortPartners, usePublicFeed } from '../api/public.js';
-import { FeedSkeleton, friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
 import '../styles/about.css';
 
-const purposeCards = [
-  {
-    title: 'Our Mission',
-    text: 'To empower students and the community with cutting-edge technology knowledge through collaborative learning, skill development, and meaningful connections that drive innovation and career growth.',
-    points: ['Computer Science Advocacy', 'Practical Skills Development', 'Community Upskilling', 'Networking Opportunities'],
-  },
-  {
-    title: 'Our Vision',
-    text: 'We envision a future where every student at Cebu Technological University has access to world-class technology education, practical skills, and a supportive network that transforms them into confident, competent, and connected tech professionals.',
-    points: ['Accessibility for All', 'Excellence in Learning', 'Transformation & Growth', 'Connection & Network'],
-  },
-  {
-    title: 'Our Values',
-    text: 'We believe in creating an inclusive environment where innovation thrives, collaboration flourishes, and every member grows into a confident tech professional.',
-    points: ['Innovation & Learning', 'Collaboration & Community', 'Excellence & Competency', 'Advocacy & Impact'],
-  },
+const REGISTER_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLSe8XGfS83u5u3bbwqaUlHYmYlTNqPuYPl1aULCb8xMrN91jaQ/viewform?pli=1';
+
+const beliefCards = [
+  { dot: 'dot-red', title: 'Learn', text: 'Explore new technologies.' },
+  { dot: 'dot-yellow', title: 'Build', text: 'Put knowledge into practice.' },
+  { dot: 'dot-blue', title: 'Connect', text: 'Learn with people who get it.' },
+  { dot: 'dot-green', title: 'Grow', text: 'Take your next step beyond campus.' },
 ];
 
-const strategicGoals = [
-  {
-    title: 'Computer Science Advocacy',
-    text: 'Making CS accessible to all students through interdisciplinary workshops and beginner-friendly content.',
-  },
-  {
-    title: 'Skill Development',
-    text: 'Providing high-quality, practical learning experiences with industry-relevant projects.',
-  },
-  {
-    title: 'Upskilling & Competency',
-    text: 'Ensuring members develop marketable, up-to-date technical competencies.',
-  },
-  {
-    title: 'Networking & Growth',
-    text: 'Building a robust network connecting students with industry professionals and mentors.',
-  },
+const differenceCards = [
+  { title: 'Come to learn', text: 'Explore technologies outside the classroom and learn from people who are building with them.' },
+  { title: 'Stay to build', text: 'Put your knowledge into practice through projects, challenges, and hands-on experiences.' },
+  { title: 'Grow with the community', text: 'Meet people who can become teammates, mentors, collaborators, and lifelong friends.' },
+  { title: 'Take it further', text: 'Use what you learn at CTU as a starting point for opportunities beyond campus.' },
 ];
 
 const timeline = [
-  {
-    year: '2023',
-    title: 'Our Beginning',
-    text: "Founded in 2023, GDG On Campus CTU started as a small group of passionate students determined to bring Google's developer community to Cebu Technological University.",
-  },
-  {
-    year: '2023',
-    title: 'The Foundation',
-    text: 'Chapter founded with an initial core team of organizers, beginner-friendly programming sessions, and relationships with local tech professionals.',
-  },
-  {
-    year: '2024',
-    title: 'Major Breakthrough',
-    text: 'TechConnect flagship event, 200+ active members milestone, industry partnerships, and recognition from Google and the university community.',
-  },
-  {
-    year: '2024',
-    title: 'TechConnect 2024',
-    text: 'Our biggest achievement to date — 200+ participants, industry speakers, hands-on workshops, and student project showcases.',
-  },
-  {
-    year: 'Today',
-    title: 'Where We Are Now',
-    text: 'Regular workshops and learning sessions, industry connections, CS promotion across disciplines, and a supportive community of tech enthusiasts.',
-  },
+  { title: 'The Beginning', text: 'Founded by a small group of students with a shared goal: learn, connect, and build with technology.' },
+  { title: 'The Foundation', text: 'Workshops, learning sessions, and new connections turned a small idea into a growing community.' },
+  { title: 'TechConnect', subtitle: 'The Breakthrough', text: 'TechConnect brought the community to a bigger stage and showed what students can build together.' },
+  { title: 'Present', subtitle: 'Still Moving Forward', text: 'Today, GDG On Campus CTU continues to grow through projects, mentorship, events, and new opportunities.' },
 ];
 
-const legacyPartners = [
-  { name: 'UX Mini Cebu', role: 'Organization Partner', image: '/legacy-images/partnership/p1.jpg' },
-  { name: 'Google', role: 'Technology Partner', image: null },
-  { name: 'Microsoft', role: 'Technology Partner', image: null },
-  { name: 'AWS', role: 'Cloud Partner', image: null },
-  { name: 'GitHub', role: 'Developer Partner', image: null },
-];
+function Deco({ cls, src }) {
+  return (
+    <img
+      className={`hero-picture ab-deco ${cls}`}
+      src={src}
+      alt=""
+      aria-hidden="true"
+    />
+  );
+}
 
 export default function About() {
-  // Site-content API is retired — hero/community copy is hardcoded below and
-  // only the partners strip still reads live CMS data.
-  const partners = usePublicFeed(() => publicApi.getPartners().then(sortPartners), 'about-partners');
-
-  const cmsPartners = !partners.loading && !partners.error ? partners.data : null;
-
   return (
-    <div className="page-about">
-      <section className="ab-hero">
-        <img
-          className="hero-picture ab-deco ab-deco-star"
-          src="/layout-assets/home/star-no-bg.png"
-          alt=""
-          aria-hidden="true"
-        />
-        <img
-          className="hero-picture ab-deco ab-deco-arrow"
-          src="/layout-assets/home/arrow-no-bg.png"
-          alt=""
-          aria-hidden="true"
-        />
-        <img
-          className="hero-picture ab-deco ab-deco-globe"
-          src="/layout-assets/home/globe-no-bg.png"
-          alt=""
-          aria-hidden="true"
-        />
-        <img
-          className="hero-picture ab-deco ab-deco-heart"
-          src="/layout-assets/home/heart-no-bg.png"
-          alt=""
-          aria-hidden="true"
-        />
+    <main className="page-about">
+      {/* 1 — HERO */}
+      <section className="ab-hero" aria-labelledby="about-title">
+        <Deco cls="ab-deco-star" src="/layout-assets/home/star-no-bg.png" />
+        <Deco cls="ab-deco-arrow" src="/layout-assets/home/arrow-no-bg.png" />
+        <Deco cls="ab-deco-globe" src="/layout-assets/home/globe-no-bg.png" />
+        <Deco cls="ab-deco-heart" src="/layout-assets/home/heart-no-bg.png" />
 
         <div className="ab-hero-content">
-          <div className="eyebrow">
-            <span /> ABOUT US
-          </div>
-          <h1>
-            Building Developers. Creating Impact. <span className="grad">Together.</span>
+          <div className="eyebrow"><span /> ABOUT GDG ON CAMPUS CTU</div>
+          <h1 id="about-title">
+            A community for students<br />
+            who{' '}
+            <span className="ab-build-card" aria-label="Build">
+              <span className="c-blue">B</span>
+              <span className="c-red">U</span>
+              <span className="c-yellow">I</span>
+              <span className="c-green">L</span>
+              <span className="c-blue">D</span>
+            </span>
           </h1>
-          <p className="lead">
-            Google Developer Groups - Cebu Technological University - Main Campus is a student-led technology community that
-            empowers aspiring developers through workshops, hackathons, collaborative projects, networking events, and hands-on
-            learning experiences powered by Google technologies.
+          <p className="sub">
+            GDG on Campus - Cebu Technological University is a student-led
+            developer community where CTU students come together to learn,
+            build, and grow through technology.
           </p>
+          <a className="ab-hero-cta" href="#about-belief">
+            Get to know GDGoC - CTU <span aria-hidden="true">↓</span>
+          </a>
         </div>
       </section>
 
-      <section className="ab-community section-frame" aria-label="Community">
+      {/* 2 — WHY WE EXIST */}
+      <section id="about-belief" className="ab-belief section-frame" aria-labelledby="belief-title">
         <div className="section-rule" />
-        <div className="eyebrow">
-          <span /> COMMUNITY
-        </div>
-        <h2>Our Community</h2>
-        <p className="sub">
-          A diverse, inclusive community where students from all courses learn together, build together, and grow together —
-          supported by mentors, alumni, and industry friends.
-        </p>
+        <div className="eyebrow"><span /> WHY WE EXIST</div>
+        <h2 id="belief-title">Turn curiosity into<br />capability</h2>
+        <p className="sub">Whether you&apos;re writing your first line of code or already working on your next big project, there&apos;s a place for you here.</p>
       </section>
 
-      <section className="ab-purpose section-frame">
+      {/* 3 — WHAT WE BELIEVE */}
+      <section className="ab-believe section-frame" aria-labelledby="believe-title">
+        <Deco cls="ab-deco-star" src="/layout-assets/home/star-no-bg.png" />
+        <Deco cls="ab-deco-arrow" src="/layout-assets/home/arrow-no-bg.png" />
         <div className="section-rule" />
-        <div className="eyebrow">
-          <span /> OUR PURPOSE
-        </div>
-        <h2>Our Mission, Vision, and Values</h2>
-        <p className="sub">What drives us every day as a campus technology community.</p>
-        <div className="purpose-grid">
-          {purposeCards.map((card) => (
-            <div key={card.title} className="purpose-card">
+        <div className="eyebrow"><span /> WHAT WE BELIEVE</div>
+        <h2 id="believe-title">We believe in starting<br />before you feel ready</h2>
+        <div className="belief-grid">
+          {beliefCards.map((card) => (
+            <article className="belief-card" key={card.title}>
+              <span className={`card-dot ${card.dot}`} />
               <h3>{card.title}</h3>
               <p>{card.text}</p>
-              <ul>
-                {card.points.map((point) => (
-                  <li key={point}>{point}</li>
-                ))}
-              </ul>
-            </div>
+            </article>
           ))}
         </div>
       </section>
 
-      <section className="ab-strategic section-frame">
-        <div className="section-rule" />
-        <div className="eyebrow">
-          <span /> STRATEGIC GOALS
+      {/* 4 — STATEMENT */}
+      <section className="ab-statement section-frame" aria-label="Community statement">
+        <Deco cls="ab-deco-heart" src="/layout-assets/home/heart-no-bg.png" />
+        <div className="statement-card">
+          <span className="u u-red">Learn it.</span> <span className="u u-blue">Build it.</span><br />
+          <strong className="u u-green">Make it real.</strong>
         </div>
-        <h2>
-          How We Make <span className="grad">Impact</span>
-        </h2>
-        <p className="sub">Four pillars that shape our programs and guide every event we run.</p>
-        <div className="strategic-grid">
-          {strategicGoals.map((goal) => (
-            <div key={goal.title} className="strategic-card">
-              <h3>{goal.title}</h3>
-              <p>{goal.text}</p>
-            </div>
-          ))}
-        </div>
+        <p className="sub">GDG on Campus CTU creates spaces where students can learn through doing, build alongside others, and grow through real experiences.</p>
       </section>
 
-      <section className="ab-story section-frame">
+      {/* 5 — OUR JOURNEY */}
+      <section className="ab-story section-frame" aria-labelledby="journey-title">
+        <Deco cls="ab-deco-arrow" src="/layout-assets/home/arrow-no-bg.png" />
+        <Deco cls="ab-deco-star" src="/layout-assets/home/star-no-bg.png" />
+        <Deco cls="ab-deco-globe" src="/layout-assets/home/globe-no-bg.png" />
         <div className="section-rule" />
-        <div className="eyebrow">
-          <span /> OUR STORY
-        </div>
-        <h2>
-          Team Story: <span className="grad">GDG On Campus CTU</span>
-        </h2>
-        <p className="sub">From a small group of passionate students to one of the most active tech communities in the region.</p>
+        <div className="eyebrow"><span /> OUR JOURNEY</div>
+        <h2 id="journey-title">It started with<br />a community</h2>
+        <p className="sub">What began as an initiative to bring students closer to the developer community gradually became a space where learning turned into action.</p>
         <ul className="timeline">
           {timeline.map((item) => (
             <li key={item.title}>
-              <span className="tl-year">{item.year}</span>
-              <h3>{item.title}</h3>
+              <h3>
+                {item.title}
+                {item.subtitle ? (
+                  <>
+                    <br />
+                    {item.subtitle}
+                  </>
+                ) : null}
+              </h3>
               <p>{item.text}</p>
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="ab-partners section-frame">
+      {/* 6 — WHAT MAKES US DIFFERENT */}
+      <section className="ab-different section-frame" aria-labelledby="different-title">
+        <Deco cls="ab-deco-arrow" src="/layout-assets/home/arrow-no-bg.png" />
+        <Deco cls="ab-deco-heart" src="/layout-assets/home/heart-no-bg.png" />
+        <Deco cls="ab-deco-globe" src="/layout-assets/home/globe-no-bg.png" />
+        <Deco cls="ab-deco-star" src="/layout-assets/home/star-no-bg.png" />
         <div className="section-rule" />
-        <div className="eyebrow">
-          <span /> OUR PARTNERS
-        </div>
-        <h2>
-          Trusted <span className="grad">Partners</span>
-        </h2>
-        <p className="sub">We proudly collaborate with leading technology companies, academic institutions, and developer communities.</p>
-
-        {partners.loading ? (
-          <div className="feed-skeleton">
-            <FeedSkeleton count={3} label="Loading partners…" />
-          </div>
-        ) : null}
-        {!partners.loading && partners.error ? (
-          <div className="gdg-feed-error" role="alert">
-            <p>{friendlyFeedError(partners.error)} Showing legacy partners.</p>
-            <button type="button" className="btn-secondary" onClick={partners.retry}>
-              Retry
-            </button>
-          </div>
-        ) : null}
-        {!partners.loading && !partners.error && !cmsPartners?.length ? (
-          <div className="feed-empty">
-            <p>No partners published yet — check back soon.</p>
-          </div>
-        ) : null}
-
-        {!partners.loading && (partners.error || cmsPartners?.length) ? (
-          <div className="partners-grid">
-            {partners.error
-              ? legacyPartners.map((partner) => (
-                  <div key={partner.name} className="partner-card">
-                    {partner.image ? (
-                      <img src={partner.image} alt={partner.name} loading="lazy" onError={hideImage} />
-                    ) : (
-                      <div className="fallback">{partner.name.charAt(0)}</div>
-                    )}
-                    <h3>{partner.name}</h3>
-                    <p>{partner.role}</p>
-                  </div>
-                ))
-              : (cmsPartners ?? []).map((partner) => (
-                  <div key={partner.id} className="partner-card">
-                    {partner.logoUrl ? (
-                      <img src={partner.logoUrl} alt={partner.logoAlt} loading="lazy" onError={hideImage} />
-                    ) : (
-                      <div className="fallback">{partner.name.charAt(0)}</div>
-                    )}
-                    <h3>{partner.name}</h3>
-                    <p>
-                      <span className="g-tag">{partner.tier}</span>
-                    </p>
-                    {partner.description ? <p>{partner.description}</p> : null}
-                  </div>
-                ))}
-          </div>
-        ) : null}
-        {cmsPartners?.length ? (
-          <div className="btn-row">
-            <Link to="/partners" className="btn-secondary">
-              All Partners
-            </Link>
-          </div>
-        ) : null}
-      </section>
-
-      <section className="ab-join section-frame">
-        <div className="section-rule" />
-        <div className="cta-card">
-          <h2>Ready to build with us?</h2>
-          <p>Join GDG On Campus CTU and start learning, building, and growing with the community.</p>
-          <div className="btn-row">
-            <a
-              href="https://docs.google.com/forms/d/e/1FAIpQLSe8XGfS83u5u3bbwqaUlHYmYlTNqPuYPl1aULCb8xMrN91jaQ/viewform?pli=1"
-              target="_blank"
-              rel="noreferrer"
-              className="small-green-btn"
-            >
-              Join Us <span aria-hidden="true">↗</span>
-            </a>
-            <Link to="/team" className="btn-secondary">
-              Meet the Team
-            </Link>
-          </div>
+        <h2 id="different-title">What makes GDGoC - CTU<br />different?</h2>
+        <p className="sub">You don&apos;t have to build alone.</p>
+        <div className="difference-grid">
+          {differenceCards.map((card) => (
+            <article className="difference-card" key={card.title}>
+              <h3>{card.title}</h3>
+              <p>{card.text}</p>
+            </article>
+          ))}
         </div>
       </section>
-    </div>
+
+      {/* 7 — DRIVEN BY PURPOSE */}
+      <section className="ab-purpose section-frame" aria-labelledby="purpose-title">
+        <Deco cls="ab-deco-star" src="/layout-assets/home/star-no-bg.png" />
+        <Deco cls="ab-deco-arrow" src="/layout-assets/home/arrow-no-bg.png" />
+        <Deco cls="ab-deco-heart" src="/layout-assets/home/heart-no-bg.png" />
+        <div className="section-rule" />
+        <div className="purpose-head">
+          <img
+            className="purpose-icon"
+            src="/layout-assets/home/globe-no-bg.png"
+            alt=""
+            aria-hidden="true"
+          />
+          <div>
+            <h2 id="purpose-title">Driven by Purpose</h2>
+            <p className="sub">The principles that guide our community, shape our vision, and define our goals.</p>
+          </div>
+        </div>
+        <div className="purpose-grid">
+          <div className="purpose-side">
+            <article className="purpose-card">
+              <span className="card-dot dot-yellow" />
+              <h3>Vision</h3>
+            </article>
+            <article className="purpose-card">
+              <span className="card-dot dot-green" />
+              <h3>Mission</h3>
+            </article>
+          </div>
+          <article className="purpose-card purpose-goals">
+            <div className="skel-stack" aria-hidden="true">
+              <span className="skel w90" />
+              <span className="skel w100" />
+              <span className="skel w85" />
+              <span className="skel w95" />
+              <span className="skel w80" />
+              <span className="skel w90" />
+            </div>
+            <span className="card-dot dot-blue" />
+            <h3>Goals</h3>
+          </article>
+        </div>
+      </section>
+
+      {/* 8 — FINAL CTA */}
+      <section className="ab-final section-frame" aria-labelledby="final-title">
+        <div className="section-rule" />
+        <div className="final-card">
+          <div className="final-dots" aria-hidden="true">
+            <span className="dot-red" />
+            <span className="dot-blue" />
+            <span className="dot-yellow" />
+            <span className="dot-green" />
+          </div>
+          <h2 id="final-title">Your next build starts here.</h2>
+          <p className="sub">Join the GDG On Campus CTU community and turn your ideas into something real.</p>
+          <a
+            className="final-btn"
+            href={REGISTER_URL}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Register now <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </section>
+    </main>
   );
 }
