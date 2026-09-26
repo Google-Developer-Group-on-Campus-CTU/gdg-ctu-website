@@ -9,11 +9,13 @@ import { useFeed } from '../api/feed.js';
  * whenever a source file changes.
  *
  *   EVENT_STATUSES ← backend/src/modules/events/models/event.ts         (EVENT_STATUSES)
+ *   EVENT_CATEGORIES ← backend/src/modules/events/models/event.ts       (EVENT_CATEGORIES)
  *   PARTNER_TIERS  ← backend/src/modules/partners/models/partner.ts    (PARTNER_TIERS)
  *
- * Source snapshot date: 2026-09-24
+ * Source snapshot date: 2026-09-26
  * ========================================================================= */
 export const EVENT_STATUSES = ['draft', 'published', 'archived', 'cancelled'];
+export const EVENT_CATEGORIES = ['Meetup', 'Workshop', 'Talk', 'Competition'];
 export const PARTNER_TIERS = ['platinum', 'gold', 'silver', 'community'];
 
 /* ---------------------------------------------------------------------------
@@ -108,10 +110,10 @@ export function validateEvent(v) {
       errors.endAt = 'Ends at must be the same as or after Starts at.';
     }
   }
-  if (!isHttpsUrl(v.externalUrl)) {
+  if (required(v.externalUrl) && !isHttpsUrl(v.externalUrl)) {
     errors.externalUrl = 'External URL must be a valid https:// URL.';
   }
-  if (!required(v.timezone)) errors.timezone = 'Timezone is required.';
+  if (!EVENT_CATEGORIES.includes(v.category)) errors.category = 'Category is required.';
   return errors;
 }
 

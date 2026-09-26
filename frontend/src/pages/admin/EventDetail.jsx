@@ -17,24 +17,42 @@ import {
   toEditorPayload,
   useEditorForm,
 } from '../../components/admin/form-shell.jsx';
-import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
+import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm, hideImage } from '../../components/admin/shared.jsx';
+import { formatDate } from '../../api/public.js';
 import { Form } from '../../components/ui/form';
 import { MuiInput } from '../../components/admin/mui-fields.jsx';
-import MuiButton from '@mui/material/Button';
-import MuiIconButton from '@mui/material/IconButton';
-import MuiSelect from '@mui/material/Select';
-import MuiMenuItem from '@mui/material/MenuItem';
-import { Popover } from '@base-ui/react/popover';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import MenuItem from '@mui/material/MenuItem';
 import MediaPicker from '../../components/admin/MediaPicker.jsx';
 
 const DEFAULT_TIMEZONE = 'Asia/Manila';
-/** First time offered when a date is picked before a time. */
-const DEFAULT_EVENT_TIME = '09:00';
+
+/** Fixed event taxonomy — mirrors backend EVENT_CATEGORIES. */
+const EVENT_CATEGORIES = ['Meetup', 'Workshop', 'Talk', 'Competition'];
+const DEFAULT_CATEGORY = 'Meetup';
+
+/* Mirrors the Events page card (Events.jsx PastCard):
+   same category pill fills, same fallback letter, same past-card classes. */
+const CATEGORY_TONES = {
+  meetup: 'tone-yellow',
+  workshop: 'tone-green',
+  talk: 'tone-blue',
+  competition: 'tone-red',
+};
+
+/* Admin cover is a media id or a URL/path. Only URL-like values can be an
+   <img> source — anything else (bare id) falls back like the landing page. */
+function previewCoverSrc(value) {
+  if (typeof value !== 'string') return null;
+  const v = value.trim();
+  if (!v) return null;
+  if (v.startsWith('http') || v.startsWith('/') || v.startsWith('blob:') || v.startsWith('data:')) return v;
+  return null;
+}
 
 const EMPTY = {
   title: '', short_description: '', description: '', coverMediaId: '',
   location: '', externalUrl: '', timezone: DEFAULT_TIMEZONE,
+  category: DEFAULT_CATEGORY,
   startAt: '', endAt: '', status: 'draft', is_active: true,
 };
 
@@ -47,6 +65,7 @@ function toForm(item = {}) {
     location: item.location ?? '',
     externalUrl: item.externalUrl ?? item.external_url ?? '',
     timezone: item.timezone ?? DEFAULT_TIMEZONE,
+    category: item.category ?? DEFAULT_CATEGORY,
     startAt: (item.startAt ?? item.start_at ?? '').toString().slice(0, 16),
     endAt: (item.endAt ?? item.end_at ?? '').toString().slice(0, 16),
     status: String(item.status ?? 'draft').toLowerCase(),
@@ -92,8 +111,9 @@ function toApiPayload(v = {}, { slug } = {}) {
     coverMediaId: v.coverMediaId || null,
     location: v.location || null,
     locationEmbedUrl: mapsEmbedUrl(v.location),
-    externalUrl: v.externalUrl,
+    externalUrl: v.externalUrl || null,
     timezone: v.timezone || DEFAULT_TIMEZONE,
+    category: v.category || DEFAULT_CATEGORY,
     startAt: v.startAt,
     endAt: v.endAt,
     status: v.status,
@@ -101,199 +121,6 @@ function toApiPayload(v = {}, { slug } = {}) {
   };
   if (slug) body.slug = slug;
   return body;
-}
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
-function pad2(n) {
-  return String(n).padStart(2, '0');
-}
-
-/** Split an ISO-like `YYYY-MM-DDTHH:mm` value into date/time parts. */
-function splitDateTime(value) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(value ?? ''));
-  if (!m) return { year: '', month: '', day: '', time: '' };
-  return { year: m[1], month: m[2], day: m[3], time: `${m[4]}:${m[5]}` };
-}
-
-function formatDateTime(parts) {
-  if (!parts.year || !parts.month || !parts.day) return '';
-  const date = new Date(Number(parts.year), Number(parts.month) - 1, Number(parts.day), 0, 0);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-/**
- * Single combined date-and-time picker: a calendar month-grid inside a
- * popover with hour + minute selection in the same popover, one
- * `YYYY-MM-DDTHH:mm` form value out. Built from MUI Button + Select and
- * the Base UI popover — no new dependency, no separate date/time rows.
- */
-function DateTimeField({ id, value, onChange }) {
-  const parts = splitDateTime(value);
-  const [open, setOpen] = useState(false);
-  const today = new Date();
-  const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() + 1 });
-
-  // Every open starts on the current value (or today) — form resets after
-  // save never leave the calendar parked on a stale month.
-  const handleOpenChange = (next) => {
-    if (next) {
-      const current = splitDateTime(value);
-      setView({
-        year: Number(current.year) || today.getFullYear(),
-        month: Number(current.month) || today.getMonth() + 1,
-      });
-    }
-    setOpen(next);
-  };
-
-  const emit = (date, time) => {
-    if (!date) {
-      onChange('');
-      return;
-    }
-    onChange(`${date}T${time || DEFAULT_EVENT_TIME}`);
-  };
-
-  const currentDate = parts.year && parts.month && parts.day
-    ? `${parts.year}-${parts.month}-${parts.day}`
-    : '';
-  const currentTime = parts.time;
-
-  const pickDay = (day) => {
-    emit(`${view.year}-${pad2(view.month)}-${pad2(day)}`, currentTime);
-  };
-
-  const setTime = (key, val) => {
-    const [hh, mm] = (currentTime || DEFAULT_EVENT_TIME).split(':');
-    const nextTime = key === 'hour' ? `${val}:${mm}` : `${hh}:${val}`;
-    if (!currentDate) {
-      emit(`${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`, nextTime);
-      return;
-    }
-    emit(currentDate, nextTime);
-  };
-
-  const shiftMonth = (delta) => {
-    setView((v) => {
-      const date = new Date(v.year, v.month - 1 + delta, 1);
-      return { year: date.getFullYear(), month: date.getMonth() + 1 };
-    });
-  };
-
-  const firstDow = new Date(view.year, view.month - 1, 1).getDay();
-  const daysInView = new Date(view.year, view.month, 0).getDate();
-  const cells = [...Array(firstDow).fill(null)];
-  for (let d = 1; d <= daysInView; d += 1) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
-
-  const hours = [];
-  for (let h = 0; h < 24; h += 1) hours.push(pad2(h));
-  const minutes = [];
-  for (let m = 0; m < 60; m += 1) minutes.push(pad2(m));
-  const [selHour, selMinute] = (currentTime || '').split(':');
-
-  const triggerLabel = currentDate
-    ? `${formatDateTime(parts)}${currentTime ? `, ${currentTime}` : ''}`
-    : 'Pick date & time';
-
-  return (
-    <Popover.Root open={open} onOpenChange={handleOpenChange}>
-      <Popover.Trigger
-        id={id}
-        render={<MuiButton variant="outlined" type="button" className="justify-start font-normal" />}
-      >
-        <Calendar className="size-4 text-muted-foreground" aria-hidden="true" />
-        <span className={currentDate ? undefined : 'text-muted-foreground'}>{triggerLabel}</span>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner side="bottom" align="start" sideOffset={4} className="isolate z-50">
-          <Popover.Popup className="w-max rounded-lg bg-popover p-3 text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none">
-            <div className="flex items-center justify-between">
-              <MuiIconButton type="button" size="small" onClick={() => shiftMonth(-1)} aria-label="Previous month">
-                <ChevronLeft aria-hidden="true" />
-              </MuiIconButton>
-              <p className="text-sm font-medium" aria-live="polite">{MONTHS[view.month - 1]} {view.year}</p>
-              <MuiIconButton type="button" size="small" onClick={() => shiftMonth(1)} aria-label="Next month">
-                <ChevronRight aria-hidden="true" />
-              </MuiIconButton>
-            </div>
-            <div className="grid grid-cols-7 gap-1" role="grid" aria-label="Choose a date">
-              {WEEKDAYS.map((d) => (
-                <span key={d} className="flex size-8 items-center justify-center text-xs text-muted-foreground" aria-hidden="true">{d}</span>
-              ))}
-              {cells.map((day, i) => {
-                if (day === null) return <span key={`blank-${i}`} aria-hidden="true" />;
-                const isSelected = currentDate === `${view.year}-${pad2(view.month)}-${pad2(day)}`;
-                const dayDate = new Date(view.year, view.month - 1, day);
-                const isToday = dayDate.toDateString() === today.toDateString();
-                return (
-                  <MuiButton
-                    // eslint-disable-next-line react/no-array-index-key
-                    key={`${view.year}-${view.month}-${day}`}
-                    type="button"
-                    size="small"
-                    variant={isSelected ? 'contained' : isToday ? 'outlined' : 'text'}
-                    sx={{ minWidth: 40, width: 40, height: 40, padding: 0 }}
-                    aria-pressed={isSelected}
-                    aria-label={dayDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
-                    onClick={() => pickDay(day)}
-                  >
-                    {day}
-                  </MuiButton>
-                );
-              })}
-            </div>
-            <div className="mt-3 flex items-end gap-2">
-              <label className="editor-field" htmlFor={`${id}-hour`}>
-                <span className="editor-label">Hour</span>
-                <MuiSelect
-                  id={`${id}-hour`}
-                  size="small"
-                  value={selHour ?? ''}
-                  displayEmpty
-                  renderValue={(v) => v || 'HH'}
-                  onChange={(e) => setTime('hour', e.target.value)}
-                >
-                  {hours.map((h) => (
-                    <MuiMenuItem key={h} value={h}>{h}</MuiMenuItem>
-                  ))}
-                </MuiSelect>
-              </label>
-              <span className="pb-2 text-sm text-muted-foreground" aria-hidden="true">:</span>
-              <label className="editor-field" htmlFor={`${id}-minute`}>
-                <span className="editor-label">Minute</span>
-                <MuiSelect
-                  id={`${id}-minute`}
-                  size="small"
-                  value={selMinute ?? ''}
-                  displayEmpty
-                  renderValue={(v) => v || 'MM'}
-                  onChange={(e) => setTime('minute', e.target.value)}
-                >
-                  {minutes.map((m) => (
-                    <MuiMenuItem key={m} value={m}>{m}</MuiMenuItem>
-                  ))}
-                </MuiSelect>
-              </label>
-              <span className="flex-1" aria-hidden="true" />
-              <MuiButton type="button" variant="text" size="small" onClick={() => { onChange(''); setOpen(false); }}>
-                Clear
-              </MuiButton>
-              <MuiButton type="button" variant="contained" size="small" onClick={() => setOpen(false)}>
-                Done
-              </MuiButton>
-            </div>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
-  );
 }
 
 export default function EventDetail() {
@@ -366,6 +193,20 @@ export default function EventDetail() {
   const locationText = values.location ?? '';
   const embedUrl = mapsEmbedUrl(locationText);
   const searchUrl = mapsSearchUrl(locationText);
+
+  /* Live Events-page card preview — same rules as Events.jsx PastCard:
+     title falls back like mapEvent, desc is short || description ||
+     'No description.', location pill is location + access label with the
+     same fill as the date pill, cover uses the admin URL when URL-like
+     else the fallback letter. */
+  const cardTitle = titleText.trim() ? titleText.trim() : '(Untitled event)';
+  const cardDesc = values.short_description || values.description || 'No description.';
+  const cardCover = previewCoverSrc(values.coverMediaId);
+  const cardTone = CATEGORY_TONES[String(values.category ?? '').toLowerCase()] ?? 'tone-yellow';
+  const cardAccess = (values.externalUrl ?? '').trim() ? 'Free Registration' : 'Free Access';
+  const cardLoc = (values.location ?? '').trim();
+  const cardLocLabel = cardLoc ? `${cardLoc} | ${cardAccess}` : cardAccess;
+  const cardDateLabel = values.startAt ? formatDate(values.startAt) : null;
 
   // Live publish-gate indicator (display only — submit validation runs zod).
   const publishGate = validateEvent(values);
@@ -534,9 +375,8 @@ export default function EventDetail() {
                 <MediaPicker
                   id="coverMediaId"
                   label="Cover photo"
-                  hint="Choose from the gallery or upload a new photo — no IDs needed."
+                  hint="Optional — choose from the gallery or upload a new photo."
                   error={rhfErrors.coverMediaId?.message}
-                  required
                   showIds={false}
                   value={field.value ?? ''}
                   onChange={field.onChange}
@@ -549,6 +389,15 @@ export default function EventDetail() {
               label="Location"
             >
               {(field) => <MuiInput field={field} value={field.value ?? ''} placeholder="e.g. CTU Main Campus, Cebu City" />}
+            </EditorField>
+            <EditorField control={control} name="category" label="Category" required>
+              {(field) => (
+                <MuiInput field={field} select value={field.value ?? DEFAULT_CATEGORY}>
+                  {EVENT_CATEGORIES.map((c) => (
+                    <MenuItem key={c} value={c}>{c}</MenuItem>
+                  ))}
+                </MuiInput>
+              )}
             </EditorField>
             {embedUrl ? (
               <div>
@@ -563,24 +412,15 @@ export default function EventDetail() {
                 </p>
               </div>
             ) : null}
+            <EditorField control={control} name="externalUrl" label="External link">
+              {(field) => <MuiInput field={field} value={field.value ?? ''} placeholder="https://…" />}
+            </EditorField>
             <div className="editor-grid">
-              <EditorField control={control} name="externalUrl" label="External link" required>
-                {(field) => <MuiInput field={field} value={field.value ?? ''} placeholder="https://…" />}
+              <EditorField control={control} name="startAt" label="Starts at" required>
+                {(field) => <MuiInput field={field} type="datetime-local" />}
               </EditorField>
-              <EditorField control={control} name="timezone" label="Timezone" required>
-                {(field) => <MuiInput field={field} value={field.value ?? ''} placeholder="Asia/Manila" />}
-              </EditorField>
-            </div>
-            <div className="editor-grid">
-              <EditorField control={control} name="startAt" label="Starts at" required plain>
-                {(field) => (
-                  <DateTimeField id="startAt" value={field.value ?? ''} onChange={field.onChange} />
-                )}
-              </EditorField>
-              <EditorField control={control} name="endAt" label="Ends at" required plain>
-                {(field) => (
-                  <DateTimeField id="endAt" value={field.value ?? ''} onChange={field.onChange} />
-                )}
+              <EditorField control={control} name="endAt" label="Ends at" required>
+                {(field) => <MuiInput field={field} type="datetime-local" />}
               </EditorField>
             </div>
             <EditorField control={control} name="is_active" label="Active" plain>
@@ -606,6 +446,39 @@ export default function EventDetail() {
         </div>
         <aside className="m3-detail-pane" aria-label="Supporting details">
           <h3>Preview &amp; status</h3>
+          <div style={{ display: 'grid', gap: 8 }}>
+            <p style={{ fontSize: 'var(--m3-typescale-label-medium-size)', fontWeight: 500 }}>Events page preview</p>
+            <p className="admin-muted" style={{ fontSize: 'var(--m3-typescale-body-small-size)' }}>
+              How this event looks on the Events page.
+            </p>
+            <div className="page-events">
+              <div className="past-card" aria-live="polite" aria-label={`Events page preview for ${cardTitle}`}>
+                <img
+                  className="past-frame"
+                  src="/layout-assets/events/event-card-frame.svg"
+                  alt=""
+                  aria-hidden="true"
+                  draggable="false"
+                />
+                {cardCover ? (
+                  <img className="past-photo" src={cardCover} alt={cardTitle} loading="lazy" onError={hideImage} />
+                ) : (
+                  <div className="past-photo past-photo--fallback" aria-hidden="true">
+                    {cardTitle.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="past-head">
+                  <h3>{cardTitle}</h3>
+                </div>
+                {cardDateLabel ? (
+                  <span className={`mini-pill ${cardTone}`}>{cardDateLabel}</span>
+                ) : null}
+                <p className="past-desc">{cardDesc}</p>
+                <span className={`past-loc ${cardTone}`}>{cardLocLabel}</span>
+              </div>
+            </div>
+          </div>
+          <hr style={{ border: 'none', borderTop: '1px solid var(--m3-outline-variant)', margin: '8px 0' }} />
           <p className="admin-muted" style={{ wordBreak: 'break-all' }} aria-live="polite">
             {previewSlug ? `/events/${previewSlug}` : 'Slug generated from title'}
           </p>

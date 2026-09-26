@@ -64,6 +64,13 @@
       "when": 1790326212749,
       "tag": "0008_even_iron_fist",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790397508806,
+      "tag": "0009_tiresome_sunfire",
+      "breakpoints": true
     }
   ]
 }

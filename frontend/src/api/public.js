@@ -213,6 +213,7 @@ export function mapEvent(e = {}) {
     locationEmbedUrl: e.locationEmbedUrl ?? e.location_embed_url ?? null,
     externalUrl: e.externalUrl ?? e.external_url ?? null,
     timezone: e.timezone ?? null,
+    category: e.category ?? null,
     startAt: e.startAt ?? e.start_at ?? null,
     endAt: e.endAt ?? e.end_at ?? null,
     status: getStatus(e),

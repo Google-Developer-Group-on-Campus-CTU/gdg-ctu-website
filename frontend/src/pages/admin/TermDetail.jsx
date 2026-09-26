@@ -289,10 +289,10 @@ export default function TermDetail() {
             </EditorField>
             <div className="editor-grid">
               <EditorField control={control} name="startDate" label="Start date" required>
-                {(field) => <input type="date" {...field} value={field.value ?? ''} />}
+                {(field) => <MuiInput field={field} type="date" />}
               </EditorField>
               <EditorField control={control} name="endDate" label="End date" required>
-                {(field) => <input type="date" {...field} value={field.value ?? ''} />}
+                {(field) => <MuiInput field={field} type="date" />}
               </EditorField>
             </div>
             <EditorField control={control} name="isCurrent" label="Current term" plain

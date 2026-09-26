@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "category" varchar(32) DEFAULT 'Meetup' NOT NULL;

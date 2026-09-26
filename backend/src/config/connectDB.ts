@@ -2,6 +2,15 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import ENV from "./env.js";
 import logger from "../utils/logger.js";
+import {
+      account,
+      accountRelations,
+      session,
+      sessionRelations,
+      user,
+      userRelations,
+      verification,
+} from "../modules/auth/models/auth.js";
 
 /**
  * Serverless-safe Postgres pool — DB_URL must be the Neon *pooled pooler*
@@ -41,12 +50,24 @@ pool.on("error", (err) => {
       logger.error("Postgres pool idle-client error", { message: err.message });
 });
 
-// No `schema` option here: it used to `import * from "../modules/index.js"`, which
-// pulled the route router into this module (an import cycle once config/auth
-// was added) and never contained real tables anyway — relational `db.query.*`
-// is unused, and Better Auth gets its schema explicitly in config/auth.ts.
+// Auth schema lives here (imported directly from the auth model file, NOT
+// from "../modules/index.js" — that would pull the route router in and create
+// an import cycle): with `advanced.database.joins: true` in config/auth.ts,
+// the Better Auth drizzle adapter uses relational `db.query.session` /
+// `db.query.user` joins, which require these tables + relations in the
+// drizzle `schema` option. Without them `db.query` is empty and every
+// session lookup fails with `model "session" was not found in query object`.
 export const db = drizzle({
       client: pool,
+      schema: {
+            user,
+            session,
+            account,
+            verification,
+            userRelations,
+            sessionRelations,
+            accountRelations,
+      },
 });
 
 /**

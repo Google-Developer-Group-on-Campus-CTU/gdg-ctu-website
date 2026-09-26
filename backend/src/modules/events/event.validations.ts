@@ -1,6 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { EVENT_STATUSES, events } from "./models/event.js";
+import { EVENT_CATEGORIES, EVENT_STATUSES, events } from "./models/event.js";
 import { emptyToNull, nullableUuid } from "../../utils/zodHelpers.js";
 
 const eventDateRule = <
@@ -74,6 +74,7 @@ const BaseCreateEventSchema = createInsertSchema(events)
                   .min(1, { message: "Timezone is required." })
                   .default("Asia/Manila"),
             isActive: z.boolean().optional(),
+            category: z.enum(EVENT_CATEGORIES).default("Meetup"),
             startAt: z.coerce.date(),
             endAt: z.coerce.date(),
             status: z.enum(EVENT_STATUSES).default("draft"),

@@ -13,6 +13,16 @@ export const EVENT_STATUSES = [
       "cancelled",
 ] as const;
 
+/**
+ * Event category enum – matches the Zod validation `EVENT_CATEGORIES`.
+ */
+export const EVENT_CATEGORIES = [
+      "Meetup",
+      "Workshop",
+      "Talk",
+      "Competition",
+] as const;
+
 export const events = pgTable("events", {
       id: uuid("id").defaultRandom().primaryKey(),
 
@@ -38,6 +48,14 @@ export const events = pgTable("events", {
       timezone: varchar("timezone", { length: 64 })
             .default("Asia/Manila")
             .notNull(),
+
+      // Category must be one of the defined constants.
+      category: varchar("category", {
+            length: 32,
+            enum: EVENT_CATEGORIES,
+      })
+            .default("Meetup")
+            .notNull(), // "Category must be one of Meetup, Workshop, Talk, Competition."
 
       isActive: boolean("is_active").default(true).notNull(),
 
@@ -65,3 +83,4 @@ export const events = pgTable("events", {
 });
 
 export type EventStatus = (typeof EVENT_STATUSES)[number];
+export type EventCategory = (typeof EVENT_CATEGORIES)[number];

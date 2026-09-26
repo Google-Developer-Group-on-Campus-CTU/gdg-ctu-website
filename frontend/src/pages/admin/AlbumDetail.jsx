@@ -404,7 +404,7 @@ export default function AlbumDetail() {
                   )}
                 </EditorField>
                 <EditorField control={control} name="date" label="Date">
-                  {(field) => <input type="date" {...field} value={field.value ?? ''} />}
+                  {(field) => <MuiInput field={field} type="date" />}
                 </EditorField>
               </div>
               <EditorField control={control} name="description" label="Description">

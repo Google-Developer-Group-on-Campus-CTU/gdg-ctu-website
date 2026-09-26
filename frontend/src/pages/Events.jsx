@@ -79,25 +79,47 @@ const TRACKS = [
 ];
 
 const PAST_CATS = [
-  { id: 'all', label: 'All Events', tone: 'cat-red' },
+  { id: 'all', label: 'All Events', tone: 'cat-white' },
   { id: 'meetups', label: 'Meetups', tone: 'cat-yellow' },
   { id: 'workshops', label: 'Workshops', tone: 'cat-green' },
   { id: 'talks', label: 'Talks', tone: 'cat-blue' },
-  { id: 'competitions', label: 'Competitions', tone: 'cat-blue' },
+  { id: 'competitions', label: 'Competitions', tone: 'cat-red' },
 ];
 
-const DATE_TONES = ['tone-yellow', 'tone-green', 'tone-blue'];
-const LOC_TONES = ['tone-yellow', 'tone-green'];
+/* Card pill fill follows the event category: Meetup yellow, Workshop
+   green, Talk blue, Competition red. The date + location pills on a card
+   always share it. */
+const CATEGORY_TONES = {
+  meetups: 'tone-yellow',
+  workshops: 'tone-green',
+  talks: 'tone-blue',
+  competitions: 'tone-red',
+};
 
-// The CMS has no event taxonomy, so past-event filter pills group events by
-// keyword match over title + descriptions. Anything unmatched lands in
-// Meetups so no published event ever vanishes from every filter.
+// Stored category (CMS taxonomy) wins when present; older rows without a
+// category fall back to keyword match over title + descriptions. Anything
+// unmatched lands in Meetups so no published event ever vanishes from
+// every filter.
+const STORED_CATEGORIES = {
+  meetup: 'meetups',
+  workshop: 'workshops',
+  talk: 'talks',
+  competition: 'competitions',
+};
+
 function eventCategory(e) {
+  const stored = STORED_CATEGORIES[String(e.category ?? '').toLowerCase()];
+  if (stored) return stored;
   const text = `${e.title ?? ''} ${e.short ?? ''} ${e.description ?? ''}`.toLowerCase();
   if (/workshop|hands-on|hands on|lab\b|study jam|bootcamp|codelab/.test(text)) return 'workshops';
   if (/competition|hackathon|contest|challenge|venture|olympiad/.test(text)) return 'competitions';
   if (/talk\b|speaker|session|summit|techconnect|conference|seminar|keynote/.test(text)) return 'talks';
   return 'meetups';
+}
+
+/* Stored category first, keyword fallback for old rows, yellow default. */
+function pillTone(event = {}) {
+  return CATEGORY_TONES[eventCategory(event)] ?? 'tone-yellow';
 }
 
 function EventDetail({ slug }) {
@@ -150,33 +172,39 @@ export default function Events() {
   return <EventsList />;
 }
 
-function PastCard({ event, idx }) {
-  const meta = [event.location, event.status].filter(Boolean).join('  |  ');
+function PastCard({ event }) {
+  const tone = pillTone(event);
+  const access = event.externalUrl ? 'Free Registration' : 'Free Access';
+  const locLabel = event.location ? `${event.location} | ${access}` : access;
+  const dateLabel = event.startAt ? formatDate(event.startAt) : null;
   return (
     <Link
       to={event.slug ? `/events/${event.slug}` : '/events'}
       className="past-card"
       aria-label={event.title}
     >
-      <div className="past-top">
-        {event.coverUrl ? (
-          <img className="past-photo" src={event.coverUrl} alt={event.coverAlt} loading="lazy" onError={hideImage} />
-        ) : (
-          <div className="past-photo past-photo--fallback" aria-hidden="true">
-            {event.title.charAt(0).toUpperCase()}
-          </div>
-        )}
-        <div className="past-head">
-          <h3>{event.title}</h3>
-          {event.startAt ? (
-            <span className={`mini-pill ${DATE_TONES[idx % DATE_TONES.length]}`}>{formatDate(event.startAt)}</span>
-          ) : null}
+      <img
+        className="past-frame"
+        src="/layout-assets/events/event-card-frame.svg"
+        alt=""
+        aria-hidden="true"
+        draggable="false"
+      />
+      {event.coverUrl ? (
+        <img className="past-photo" src={event.coverUrl} alt={event.coverAlt} loading="lazy" onError={hideImage} />
+      ) : (
+        <div className="past-photo past-photo--fallback" aria-hidden="true">
+          {event.title.charAt(0).toUpperCase()}
         </div>
+      )}
+      <div className="past-head">
+        <h3>{event.title}</h3>
       </div>
-      <p className="past-desc">{event.short || event.description || 'No description.'}</p>
-      {meta ? (
-        <span className={`past-loc ${LOC_TONES[idx % LOC_TONES.length]}`}>{meta}</span>
+      {dateLabel ? (
+        <span className={`mini-pill ${tone}`}>{dateLabel}</span>
       ) : null}
+      <p className="past-desc">{event.short || event.description || 'No description.'}</p>
+      <span className={`past-loc ${tone}`}>{locLabel}</span>
     </Link>
   );
 }
@@ -261,8 +289,8 @@ function EventsList() {
 
         {!upcomingLoading && !upcomingError && upcomingData?.length ? (
           <div className="past-grid">
-            {upcomingData.slice(0, 4).map((event, idx) => (
-              <PastCard key={event.id} event={event} idx={idx} />
+            {upcomingData.slice(0, 4).map((event) => (
+              <PastCard key={event.id} event={event} />
             ))}
           </div>
         ) : null}
@@ -425,8 +453,8 @@ function EventsList() {
 
         {!pastLoading && !pastError && shownPast.length > 0 ? (
           <div className="past-grid">
-            {shownPast.map((event, idx) => (
-              <PastCard key={event.id} event={event} idx={idx} />
+            {shownPast.map((event) => (
+              <PastCard key={event.id} event={event} />
             ))}
           </div>
         ) : null}

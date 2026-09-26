@@ -96,8 +96,10 @@ export const partnerEditorSchema = z.object({
  * input (the slug is auto-derived from the title at save time) and no cover
  * alt / embed-URL inputs (the backend persists neither coverAlt nor a
  * hand-edited embed URL — the embed URL is derived from the location).
- * externalUrl is a required https URL, timezone is required (backend
- * defaults Asia/Manila), and ends-at-before-starts-at is rejected here with
+ * externalUrl is an optional https URL (https-only when present),
+ * timezone is fixed to Asia/Manila
+ * (no input — optional with default, the payload always sends the fallback),
+ * and ends-at-before-starts-at is rejected here with
  * the same friendly message the backend returns.
  */
 export const eventEditorSchema = z.object({
@@ -106,11 +108,12 @@ export const eventEditorSchema = z.object({
   description: z.string().optional(),
   coverMediaId: z.string().optional(),
   location: z.string().optional(),
-  externalUrl: requiredText('External URL is required.').refine(
-    (v) => isHttpsUrl(v),
+  externalUrl: z.string().trim().optional().refine(
+    (v) => !v || isHttpsUrl(v),
     'External URL must be a valid https:// URL.',
   ),
-  timezone: requiredText('Timezone is required.'),
+  timezone: z.string().trim().optional().default('Asia/Manila'),
+  category: z.enum(['Meetup', 'Workshop', 'Talk', 'Competition']),
   startAt: requiredText('Start date/time is required.'),
   endAt: requiredText('End date/time is required.'),
   status: z.string(),
