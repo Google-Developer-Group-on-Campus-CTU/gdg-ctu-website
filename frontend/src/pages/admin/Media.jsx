@@ -4,9 +4,11 @@ import { useForm } from 'react-hook-form';
 import { albumItemsApi, eventsApi, getId, mediaApi, teamApi } from '../../api/resources.js';
 import { MEDIA_ALLOW, MEDIA_MAX_BYTES, useAdminList, useDebouncedValue } from '../../admin/editorial.js';
 import { DataTable, DataTableColumnHeader } from '../../components/admin/data-table.jsx';
-import { EditorCard, EditorField, EditorFooter } from '../../components/admin/form-shell.jsx';
+import { EditorCard, EditorField, EditorFooter, MuiConfirmDialog, MuiInput } from '../../components/admin/form-shell.jsx';
 import { Form } from '../../components/ui/form';
-import { EmptyState, TypedConfirm } from '../../components/admin/shared.jsx';
+import { EmptyState } from '../../components/admin/shared.jsx';
+import Button from '@mui/material/Button';
+import Alert from '@mui/material/Alert';
 
 function thumbOf(m) {
   return m.secure_url ?? m.secureUrl ?? m.url ?? m.cover_url ?? '';
@@ -15,9 +17,6 @@ function thumbOf(m) {
 function fileLabel(m) {
   return m.filename ?? m.originalName ?? String(getId(m) ?? '');
 }
-
-const ROW_BUTTON_CLASS = 'inline-flex h-10 items-center px-6 rounded-full border border-[var(--m3-outline)] bg-transparent text-[14px] font-medium tracking-[0.1px] text-[var(--m3-primary)] hover:bg-[rgba(11,87,208,0.08)]';
-const ROW_BUTTON_DANGER_CLASS = 'inline-flex h-10 items-center px-6 rounded-full border border-[var(--m3-error)] bg-transparent text-[14px] font-medium tracking-[0.1px] text-[var(--m3-error)] hover:bg-[rgba(186,26,26,0.08)]';
 
 export default function AdminMedia() {
   const [params, setParams] = useSearchParams();
@@ -222,12 +221,12 @@ export default function AdminMedia() {
         const label = fileLabel(m);
         return (
           <span className="admin-row-actions">
-            <button type="button" className={ROW_BUTTON_CLASS} onClick={() => copyId(id)} aria-label={`Copy ID of ${label}`}>
+            <Button type="button" variant="outlined" size="small" onClick={() => copyId(id)} aria-label={`Copy ID of ${label}`}>
               Copy ID
-            </button>
-            <button type="button" className={ROW_BUTTON_DANGER_CLASS} onClick={() => setConfirmDelete(m)} aria-label={`Delete ${label}`}>
+            </Button>
+            <Button type="button" variant="outlined" size="small" color="error" onClick={() => setConfirmDelete(m)} aria-label={`Delete ${label}`}>
               Delete
-            </button>
+            </Button>
           </span>
         );
       },
@@ -242,7 +241,7 @@ export default function AdminMedia() {
           <p className="admin-muted">jpeg/png/webp/gif · ≤ 4MB · alt required · delete only never-used drafts.</p>
         </div>
       </div>
-      {serverError ? <div className="admin-summary" role="alert"><p>{serverError}</p></div> : null}
+      {serverError ? <Alert severity="error" role="alert" sx={{ mb: 2 }}><p>{serverError}</p></Alert> : null}
       {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
 
       <EditorCard title="Upload media" eyebrow="Media">
@@ -262,12 +261,12 @@ export default function AdminMedia() {
             >
               <input id="media-file" type="file" accept={MEDIA_ALLOW.join(',')} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             </EditorField>
-            <EditorField control={uploadControl} name="alt" label="Alt text" required plain>
-              <input
-                id="media-alt"
-                value={alt}
-                aria-invalid={uploadErrors.alt ? 'true' : undefined}
-                onChange={(e) => { setAlt(e.target.value); clearUploadErrors('alt'); }}
+            <EditorField control={uploadControl} name="alt" label="Alt text" required>
+              <MuiInput
+                field={{ value: alt, onChange: (e) => { setAlt(e?.target?.value ?? e); clearUploadErrors('alt'); }, onBlur: () => {}, name: 'media-alt' }}
+                error={!!uploadErrors.alt}
+                helperText={uploadErrors.alt?.message ?? null}
+                inputProps={{ id: 'media-alt' }}
               />
             </EditorField>
           </div>
@@ -299,7 +298,7 @@ export default function AdminMedia() {
         }
       />
 
-      <TypedConfirm open={!!confirmDelete} title="Delete media?" body={`Only never-used drafts may be hard-deleted (used in ${confirmDelete ? (usedIn[String(getId(confirmDelete))] ?? 0) : 0}). Otherwise archive the referencing content instead.`}
+      <MuiConfirmDialog open={!!confirmDelete} title="Delete media?" body={`Only never-used drafts may be hard-deleted (used in ${confirmDelete ? (usedIn[String(getId(confirmDelete))] ?? 0) : 0}). Otherwise archive the referencing content instead.`}
         expected={confirmDelete?.filename ?? confirmDelete?.originalName ?? String(getId(confirmDelete) ?? '')}
         confirmLabel="Delete forever" busy={false}
         onCancel={() => setConfirmDelete(null)} onConfirm={() => remove(confirmDelete)} />

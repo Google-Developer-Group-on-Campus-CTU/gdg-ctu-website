@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CalendarDays, Users, Handshake, Images, GalleryHorizontal, Layers, FileText, Inbox, Mail, Settings, LogOut, MoreHorizontal, Moon, Sun } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, Handshake, Images, GalleryHorizontal, Inbox, Settings, LogOut, MoreHorizontal, Moon, Sun, Menu, X } from 'lucide-react';
+import Button from '@mui/material/Button';
+import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
 import { authClient } from '../../lib/auth-client';
 import { ADMIN_ENTITY_ROUTES } from '../../admin/editorial.js';
@@ -14,11 +16,8 @@ const NAV_ICONS = {
   '/admin/team': Users,
   '/admin/partners': Handshake,
   '/admin/gallery': Images,
-  '/admin/gallery-categories': Layers,
-  '/admin/terms': FileText,
   '/admin/media': GalleryHorizontal,
   '/admin/messages': Inbox,
-  '/admin/invites': Mail,
   '/admin/users': Users,
   '/admin/settings': Settings,
 };
@@ -26,19 +25,18 @@ const NAV_ICONS = {
 export const ADMIN_NAV = [
   { to: '/admin', label: 'Dashboard', end: true, kind: 'dashboard' },
   ...Object.values(ADMIN_ENTITY_ROUTES).map((entity) => ({ to: entity.list, label: entity.label, kind: 'entity' })),
-  { to: '/admin/invites', label: 'Invites', kind: 'system' },
   { to: '/admin/users', label: 'Users', kind: 'system' },
   { to: '/admin/settings', label: 'Settings', kind: 'system' },
 ];
 
 const STORAGE_KEY = 'm3-admin-sidebar-collapsed';
 
-// Spec §3.3 grouped drawer (11 destinations in 3 groups). Derived from
+// Spec §3.3 grouped drawer (10 destinations in 3 groups). Derived from
 // ADMIN_NAV by path so labels/routes stay in sync with ADMIN_ENTITY_ROUTES.
 const NAV_GROUPS = [
   { heading: 'Overview', tos: ['/admin'] },
-  { heading: 'Content', tos: ['/admin/events', '/admin/team', '/admin/partners', '/admin/gallery', '/admin/gallery-categories', '/admin/terms', '/admin/messages'] },
-  { heading: 'System', tos: ['/admin/media', '/admin/invites', '/admin/users', '/admin/settings'] },
+  { heading: 'Content', tos: ['/admin/events', '/admin/team', '/admin/partners', '/admin/gallery', '/admin/messages'] },
+  { heading: 'System', tos: ['/admin/media', '/admin/users', '/admin/settings'] },
 ];
 
 function navItemByTo(to) {
@@ -183,19 +181,34 @@ function AdminThemeToggle() {
         Math.max(x, window.innerWidth - x),
         Math.max(y, window.innerHeight - y),
       );
-      document.startViewTransition(() => {
-        flushSync(() => toggleMode());
-      });
-      document.documentElement.animate(
-        {
-          clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${maxRadius}px at ${x}px ${y}px)`],
-        },
-        {
-          duration: 450,
-          easing: 'ease-out',
-          pseudoElement: '::view-transition-new(root)',
-        },
-      );
+      try {
+        const transition = document.startViewTransition(() => {
+          flushSync(() => toggleMode());
+        });
+        // Wait for the new snapshot before driving the wipe; animating
+        // synchronously can miss the ::view-transition-new(root) pseudo.
+        // Fallback inside .catch: the mode swap already committed, so a
+        // rejected/aborted transition still leaves a correct instant swap.
+        const runWipe = () => {
+          document.documentElement.animate(
+            {
+              clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${maxRadius}px at ${x}px ${y}px)`],
+            },
+            {
+              duration: 450,
+              easing: 'ease-out',
+              pseudoElement: '::view-transition-new(root)',
+            },
+          );
+        };
+        if (transition?.ready) {
+          transition.ready.then(runWipe).catch(() => {});
+        } else {
+          runWipe();
+        }
+      } catch {
+        toggleMode();
+      }
       return;
     }
     toggleMode();
@@ -231,10 +244,17 @@ function SidebarIdentity() {
           {email ? <span className="admin-sidebar-identity-email" title={email}>{email}</span> : null}
         </span>
       </div>
-      <button type="button" className="admin-sidebar-signout" onClick={handleSignOut} aria-label="Sign out">
-        <LogOut size={18} aria-hidden="true" />
-        <span>Sign out</span>
-      </button>
+      <Button
+        type="button"
+        variant="text"
+        size="small"
+        startIcon={<LogOut size={18} aria-hidden="true" />}
+        onClick={handleSignOut}
+        aria-label="Sign out"
+        sx={{ mt: 1 }}
+      >
+        Sign out
+      </Button>
       <Link to="/" className="admin-sidebar-link" style={{ marginTop: 8, fontSize: 'var(--m3-typescale-body-small-size)' }}>View public site →</Link>
     </div>
   );
@@ -246,7 +266,6 @@ export default function AdminShell() {
     try { return localStorage.getItem(STORAGE_KEY) === 'true'; } catch { return false; }
   });
   const location = useLocation();
-  const drawerRef = useRef(null);
   const toggleBtnRef = useRef(null);
 
   useEffect(() => {
@@ -257,26 +276,8 @@ export default function AdminShell() {
     try { localStorage.setItem(STORAGE_KEY, String(collapsed)); } catch {}
   }, [collapsed]);
 
-  // Modal drawer: lock scroll, Esc, focus trap — for compact (<600px) only
-  useEffect(() => {
-    if (!drawerOpen) return undefined;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') { setDrawerOpen(false); toggleBtnRef.current?.focus(); return; }
-      if (e.key !== 'Tab') return;
-      const root = drawerRef.current;
-      if (!root) return;
-      const items = root.querySelectorAll('a[href], button:not([disabled])');
-      if (items.length === 0) return;
-      const first = items[0]; const last = items[items.length - 1];
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    drawerRef.current?.querySelector('a, button')?.focus();
-    return () => { document.body.style.overflow = prevOverflow; document.removeEventListener('keydown', onKeyDown); };
-  }, [drawerOpen]);
+  // Modal drawer focus trap, Esc, backdrop-close, and scroll lock all come
+  // from MUI Drawer (temporary variant) — no hand-rolled keydown/scroll code.
 
   // Handle hamburger: large ≥1200 toggles collapsed rail, compact toggles modal
   const handleHamburger = () => {
@@ -317,17 +318,17 @@ export default function AdminShell() {
       <div className="admin-main-col">
         {/* Topbar 64px: toggle + section context + primary-action slot */}
         <header className="admin-topbar">
-          <button
+          <IconButton
             ref={toggleBtnRef}
             type="button"
-            className="admin-menu-btn"
             aria-label={hamburgerLabel}
             aria-expanded={hamburgerExpanded}
             aria-controls="admin-sidebar"
             onClick={handleHamburger}
+            sx={{ color: 'var(--m3-on-surface-variant)' }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-          </button>
+            <Menu size={24} aria-hidden="true" />
+          </IconButton>
           <span aria-live="polite" style={{ fontSize: 'var(--m3-typescale-title-medium-size)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {sectionContext?.label ?? 'Admin'}
           </span>
@@ -342,33 +343,34 @@ export default function AdminShell() {
         </main>
       </div>
 
-      {drawerOpen ? (
-        <div
-          className="admin-drawer-backdrop"
-          style={{ display: 'block', position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 }}
-          onClick={() => setDrawerOpen(false)}
-          role="presentation"
-        >
-          <div
-            ref={drawerRef}
-            className="admin-drawer"
-            style={{ background: 'var(--m3-surface-container-low)', width: 'min(360px, 86vw)', height: '100vh', padding: 12, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 12 }}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Admin navigation"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="admin-drawer-head">
-              <strong>GDG-CTU Admin</strong>
-              <button type="button" aria-label="Close navigation" onClick={() => { setDrawerOpen(false); toggleBtnRef.current?.focus(); }}>✕</button>
-            </div>
-            <GroupedNav />
-            <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid var(--m3-outline-variant)' }}>
-              <SidebarIdentity />
-            </div>
-          </div>
+      <Drawer
+        anchor="left"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        aria-label="Admin navigation"
+        PaperProps={{
+          sx: {
+            background: 'var(--m3-surface-container-low)',
+            width: 'min(360px, 86vw)',
+            padding: 1.5,
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.5,
+          },
+        }}
+      >
+        <div className="admin-drawer-head">
+          <strong>GDG-CTU Admin</strong>
+          <IconButton type="button" size="small" aria-label="Close navigation" onClick={() => { setDrawerOpen(false); toggleBtnRef.current?.focus(); }}>
+            <X size={20} aria-hidden="true" />
+          </IconButton>
         </div>
-      ) : null}
+        <GroupedNav />
+        <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid var(--m3-outline-variant)' }}>
+          <SidebarIdentity />
+        </div>
+      </Drawer>
     </div>
     </AdminMuiProvider>
   );

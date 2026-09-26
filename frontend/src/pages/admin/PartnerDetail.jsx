@@ -8,15 +8,19 @@ import {
   EditorErrors,
   EditorField,
   EditorFooter,
+  MuiConfirmDialog,
+  MuiInput,
+  MuiSwitchField,
   focusEditorErrors,
   partnerEditorSchema,
   toEditorPayload,
   useEditorForm,
   useSlugUniqueness,
 } from '../../components/admin/form-shell.jsx';
-import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
+import { ErrorState, LoadingSkeleton } from '../../components/admin/shared.jsx';
 import { Form } from '../../components/ui/form';
-import { MuiInput } from '../../components/admin/mui-fields.jsx';
+import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
 import MediaPicker from '../../components/admin/MediaPicker.jsx';
 
 const EMPTY = { name: '', slug: '', logoMediaId: '', logoAlt: '', websiteUrl: '', tier: 'community', description: '', display_order: 0, is_active: true, status: 'draft' };
@@ -119,7 +123,7 @@ export default function PartnerDetail() {
     <section aria-label={isNew ? 'New partner' : 'Edit partner'}>
       <div className="admin-page-head">
         <div><h1>{isNew ? 'New partner' : values.name}</h1><p className="admin-muted">Tier-ordered public strip; website must be https://.</p></div>
-        {!isNew ? <Link className="gdg-btn gdg-btn-secondary" to={ADMIN_ENTITY_ROUTES.partners.list}>Back to list</Link> : null}
+        {!isNew ? <Button component={Link} variant="outlined" to={ADMIN_ENTITY_ROUTES.partners.list}>Back to list</Button> : null}
       </div>
       <DirtyGuardBanner blocker={blocker} />
       <Form {...methods}>
@@ -130,9 +134,9 @@ export default function PartnerDetail() {
             title={isNew ? 'New partner' : 'Edit partner'}
             eyebrow="Partners"
             actions={(
-              <a className="gdg-btn gdg-btn-secondary" href={publicPreview.partners()} target="_blank" rel="noreferrer">
+              <Button component="a" variant="outlined" href={publicPreview.partners()} target="_blank" rel="noreferrer">
                 Public preview
-              </a>
+              </Button>
             )}
           >
             <EditorErrors errors={rhfErrors} serverError={serverError} summaryRef={summaryRef} />
@@ -180,23 +184,23 @@ export default function PartnerDetail() {
               <EditorField control={control} name="websiteUrl" label="Website (https)">
                 {(field) => <MuiInput field={field} value={field.value ?? ''} placeholder="https://…" />}
               </EditorField>
-              <EditorField control={control} name="tier" label="Tier" required plain>
+              <EditorField control={control} name="tier" label="Tier" required>
                 {(field) => (
-                  <select id="tier" value={field.value} onChange={(e) => field.onChange(e.target.value)}>
-                    {PARTNER_TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                  <MuiInput field={field} select value={field.value ?? 'community'}>
+                    {PARTNER_TIERS.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                  </MuiInput>
                 )}
               </EditorField>
               <EditorField control={control} name="display_order" label="Display order">
-                {(field) => <input type="number" min="0" step="1" {...field} />}
+                {(field) => <MuiInput field={field} type="number" min={0} step={1} />}
               </EditorField>
             </div>
             <EditorField control={control} name="description" label="Description">
-              {(field) => <textarea {...field} value={field.value ?? ''} rows={4} />}
+              {(field) => <MuiInput field={field} value={field.value ?? ''} multiline rows={4} />}
             </EditorField>
             <EditorField control={control} name="is_active" label="Active" plain>
               {(field) => (
-                <Toggle id="partner-active" label="Active" checked={!!field.value} onChange={field.onChange} />
+                <MuiSwitchField field={field} id="partner-active" label="Active" />
               )}
             </EditorField>
             <EditorFooter
@@ -208,7 +212,7 @@ export default function PartnerDetail() {
           </EditorCard>
         </form>
       </Form>
-      <TypedConfirm
+      <MuiConfirmDialog
         open={confirm}
         title="Archive partner?"
         body="Archive hides it publicly but keeps it editable (preferred)."

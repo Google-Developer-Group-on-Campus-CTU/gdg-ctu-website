@@ -246,7 +246,6 @@ export function DataTable({
             id={`datatable-search-${searchColumnId}`}
             label={searchPlaceholder}
             value={activeSearch}
-            placeholder={searchPlaceholder}
             disabled={loading}
             onChange={handleSearch}
           />

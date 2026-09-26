@@ -16,9 +16,13 @@ export const CreateMemberTermsSchema = createInsertSchema(memberTerms)
             termId: z.uuid({
                   message: "Term ID must be a valid UUID.",
             }),
-            role: z.string({
-                  message: "Role is required.",
-            }),
+            role: z
+                  .string({
+                        message: "Role is required.",
+                  })
+                  .trim()
+                  .min(1, { message: "Role is required." })
+                  .max(80, { message: "Role must be ≤ 80 characters." }),
             profileMediaId: z
                   .uuid({
                         message: "Profile media ID must be a valid UUID.",

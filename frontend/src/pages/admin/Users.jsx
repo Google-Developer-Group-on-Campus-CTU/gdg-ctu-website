@@ -1,10 +1,25 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { authClient } from '../../lib/auth-client';
-import { formatWhen } from '../../api/admin-invites.js';
+import {
+  adminInvitesApi,
+  buildInviteLink,
+  displayActor,
+  formatWhen,
+  inviteStatus,
+} from '../../api/admin-invites.js';
 import { timeAgo, useAdminList, useDebouncedValue } from '../../admin/editorial.js';
 import { DataTable, DataTableColumnHeader } from '../../components/admin/data-table.jsx';
 import { EmptyState, StatusPill } from '../../components/admin/shared.jsx';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
+import Alert from '@mui/material/Alert';
 
 /**
  * User accounts & access — backed entirely by Better Auth's admin plugin
@@ -14,10 +29,15 @@ import { EmptyState, StatusPill } from '../../components/admin/shared.jsx';
  *
  * Server contract (better-auth 1.7.5, dist/plugins/admin/routes.mjs):
  *   GET  /admin/list-users   { query: { limit, offset?, sortBy?, sortDirection? } } → { users, total }
+ *   POST /admin/create-user  { email, name, password?, role? } → { user }
  *   POST /admin/set-role     { userId, role }   → { user }
  *   POST /admin/ban-user     { userId, banReason? } → { user }
  *   POST /admin/unban-user   { userId }         → { user }
  *   POST /admin/remove-user  { userId }         → { success }
+ *
+ * Pending invites share this page (the standalone /admin/invites route is
+ * retired): POST/GET/DELETE /admin-invites via api/admin-invites.js, with the
+ * one-time link shown once after creation.
  *
  * Roles come from backend config (config/auth.ts): adminRoles = ["admin"],
  * defaultRole = "user".
@@ -29,9 +49,6 @@ import { EmptyState, StatusPill } from '../../components/admin/shared.jsx';
 
 /** Server-side cap on list-users (plugin `limit` param). */
 const LIST_LIMIT = 50;
-
-const ROW_BUTTON_CLASS = 'inline-flex h-10 items-center px-6 rounded-full border border-[var(--m3-outline)] bg-transparent text-[14px] font-medium tracking-[0.1px] text-[var(--m3-primary)] hover:bg-[rgba(11,87,208,0.08)]';
-const ROW_BUTTON_DANGER_CLASS = 'inline-flex h-10 items-center px-6 rounded-full border border-[var(--m3-error)] bg-transparent text-[14px] font-medium tracking-[0.1px] text-[var(--m3-error)] hover:bg-[rgba(186,26,26,0.08)]';
 
 /**
  * better-auth's client resolves — it does not throw — on HTTP errors:
@@ -142,44 +159,297 @@ function UserActionConfirm({ target, busy, error, onCancel, onConfirm }) {
   if (!target) return null;
   const copy = actionCopy(target.action, target.user);
   return (
-    <div className="admin-dialog-backdrop" role="presentation" onClick={onCancel}>
-      <div
-        className="admin-dialog"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="user-action-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 id="user-action-title">{copy.title}</h3>
-        <p>{copy.body}</p>
-        <p className="admin-muted">{target.user.email}</p>
+    <Dialog
+      open
+      onClose={busy ? undefined : onCancel}
+      aria-labelledby="user-action-title"
+    >
+      <DialogTitle id="user-action-title">{copy.title}</DialogTitle>
+      <DialogContent>
+        <DialogContentText>{copy.body}</DialogContentText>
+        <DialogContentText>{target.user.email}</DialogContentText>
         {error ? (
-          <p className="admin-field-error" role="alert">
+          <Alert severity="error" role="alert" sx={{ mt: 2 }}>
             {error}
-          </p>
+          </Alert>
         ) : null}
-        <div className="admin-dialog-actions">
-          <button
-            type="button"
-            className="gdg-btn gdg-btn-secondary"
-            onClick={onCancel}
-            disabled={busy}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className={copy.danger ? 'gdg-btn gdg-btn-primary admin-danger' : 'gdg-btn gdg-btn-primary'}
-            onClick={onConfirm}
-            disabled={busy}
-          >
-            {busy ? copy.busy : copy.confirm}
-          </button>
-        </div>
-      </div>
-    </div>
+      </DialogContent>
+      <DialogActions>
+        <Button
+          type="button"
+          variant="outlined"
+          onClick={onCancel}
+          disabled={busy}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          variant="contained"
+          color={copy.danger ? 'error' : 'primary'}
+          onClick={onConfirm}
+          disabled={busy}
+        >
+          {busy ? copy.busy : copy.confirm}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
+
+/**
+ * Add / Invite composer. Two modes in one dialog:
+ * (a) Add user directly — email + name + temporary password + role, created
+ *     immediately via the Better Auth admin plugin
+ *     (`authClient.admin.createUser` → POST /admin/create-user).
+ * (b) Invite — generates a single-use link (POST /admin-invites) the officer
+ *     redeems at /admin/register (every invite redeems to role=admin).
+ */
+function InviteComposer({
+  mode, onModeChange,
+  addFields, onAddField, onAddSubmit, addBusy, addError,
+  onInviteSubmit, inviteBusy, inviteError,
+  onClose,
+}) {
+  return (
+    <Dialog
+      open
+      onClose={addBusy || inviteBusy ? undefined : onClose}
+      aria-labelledby="add-invite-title"
+    >
+      <DialogTitle id="add-invite-title">Add or invite an officer</DialogTitle>
+      <DialogContent>
+        <div className="admin-btn-row" role="group" aria-label="Choose how to onboard">
+          <Button
+            type="button"
+            variant={mode === 'add' ? 'contained' : 'outlined'}
+            onClick={() => onModeChange('add')}
+            disabled={addBusy || inviteBusy}
+          >
+            Add user directly
+          </Button>
+          <Button
+            type="button"
+            variant={mode === 'invite' ? 'contained' : 'outlined'}
+            onClick={() => onModeChange('invite')}
+            disabled={addBusy || inviteBusy}
+          >
+            Invite via link
+          </Button>
+        </div>
+        {mode === 'add' ? (
+          <>
+            <DialogContentText>
+              Creates the account right away with a temporary password — share it
+              privately and ask them to change it after signing in.
+            </DialogContentText>
+            <TextField
+              label="Name"
+              type="text"
+              fullWidth
+              margin="dense"
+              variant="outlined"
+              value={addFields.name}
+              onChange={(e) => onAddField('name', e.target.value)}
+              autoComplete="off"
+              disabled={addBusy}
+            />
+            <TextField
+              label="Email"
+              type="email"
+              fullWidth
+              margin="dense"
+              variant="outlined"
+              value={addFields.email}
+              onChange={(e) => onAddField('email', e.target.value)}
+              autoComplete="off"
+              disabled={addBusy}
+            />
+            <TextField
+              label="Temporary password (min 8 characters)"
+              type="password"
+              fullWidth
+              margin="dense"
+              variant="outlined"
+              value={addFields.password}
+              onChange={(e) => onAddField('password', e.target.value)}
+              autoComplete="new-password"
+              disabled={addBusy}
+            />
+            <TextField
+              label="Role"
+              select
+              fullWidth
+              margin="dense"
+              variant="outlined"
+              value={addFields.role}
+              onChange={(e) => onAddField('role', e.target.value)}
+              disabled={addBusy}
+            >
+              <MenuItem value="user">user</MenuItem>
+              <MenuItem value="admin">admin</MenuItem>
+            </TextField>
+            {addError ? (
+              <Alert severity="error" role="alert" sx={{ mt: 2 }}>
+                {addError}
+              </Alert>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <DialogContentText>
+              Generates a single-use link (expires in 72 hours) that lets the
+              officer create their own admin account at /admin/register.
+            </DialogContentText>
+            {inviteError ? (
+              <Alert severity="error" role="alert" sx={{ mt: 2 }}>
+                {inviteError}
+              </Alert>
+            ) : null}
+          </>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button
+          type="button"
+          variant="outlined"
+          onClick={onClose}
+          disabled={mode === 'add' ? addBusy : inviteBusy}
+        >
+          Cancel
+        </Button>
+        {mode === 'add' ? (
+          <Button
+            type="button"
+            variant="contained"
+            onClick={onAddSubmit}
+            disabled={addBusy}
+          >
+            {addBusy ? 'Creating…' : 'Create account'}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="contained"
+            onClick={onInviteSubmit}
+            disabled={inviteBusy}
+          >
+            {inviteBusy ? 'Creating…' : 'Generate invite'}
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+function InviteRevokeConfirm({ invite, busy, error, onCancel, onConfirm }) {
+  if (!invite) return null;
+  return (
+    <Dialog
+      open
+      onClose={busy ? undefined : onCancel}
+      aria-labelledby="revoke-invite-title"
+    >
+      <DialogTitle id="revoke-invite-title">Revoke this invite?</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          The link stops working right away. Whoever received it won&apos;t be able to
+          create an account with it — you can always generate a new invite.
+        </DialogContentText>
+        <DialogContentText>
+          Created {formatWhen(invite.createdAt)} · expires {formatWhen(invite.expiresAt)}
+        </DialogContentText>
+        {error ? (
+          <Alert severity="error" role="alert" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        ) : null}
+      </DialogContent>
+      <DialogActions>
+        <Button
+          type="button"
+          variant="outlined"
+          onClick={onCancel}
+          disabled={busy}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          variant="contained"
+          color="error"
+          onClick={onConfirm}
+          disabled={busy}
+        >
+          {busy ? 'Revoking…' : 'Revoke invite'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+/* Pending-invites table columns: status · code · created · expires · role ·
+   used by · created by. Revoke is the only row action (appended in-component)
+   and never shows for used invites. */
+const inviteBaseColumns = [
+  {
+    id: 'status',
+    accessorFn: (invite) => inviteStatus(invite),
+    header: 'Status',
+    enableSorting: false,
+    cell: ({ row }) => <StatusPill status={inviteStatus(row.original)} />,
+  },
+  {
+    accessorKey: 'id',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />,
+    cell: ({ row }) => (
+      <code className="font-mono text-xs" title={row.original.id}>
+        {row.original.id}
+      </code>
+    ),
+  },
+  {
+    id: 'created',
+    accessorFn: (invite) => invite.createdAt ?? '',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+    cell: ({ row }) => (
+      <span title={formatWhen(row.original.createdAt)}>{timeAgo(row.original.createdAt)}</span>
+    ),
+  },
+  {
+    id: 'expires',
+    accessorFn: (invite) => invite.expiresAt ?? '',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Expires" />,
+    cell: ({ row }) => formatWhen(row.original.expiresAt),
+  },
+  {
+    id: 'role',
+    // GET /admin-invites returns no per-invite role; every invite redeems to
+    // an admin account, so the column renders that standing value.
+    accessorFn: (invite) => invite.role ?? 'admin',
+    header: 'Role',
+    enableSorting: false,
+    cell: ({ row }) => row.original.role ?? 'admin',
+  },
+  {
+    id: 'usedBy',
+    header: 'Used by',
+    enableSorting: false,
+    cell: ({ row }) => {
+      const invite = row.original;
+      return inviteStatus(invite) === 'used'
+        ? `${displayActor(invite.usedBy)} · ${timeAgo(invite.usedAt)}`
+        : '—';
+    },
+  },
+  {
+    id: 'createdBy',
+    accessorFn: (invite) => displayActor(invite.createdBy),
+    header: 'Created by',
+    enableSorting: false,
+    cell: ({ row }) => displayActor(row.original.createdBy),
+  },
+];
 
 /* Shared column defs: email · role · status · joined. The name column (needs
    the self-row marker) and the actions column (needs the confirm/unban
@@ -260,6 +530,32 @@ export default function AdminUsers() {
   const [unbanningId, setUnbanningId] = useState(null);
   const [pageActionError, setPageActionError] = useState(null);
 
+  // Pending invites live on this page now (the standalone /admin/invites
+  // route is retired). Same contract as before: list + one-time token.
+  const {
+    data: invitesData,
+    loading: invitesLoading,
+    error: invitesError,
+    requestId: invitesRequestId,
+    retry: retryInvites,
+  } = useAdminList(
+    () => adminInvitesApi.list().then((payload) => payload?.invites ?? []),
+    'admin-invites',
+  );
+  const [composer, setComposer] = useState(null); // { mode: 'add' | 'invite' }
+  const [addFields, setAddFields] = useState({ name: '', email: '', password: '', role: 'user' });
+  const [addBusy, setAddBusy] = useState(false);
+  const [addError, setAddError] = useState(null);
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteError, setInviteError] = useState(null);
+  const [justCreated, setJustCreated] = useState(null); // { link, expiresAt }
+  const [copied, setCopied] = useState(false);
+  const [copyHint, setCopyHint] = useState(null);
+  const linkInputRef = useRef(null);
+  const [revokeTarget, setRevokeTarget] = useState(null);
+  const [revoking, setRevoking] = useState(false);
+  const [revokeError, setRevokeError] = useState(null);
+
   const rows = useMemo(() => {
     const term = debounced.trim().toLowerCase();
     const sorted = [...users].sort(
@@ -329,31 +625,32 @@ export default function AdminUsers() {
         return (
           <span className="admin-row-actions">
             {role !== 'admin' ? (
-              <button type="button" className={ROW_BUTTON_CLASS} onClick={() => openConfirm(user, 'promote')}>
+              <Button type="button" variant="outlined" size="small" onClick={() => openConfirm(user, 'promote')}>
                 Make admin
-              </button>
+              </Button>
             ) : (
-              <button type="button" className={ROW_BUTTON_DANGER_CLASS} onClick={() => openConfirm(user, 'demote')}>
+              <Button type="button" variant="outlined" size="small" color="error" onClick={() => openConfirm(user, 'demote')}>
                 Make user
-              </button>
+              </Button>
             )}
             {banned ? (
-              <button
+              <Button
                 type="button"
-                className={ROW_BUTTON_CLASS}
+                variant="outlined"
+                size="small"
                 onClick={() => handleUnban(user)}
                 disabled={unbanningId === user.id}
               >
                 {unbanningId === user.id ? 'Unbanning…' : 'Unban'}
-              </button>
+              </Button>
             ) : (
-              <button type="button" className={ROW_BUTTON_DANGER_CLASS} onClick={() => openConfirm(user, 'ban')}>
+              <Button type="button" variant="outlined" size="small" color="error" onClick={() => openConfirm(user, 'ban')}>
                 Ban
-              </button>
+              </Button>
             )}
-            <button type="button" className={ROW_BUTTON_DANGER_CLASS} onClick={() => openConfirm(user, 'remove')}>
+            <Button type="button" variant="outlined" size="small" color="error" onClick={() => openConfirm(user, 'remove')}>
               Delete
-            </button>
+            </Button>
           </span>
         );
       },
@@ -366,6 +663,142 @@ export default function AdminUsers() {
     else next.delete('q');
     setParams(next, { replace: true });
   };
+
+  const invites = useMemo(() => {
+    const sorted = [...(invitesData ?? [])].sort(
+      (a, b) => new Date(b?.createdAt ?? 0) - new Date(a?.createdAt ?? 0),
+    );
+    return sorted;
+  }, [invitesData]);
+
+  const openComposer = useCallback((mode) => {
+    setAddError(null);
+    setInviteError(null);
+    setComposer({ mode: mode === 'invite' ? 'invite' : 'add' });
+  }, []);
+
+  const closeComposer = useCallback(() => {
+    if (addBusy || inviteBusy) return;
+    setComposer(null);
+    setAddError(null);
+    setInviteError(null);
+  }, [addBusy, inviteBusy]);
+
+  const setAddField = useCallback((key, value) => {
+    setAddFields((prev) => ({ ...prev, [key]: value }));
+    setAddError(null);
+  }, []);
+
+  /** Direct add via the Better Auth admin plugin (POST /admin/create-user). */
+  const handleAddSubmit = useCallback(async () => {
+    const name = String(addFields.name ?? '').trim();
+    const email = String(addFields.email ?? '').trim();
+    const password = String(addFields.password ?? '');
+    const role = addFields.role === 'admin' ? 'admin' : 'user';
+    if (!name) { setAddError('Name is required.'); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setAddError('A valid email is required.'); return; }
+    if (password.length < 8) { setAddError('Temporary password must be at least 8 characters.'); return; }
+    setAddBusy(true);
+    setAddError(null);
+    try {
+      await unwrap(
+        authClient.admin.createUser({ name, email, password, role }),
+        'Could not create the account. Try again.',
+      );
+      setComposer(null);
+      setAddFields({ name: '', email: '', password: '', role: 'user' });
+      retry();
+    } catch (err) {
+      setAddError(actionErrorMessage(err, 'Could not create the account. Try again.'));
+    } finally {
+      setAddBusy(false);
+    }
+  }, [addFields, retry]);
+
+  const handleInviteSubmit = useCallback(async () => {
+    setInviteBusy(true);
+    setInviteError(null);
+    setCopyHint(null);
+    setCopied(false);
+    try {
+      const invite = await adminInvitesApi.create();
+      if (!invite?.token) {
+        setInviteError('The server did not return an invite token. Try again.');
+        return;
+      }
+      // Shown exactly once — the backend never returns the token again.
+      setJustCreated({
+        link: buildInviteLink(invite.token),
+        expiresAt: invite.expiresAt ?? null,
+      });
+      setComposer(null);
+      retryInvites();
+    } catch (err) {
+      setInviteError(actionErrorMessage(err, 'Could not create the invite. Try again.'));
+    } finally {
+      setInviteBusy(false);
+    }
+  }, [retryInvites]);
+
+  const handleCopyInviteLink = useCallback(async () => {
+    if (!justCreated) return;
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
+      await navigator.clipboard.writeText(justCreated.link);
+      setCopied(true);
+      setCopyHint(null);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard blocked (insecure context) — select the field so Ctrl+C works.
+      linkInputRef.current?.select();
+      setCopyHint('Automatic copy is blocked here — the link is selected, press Ctrl+C.');
+    }
+  }, [justCreated]);
+
+  const openRevoke = useCallback((invite) => {
+    setRevokeError(null);
+    setRevokeTarget(invite);
+  }, []);
+
+  const handleRevoke = useCallback(async () => {
+    if (!revokeTarget) return;
+    setRevoking(true);
+    setRevokeError(null);
+    try {
+      await adminInvitesApi.revoke(revokeTarget.id);
+      setRevokeTarget(null);
+      retryInvites();
+    } catch (err) {
+      setRevokeError(actionErrorMessage(err, 'Could not revoke the invite.'));
+    } finally {
+      setRevoking(false);
+    }
+  }, [revokeTarget, retryInvites]);
+
+  const inviteColumns = useMemo(() => [
+    ...inviteBaseColumns,
+    {
+      id: 'actions',
+      header: 'Actions',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const invite = row.original;
+        if (inviteStatus(invite) === 'used') return <span className="admin-muted">—</span>;
+        return (
+          <Button
+            type="button"
+            variant="outlined"
+            size="small"
+            color="error"
+            onClick={() => openRevoke(invite)}
+            aria-label={`Revoke invite ${invite.id}`}
+          >
+            Revoke
+          </Button>
+        );
+      },
+    },
+  ], [openRevoke]);
 
   const handleConfirm = async () => {
     if (!target || busy) return;
@@ -411,12 +844,57 @@ export default function AdminUsers() {
             Accounts that can sign in. Roles control admin access; bans block sign-in entirely.
           </p>
         </div>
+        <Button type="button" variant="contained" onClick={() => openComposer('add')}>
+          + Add / Invite
+        </Button>
       </div>
 
+      {justCreated ? (
+        <Alert severity="success" role="status" sx={{ mb: 2 }}>
+          <h3>Invite created — copy the link now</h3>
+          <p>
+            The full link is shown only once. Share it with the officer; they can
+            use it to create one admin account until it expires or is redeemed.
+          </p>
+          <div className="admin-invite-link-row">
+            <TextField
+              inputRef={linkInputRef}
+              type="text"
+              fullWidth
+              margin="dense"
+              variant="outlined"
+              value={justCreated.link}
+              aria-label="Invite link (shown once)"
+              onFocus={(e) => e.currentTarget.select()}
+              slotProps={{ input: { readOnly: true } }}
+            />
+            <Button type="button" variant="contained" onClick={handleCopyInviteLink}>
+              {copied ? 'Copied ✓' : 'Copy link'}
+            </Button>
+          </div>
+          {copyHint ? <p>{copyHint}</p> : null}
+          <p>
+            Expires {formatWhen(justCreated.expiresAt)} ·{' '}
+            <Button
+              type="button"
+              variant="text"
+              size="small"
+              onClick={() => {
+                setJustCreated(null);
+                setCopyHint(null);
+                setCopied(false);
+              }}
+            >
+              Done
+            </Button>
+          </p>
+        </Alert>
+      ) : null}
+
       {pageActionError ? (
-        <div className="admin-notice admin-notice-error" role="alert">
+        <Alert severity="error" role="alert" sx={{ mb: 2 }}>
           {pageActionError}
-        </div>
+        </Alert>
       ) : null}
 
       {!loading && !error && total > users.length ? (
@@ -463,6 +941,66 @@ export default function AdminUsers() {
           setActionError(null);
         }}
         onConfirm={handleConfirm}
+      />
+
+      <section aria-label="Pending invites" style={{ marginTop: 32 }}>
+        <div className="admin-page-head">
+          <div>
+            <h2>Invites</h2>
+            <p className="admin-muted">
+              Single-use links (72-hour expiry) that let someone create their own admin account.
+            </p>
+          </div>
+          <Button type="button" variant="contained" onClick={() => openComposer('invite')}>
+            + New invite
+          </Button>
+        </div>
+        <DataTable
+          columns={inviteColumns}
+          data={invites}
+          loading={invitesLoading}
+          loadingLabel="Loading invites…"
+          error={invitesError}
+          requestId={invitesRequestId}
+          onRetry={retryInvites}
+          searchColumnId="id"
+          searchPlaceholder="Search invites…"
+          pageSizeOptions={[20, 10]}
+          renderEmptyState={
+            <EmptyState
+              title={(invitesData ?? []).length === 0 ? 'No invites yet' : 'No invites match this filter'}
+              hint="Create a single-use link so a new officer can set up their own admin account."
+            />
+          }
+        />
+      </section>
+
+      {composer ? (
+        <InviteComposer
+          mode={composer.mode}
+          onModeChange={(mode) => openComposer(mode)}
+          addFields={addFields}
+          onAddField={setAddField}
+          onAddSubmit={handleAddSubmit}
+          addBusy={addBusy}
+          addError={addError}
+          onInviteSubmit={handleInviteSubmit}
+          inviteBusy={inviteBusy}
+          inviteError={inviteError}
+          onClose={closeComposer}
+        />
+      ) : null}
+
+      <InviteRevokeConfirm
+        invite={revokeTarget}
+        busy={revoking}
+        error={revokeError}
+        onCancel={() => {
+          if (revoking) return;
+          setRevokeTarget(null);
+          setRevokeError(null);
+        }}
+        onConfirm={handleRevoke}
       />
     </section>
   );

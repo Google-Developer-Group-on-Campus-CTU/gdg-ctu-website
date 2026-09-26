@@ -14,6 +14,9 @@ import {
   AuthAlert,
   AuthShell,
 } from '../../components/admin/AuthForm.jsx';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
 import '../../styles/login.css';
 
 function normalizeReason(reason) {
@@ -57,7 +60,7 @@ function serverMessage(err, fallback) {
 function CardHead({ title, sub }) {
   return (
     <header className="login-card-head">
-      <span className="gdg-badge">Admin</span>
+      <Chip size="small" label="Admin" />
       <h2>{title}</h2>
       <p>{sub}</p>
     </header>
@@ -213,7 +216,7 @@ export default function AdminRegister() {
             sub="One quick check before you create your admin account."
           />
           <div className="gdg-loading" role="status">
-            <span className="gdg-spinner" aria-hidden="true" />
+            <CircularProgress size={24} aria-hidden="true" />
             <p>Checking your invite…</p>
           </div>
         </>
@@ -225,9 +228,9 @@ export default function AdminRegister() {
             title="Invite link incomplete"
             sub="This page needs an invite token in the address. Open the full link an admin sent you — it looks like /admin/register?token=…"
           />
-          <Link className="gdg-btn gdg-btn-primary" to="/admin/login">
+          <Button component={Link} variant="contained" to="/admin/login">
             Go to sign in
-          </Link>
+          </Button>
         </>
       ) : null}
 
@@ -238,9 +241,9 @@ export default function AdminRegister() {
             sub="The invite service didn't respond. Check your connection, then try again."
           />
           <p className="gdg-btn-row">
-            <button
+            <Button
               type="button"
-              className="gdg-btn gdg-btn-primary"
+              variant="contained"
               onClick={() => {
                 setTokenState({
                   status: 'validating',
@@ -251,8 +254,8 @@ export default function AdminRegister() {
               }}
             >
               Retry
-            </button>
-            <Link to="/admin/login">Go to sign in</Link>
+            </Button>
+            <Button component={Link} variant="text" to="/admin/login">Go to sign in</Button>
           </p>
         </>
       ) : null}
@@ -267,9 +270,9 @@ export default function AdminRegister() {
                 : `This invite was set to expire ${formatWhen(tokenState.expiresAt)}.`}
             </p>
           ) : null}
-          <Link className="gdg-btn gdg-btn-primary" to="/admin/login">
+          <Button component={Link} variant="contained" to="/admin/login">
             Go to sign in
-          </Link>
+          </Button>
         </>
       ) : null}
 
@@ -283,9 +286,9 @@ export default function AdminRegister() {
             Automatic sign-in didn't complete. Sign in with the password you
             just set.
           </div>
-          <Link className="gdg-btn gdg-btn-primary" to="/admin/login">
+          <Button component={Link} variant="contained" to="/admin/login">
             Go to sign in
-          </Link>
+          </Button>
         </>
       ) : null}
 
@@ -373,10 +376,9 @@ export default function AdminRegister() {
               }}
             />
 
-            <button type="submit" className="login-submit" disabled={busy}>
-              {busy ? <span className="login-spinner" aria-hidden="true" /> : null}
+            <Button type="submit" variant="contained" fullWidth disabled={busy} startIcon={busy ? <CircularProgress size={16} aria-hidden="true" /> : null}>
               {busy ? 'Creating account…' : 'Create account'}
-            </button>
+            </Button>
           </form>
 
           <p className="login-switch">

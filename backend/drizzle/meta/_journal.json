@@ -71,6 +71,20 @@
       "when": 1790397508806,
       "tag": "0009_tiresome_sunfire",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790486400000,
+      "tag": "0010_seed_default_terms",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790572800000,
+      "tag": "0011_seed_default_gallery_categories",
+      "breakpoints": true
     }
   ]
 }

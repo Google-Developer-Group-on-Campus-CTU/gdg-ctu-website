@@ -3,6 +3,39 @@ import { z } from "zod";
 import { teamMembers } from "./models/team-member.js";
 import { emptyToNull, nullableUuid } from "../../utils/zodHelpers.js";
 
+export const TEAM_DEPARTMENTS = [
+      "Executive",
+      "Operations",
+      "Technology",
+      "Creatives",
+      "Community Development",
+      "Finance",
+] as const;
+
+/**
+ * Legacy department alias map — mirrors the frontend theme matcher
+ * (frontend/src/theme/teamTheme.js `normalizeDepartment`). CMS rows store
+ * free-text ("Executive Board", "Operations Department", …); substring
+ * matching folds them to the canonical enum value so legacy rows validate
+ * instead of 400ing. Unknown values pass through trimmed and still fail
+ * the enum check loudly.
+ */
+export const normalizeDepartmentName = (
+      value: unknown,
+): string | null | undefined => {
+      if (value === undefined || value === null) return value;
+      const raw = String(value).trim();
+      if (raw === "") return null;
+      const lower = raw.toLowerCase();
+      if (lower.includes("executive")) return "Executive";
+      if (lower.includes("operation")) return "Operations";
+      if (lower.includes("technolog")) return "Technology";
+      if (lower.includes("creative")) return "Creatives";
+      if (lower.includes("community")) return "Community Development";
+      if (lower.includes("financ")) return "Finance";
+      return raw;
+};
+
 export const TeamMemberSchema = createSelectSchema(teamMembers);
 export const CreateTeamMemberSchema = createInsertSchema(teamMembers)
       .omit({
@@ -21,7 +54,16 @@ export const CreateTeamMemberSchema = createInsertSchema(teamMembers)
                   .min(1, { message: "Last name is required." }),
             slug: z.string().trim().min(1, { message: "Slug is required." }),
             bio: z.string().nullable().optional(),
-            department: z.string().trim().nullable().optional(),
+            department: z.preprocess(
+                  (v) =>
+                        typeof v === "string" && v.trim() === ""
+                              ? null
+                              : normalizeDepartmentName(v),
+                  z
+                        .enum(TEAM_DEPARTMENTS)
+                        .nullable()
+                        .optional(),
+            ),
             program: z.string().trim().nullable().optional(),
             yearSection: z.string().trim().nullable().optional(),
             linkedinUrl: emptyToNull(

@@ -9,7 +9,10 @@ import {
   useDebouncedValue,
 } from '../../admin/editorial.js';
 import { DataTable, DataTableColumnHeader } from '../../components/admin/data-table.jsx';
-import { EmptyState, StatusPill, Toggle } from '../../components/admin/shared.jsx';
+import { EmptyState, StatusPill } from '../../components/admin/shared.jsx';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Switch from '@mui/material/Switch';
 
 const TIER_ORDER = { platinum: 0, gold: 1, silver: 2, community: 3 };
 
@@ -20,9 +23,6 @@ const TIERS = [
   { value: 'silver', label: 'Silver' },
   { value: 'community', label: 'Community' },
 ];
-
-const ACTION_LINK_CLASS =
-  'inline-flex h-10 items-center px-6 rounded-full border border-[var(--m3-outline)] bg-transparent text-[14px] font-medium tracking-[0.1px] text-[var(--m3-primary)] hover:bg-[rgba(11,87,208,0.08)]';
 
 function PartnerStatusCell({ row }) {
   const partner = row.original;
@@ -43,11 +43,12 @@ function PartnerStatusCell({ row }) {
   return (
     <div className="flex min-h-[32px] flex-wrap items-center gap-x-3 gap-y-1">
       <StatusPill status={partner.status} active={partner.is_active} />
-      <Toggle
-        id={`partner-active-${key}`}
-        label="Active"
+      <Switch
+        size="small"
+        inputProps={{ 'aria-label': 'Active' }}
         checked={active}
-        onChange={(next) => {
+        onChange={(e) => {
+          const next = e.target.checked;
           if (!id || id === 'undefined') {
             console.warn('[admin] partners toggle skipped: missing id', slug);
             return;
@@ -101,7 +102,7 @@ const columns = [
     accessorKey: 'tier',
     header: 'Tier',
     enableSorting: false,
-    cell: ({ row }) => <span className="lozenge lozenge-default">{row.original.tier ?? '—'}</span>,
+    cell: ({ row }) => <Chip size="small" label={row.original.tier ?? '—'} aria-label={`Tier: ${row.original.tier ?? 'none'}`} />,
   },
   {
     accessorKey: 'display_order',
@@ -129,9 +130,9 @@ const columns = [
       const detail = ADMIN_ENTITY_ROUTES.partners.detail(key);
       const label = partner.name ?? '(unnamed)';
       return (
-        <Link to={detail} className={ACTION_LINK_CLASS} aria-label={`Manage ${label}`}>
+        <Button component={Link} variant="outlined" size="small" to={detail} aria-label={`Manage ${label}`}>
           Manage
-        </Link>
+        </Button>
       );
     },
   },
@@ -179,7 +180,7 @@ export default function AdminPartners() {
         <div>
           <h1>Partners</h1>
         </div>
-        <Link className="admin-new-btn" to={ADMIN_ENTITY_ROUTES.partners.new}>+ New partner</Link>
+        <Button component={Link} variant="contained" to={ADMIN_ENTITY_ROUTES.partners.new}>+ New partner</Button>
       </div>
 
       <DataTable

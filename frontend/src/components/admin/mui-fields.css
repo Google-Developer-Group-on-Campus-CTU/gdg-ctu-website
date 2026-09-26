@@ -66,14 +66,3 @@
 .mui-field.MuiTextField-root {
   width: 100%;
 }
-
-.admin-toolbar .mui-search-field.MuiTextField-root {
-  min-width: 13rem;
-  flex: 1 1 0%;
-}
-
-@media (min-width: 640px) {
-  .admin-toolbar .mui-search-field.MuiTextField-root {
-    max-width: 320px;
-  }
-}

@@ -223,7 +223,10 @@
 }
 
 /* ---------- roster: exec + core ---------- */
-.page-officers .roster { padding-bottom: 8px; }
+.page-officers .roster { padding-bottom: 8px; scroll-margin-top: 84px; }
+
+.page-officers #team-roster { scroll-margin-top: 84px; }
+html { scroll-behavior: smooth; }
 
 .page-officers .exec-section,
 .page-officers .core-section {
@@ -271,8 +274,9 @@
   position: relative;
   border-radius: 18px;
   overflow: hidden;
-  aspect-ratio: 4 / 5;
-  background: #d9d9d9;
+  aspect-ratio: 3 / 4;
+  background: #e9ecf1;
+  display: block;
 }
 
 .page-officers .card-photo {
@@ -283,6 +287,20 @@
   object-fit: cover;
   object-position: center top;
   display: block;
+}
+
+/* Initials placeholder — shown when a member has no photo or it fails
+   to load. No fallback-photo masking. */
+.page-officers .card-initials {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #eef1f5, #dfe4ea);
+  color: #3c4043;
+  font-weight: 700;
+  font-size: clamp(40px, 6vw, 64px);
+  letter-spacing: -0.02em;
 }
 
 .page-officers .card-logo {
@@ -556,10 +574,16 @@
 .page-officers .officer-modal-photo.is-placeholder {
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #e9ecf1, #d9d9d9);
-  color: #5f6368;
+  background: linear-gradient(135deg, #eef1f5, #dfe4ea);
+  color: #3c4043;
   font-weight: 700;
-  font-size: 2.2rem;
+}
+
+.page-officers .officer-modal-photo .photo-initials {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #3c4043;
 }
 
 .page-officers .officer-modal-photo .photo-placeholder {
@@ -798,7 +822,14 @@
 
 .page-officers .gdg-muted { color: #777; }
 
-/* ---------- responsive — 700 (baseline breakpoint) ---------- */
+/* ---------- responsive — 1020px tablet (2 cols), 700px mobile (1 col) ---------- */
+@media (max-width: 1020px) {
+  .page-officers .team-grid,
+  .page-officers .officers-skeleton-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .page-officers .dept-tabs { overflow-x: auto; padding-bottom: 4px; }
+  .page-officers .dept-tab { flex: 0 0 auto; padding: 10px 16px; }
+}
+
 @media (max-width: 700px) {
   .page-officers .section-frame { width: min(100% - 32px, 560px); }
   .page-officers .section-rule { margin-bottom: 32px; }

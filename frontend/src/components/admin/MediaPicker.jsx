@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
 import { getId, mediaApi } from '../../api/resources.js';
 import { pickImage, safeSrc } from '../../api/public.js';
 import { ADMIN_ENTITY_ROUTES } from '../../admin/editorial.js';
 import { hideImage } from './shared.jsx';
-import { ErrorState, Field, LoadingSkeleton, inputProps } from './shared.jsx';
+import { ErrorState, Field, LoadingSkeleton } from './shared.jsx';
 import { MuiSearchField } from './mui-fields.jsx';
 
 function shortId(id) {
@@ -90,14 +92,14 @@ export default function MediaPicker({ id, label, hint, error, required, value = 
     <Field label={label} hint={hint} error={error} htmlFor={id} required={required}>
       <div className="admin-toolbar">
         <MuiSearchField
-          inputProps={inputProps(id, error)}
+          id={id}
           value={query}
           onChange={setQuery}
-          placeholder="Search filename, alt, or ID"
+          label="Search filename, alt, or ID"
         />
-        <Link to={ADMIN_ENTITY_ROUTES.media.list} className="gdg-btn gdg-btn-secondary">
+        <Button component={Link} variant="outlined" size="small" to={ADMIN_ENTITY_ROUTES.media.list}>
           Upload new media
-        </Link>
+        </Button>
       </div>
       <p className="admin-muted gdg-status-muted" role="status" aria-live="polite">
         {selectedText ? (
@@ -105,14 +107,14 @@ export default function MediaPicker({ id, label, hint, error, required, value = 
             Selected{showIds ? (
               <>
                 {': '}<code title={selectedText} className="gdg-code-muted">{shortId(selectedText)}</code>{' '}
-                <button type="button" className="admin-link-btn" onClick={() => copyId(selectedText)}>
+                <Button type="button" variant="text" size="small" onClick={() => copyId(selectedText)}>
                   {copiedId === selectedText ? 'Copied ✓' : 'Copy ID'}
-                </button>{' '}
+                </Button>{' '}
               </>
             ) : (
               ' ✓ '
             )}
-            <button type="button" className="admin-link-btn" onClick={() => onChange?.('')}>Clear</button>
+            <Button type="button" variant="text" size="small" onClick={() => onChange?.('')}>Clear</Button>
           </>
         ) : (
           'No media selected — choose one below.'
@@ -149,15 +151,15 @@ export default function MediaPicker({ id, label, hint, error, required, value = 
                 <div className="admin-media-card-body">
                   <strong title={name} className="gdg-ellipsis">{name}</strong>
                   <p className="admin-muted gdg-muted-sm">{alt ? `alt: ${alt}` : 'No alt text'}</p>
-                  {selected ? <p className="gdg-selected-wrap"><span className="gdg-tag gdg-tag-green">Selected</span></p> : null}
+                  {selected ? <p className="gdg-selected-wrap"><Chip size="small" color="success" label="Selected" /></p> : null}
                   <div className="gdg-btn-row gdg-btn-row-sm">
-                    <button type="button" className={selected ? 'gdg-btn gdg-btn-secondary gdg-btn-sm' : 'gdg-btn gdg-btn-primary gdg-btn-sm'} aria-pressed={selected} disabled={!mediaId} onClick={() => select(mediaId)}>
+                    <Button type="button" size="small" variant={selected ? 'outlined' : 'contained'} aria-pressed={selected} disabled={!mediaId} onClick={() => select(mediaId)}>
                       {selected ? 'Clear' : 'Select'}
-                    </button>
+                    </Button>
                     {showIds ? (
-                      <button type="button" className="gdg-btn gdg-btn-secondary gdg-btn-sm" disabled={!mediaId} onClick={() => copyId(mediaId)}>
+                      <Button type="button" size="small" variant="outlined" disabled={!mediaId} onClick={() => copyId(mediaId)}>
                         {copiedId === mediaId ? 'Copied ✓' : 'Copy ID'}
-                      </button>
+                      </Button>
                     ) : null}
                   </div>
                 </div>

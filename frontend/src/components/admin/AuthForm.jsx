@@ -1,4 +1,9 @@
 import { useCallback, useState } from 'react';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import Alert from '@mui/material/Alert';
+import { Eye, EyeOff } from 'lucide-react';
 import AuthBrandPanel from './AuthBrandPanel.jsx';
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -14,19 +19,14 @@ export function useFieldErrors(initial = {}) {
   return [fieldErrors, setFieldErrors, clearFieldError];
 }
 
-export function AuthField({ id, label, error, hintId, hint, children }) {
+export function AuthField({ id, label, hintId, hint, children }) {
   return (
-    <div className={`login-field${error ? ' has-error' : ''}`}>
+    <div className="login-field">
       <label htmlFor={id}>{label}</label>
       {children}
-      {hint && !error ? (
+      {hint ? (
         <p className="login-hint" id={hintId}>
           {hint}
-        </p>
-      ) : null}
-      {error ? (
-        <p className="login-field-error" id={`${id}-error`} role="alert">
-          {error}
         </p>
       ) : null}
     </div>
@@ -35,10 +35,18 @@ export function AuthField({ id, label, error, hintId, hint, children }) {
 
 export function AuthInput({ id, error, hintId, ...props }) {
   return (
-    <input
+    <TextField
       id={id}
-      aria-invalid={error ? 'true' : undefined}
-      aria-describedby={error ? `${id}-error` : hintId}
+      fullWidth
+      variant="outlined"
+      error={!!error}
+      helperText={error ?? null}
+      slotProps={{
+        input: {
+          'aria-invalid': error ? 'true' : undefined,
+          'aria-describedby': error ? `${id}-error` : hintId,
+        },
+      }}
       {...props}
     />
   );
@@ -46,21 +54,38 @@ export function AuthInput({ id, error, hintId, ...props }) {
 
 export function PasswordField({ id, label, value, onChange, error, hint, hintId, autoComplete, show, setShow }) {
   return (
-    <AuthField id={id} label={label} error={error} hint={hint} hintId={hintId}>
-      <div className="login-password-wrap">
-        <AuthInput
-          id={id}
-          type={show ? 'text' : 'password'}
-          autoComplete={autoComplete}
-          value={value}
-          onChange={onChange}
-          error={error}
-          hintId={hintId}
-        />
-        <button type="button" className="login-peek" aria-pressed={show} onClick={() => setShow((v) => !v)}>
-          {show ? 'Hide' : 'Show'}
-        </button>
-      </div>
+    <AuthField id={id} label={label} hint={hint} hintId={hintId}>
+      <TextField
+        id={id}
+        type={show ? 'text' : 'password'}
+        autoComplete={autoComplete}
+        value={value}
+        onChange={onChange}
+        fullWidth
+        variant="outlined"
+        error={!!error}
+        helperText={error ?? null}
+        slotProps={{
+          input: {
+            'aria-invalid': error ? 'true' : undefined,
+            'aria-describedby': error ? `${id}-error` : hintId,
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  type="button"
+                  size="small"
+                  aria-pressed={show}
+                  aria-label={show ? 'Hide password' : 'Show password'}
+                  onClick={() => setShow((v) => !v)}
+                  edge="end"
+                >
+                  {show ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          },
+        }}
+      />
     </AuthField>
   );
 }
@@ -68,9 +93,9 @@ export function PasswordField({ id, label, value, onChange, error, hint, hintId,
 export function AuthAlert({ message }) {
   if (!message) return null;
   return (
-    <div className="login-alert" role="alert">
+    <Alert severity="error" role="alert" sx={{ mb: 2 }}>
       {message}
-    </div>
+    </Alert>
   );
 }
 

@@ -1,5 +1,18 @@
-import { Children, cloneElement, isValidElement, useEffect, useRef, useState } from 'react';
+import { Children, cloneElement, isValidElement, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Skeleton from '@mui/material/Skeleton';
+import TextField from '@mui/material/TextField';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
 
 /**
  * Move focus to the field targeted by an error-summary anchor (`#key`).
@@ -22,7 +35,7 @@ export function LoadingSkeleton({ rows = 6, label = 'Loading…', table = false 
   return (
     <div role="status" aria-live="polite" aria-label={label} className={table ? 'admin-skeleton admin-skeleton--table' : 'admin-skeleton'} style={{ display: 'grid', gap: 8, padding: 16, background: 'var(--m3-surface-container)', borderRadius: 12 }}>
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="admin-skeleton-row" aria-hidden="true" />
+        <Skeleton key={i} variant="rounded" width="100%" height={16} aria-hidden="true" />
       ))}
       <span className="admin-visually-hidden">{label}</span>
     </div>
@@ -60,9 +73,9 @@ export function FeedError({ message = 'Could not load this section.', onRetry })
     <div className="admin-notice admin-notice-error" role="alert" style={{ borderRadius: 12 }}>
       <p>{message}</p>
       {onRetry ? (
-        <button type="button" className="gdg-btn gdg-btn-secondary" onClick={onRetry} style={{ marginTop: 12 }}>
+        <Button type="button" variant="outlined" onClick={onRetry} style={{ marginTop: 12 }}>
           Retry
-        </button>
+        </Button>
       ) : null}
     </div>
   );
@@ -75,34 +88,34 @@ export function StripHead({ badge, title, to, linkLabel = 'View all' }) {
         {badge ? <span className="admin-eyebrow">{badge}</span> : null}
         <h2 style={{ fontFamily: '"Google Sans", Roboto, sans-serif', fontSize: 22, fontWeight: 400 }}>{title}</h2>
       </div>
-      {to ? <Link to={to} className="gdg-btn gdg-btn-secondary">{linkLabel}</Link> : null}
+      {to ? <Button component={Link} variant="outlined" to={to}>{linkLabel}</Button> : null}
     </div>
   );
 }
 
 export function EmptyState({ title, hint, actionLabel, actionTo, docsHref }) {
   return (
-    <div className="admin-empty">
-      <div className="flex justify-center mb-3" aria-hidden="true">
-        <span className="inline-flex size-12 items-center justify-center rounded-full bg-[var(--m3-secondary-container)] text-[var(--m3-on-secondary-container)]">
+    <Card className="admin-empty">
+      <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 5, textAlign: 'center' }}>
+        <span className="inline-flex size-12 items-center justify-center rounded-full bg-[var(--m3-secondary-container)] text-[var(--m3-on-secondary-container)]" aria-hidden="true">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM20 8h-2l-2-3H8L6 8H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Z" stroke="currentColor" strokeWidth="1.5"/></svg>
         </span>
-      </div>
-      <h3>{title}</h3>
-      {hint ? <p>{hint}</p> : null}
-      <div className="gdg-btn-row justify-center">
-        {actionTo ? (
-          <Link className="gdg-btn gdg-btn-primary" to={actionTo}>
-            {actionLabel ?? 'Create new'}
-          </Link>
-        ) : null}
-        {docsHref ? (
-          <a className="gdg-btn gdg-btn-secondary" href={docsHref}>
-            Docs
-          </a>
-        ) : null}
-      </div>
-    </div>
+        <h3>{title}</h3>
+        {hint ? <p>{hint}</p> : null}
+        <div className="gdg-btn-row justify-center">
+          {actionTo ? (
+            <Button component={Link} variant="contained" to={actionTo}>
+              {actionLabel ?? 'Create new'}
+            </Button>
+          ) : null}
+          {docsHref ? (
+            <Button component="a" variant="outlined" href={docsHref}>
+              Docs
+            </Button>
+          ) : null}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -126,18 +139,18 @@ export function ErrorState({ error, requestId, onRetry, context = 'load this con
       <p>{message}</p>
       {requestId ? <p className="admin-muted">Request ID: {requestId}</p> : null}
       {onRetry ? (
-        <button type="button" className="gdg-btn gdg-btn-secondary" onClick={onRetry} style={{ marginTop: 12 }}>
+        <Button type="button" variant="outlined" onClick={onRetry} style={{ marginTop: 12 }}>
           Retry
-        </button>
+        </Button>
       ) : null}
     </div>
   );
 }
 
-// Status mapping (spec §6.2): Draft = neutral (surface-container +
-// outline), Published = secondary-container, Warning/needs-review =
-// tertiary-container, Error/rejected = error-container. Color never conveys
-// meaning alone — every badge pairs fill with an icon glyph + text.
+// Status pill: stock MUI Chip (spec §6.2 roles: published/active/verified =
+// success, pending/warning = warning, draft = default, archived/error =
+// error, new = info). Color never conveys meaning alone — the text label
+// plus aria-label carry it; the dot icon is decorative.
 export function StatusPill({ status, active }) {
   let raw = status;
   if (typeof raw !== 'string' || !raw.trim()) {
@@ -146,24 +159,27 @@ export function StatusPill({ status, active }) {
     else raw = 'draft';
   }
   const normalized = String(raw).trim().toLowerCase();
-  const variant =
+  const color =
     normalized === 'published' || normalized === 'active' || normalized === 'verified'
-      ? 'lozenge-success'
+      ? 'success'
       : normalized === 'warning' || normalized === 'needs-review' || normalized === 'needs review' || normalized === 'pending'
-        ? 'lozenge-warning'
+        ? 'warning'
         : normalized === 'draft' || normalized === 'unverified'
-          ? 'lozenge-neutral'
+          ? 'default'
           : normalized === 'archived' || normalized === 'cancelled' || normalized === 'banned' || normalized === 'rejected' || normalized === 'error' || normalized === 'failed'
-            ? 'lozenge-removed'
+            ? 'error'
             : normalized === 'new'
-              ? 'lozenge-new'
-              : 'lozenge-default';
-  // Non-color cue: icon glyph + text (never color alone).
-  const dot = variant === 'lozenge-success' ? '●' : variant === 'lozenge-warning' ? '▲' : variant === 'lozenge-removed' ? '■' : variant === 'lozenge-new' ? '✦' : '○';
+              ? 'info'
+              : 'default';
+  const dot = color === 'success' ? '●' : color === 'warning' ? '▲' : color === 'error' ? '■' : color === 'info' ? '✦' : '○';
   return (
-    <span className={`lozenge ${variant}`} aria-label={`Status: ${normalized}`}>
-      <span aria-hidden="true" style={{ marginRight: 6 }}>{dot}</span>{normalized}
-    </span>
+    <Chip
+      size="small"
+      color={color}
+      label={normalized}
+      aria-label={`Status: ${normalized}`}
+      icon={<span aria-hidden="true">{dot}</span>}
+    />
   );
 }
 
@@ -222,97 +238,77 @@ export function focusSummary(ref) {
   requestAnimationFrame(() => ref?.current?.focus?.());
 }
 
-// Decision dialog (spec §6.2): destructive confirm, extra-large 28px shape,
-// elevation 3, scrim on-surface 32% (see .admin-dialog). Focus moves into the
-// dialog on open, Tab is trapped, Esc cancels, and focus is restored to the
-// opener on close. Actions: outlined cancel + filled-error confirm — a filled
-// error button never appears outside a dialog.
+// Decision dialog: stock MUI Dialog version of the typed confirm.
+// Same props and typed-match gate as the form-shell MuiConfirmDialog —
+// focus trap, Esc, and backdrop-close come from MUI Dialog (backdrop/Esc are
+// ignored while `busy`). Kept here so existing `shared.jsx` imports keep
+// working; new code should import MuiConfirmDialog from form-shell.jsx.
 export function TypedConfirm({ open, title, body, expected, confirmLabel = 'Confirm', onConfirm, onCancel, busy }) {
   const [typed, setTyped] = useState('');
-  const inputRef = useRef(null);
-  const dialogRef = useRef(null);
-  const restoreRef = useRef(null);
   useEffect(() => {
-    if (!open) return undefined;
-    restoreRef.current = document.activeElement;
-    const node = dialogRef.current;
-    const input = inputRef.current ?? node?.querySelector('input');
-    if (input) input.focus();
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape' && !busy) {
-        e.stopPropagation();
-        onCancel?.();
-        return;
-      }
-      if (e.key !== 'Tab' || !node) return;
-      const focusables = node.querySelectorAll(
-        'button:not(:disabled), input:not(:disabled), [href], [tabindex]:not([tabindex="-1"])',
-      );
-      if (focusables.length === 0) return;
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown, true);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown, true);
-      restoreRef.current?.focus?.();
-    };
-  }, [open, busy, onCancel]);
+    if (open) setTyped('');
+  }, [open]);
   if (!open) return null;
   const matches = typed.trim() === String(expected ?? '').trim();
   return (
-    <div className="admin-dialog-backdrop" role="presentation" onClick={busy ? undefined : onCancel}>
-      <div
-        className="admin-dialog"
-        role="alertdialog"
-        aria-modal="true"
-        aria-label={title}
-        aria-describedby="typed-confirm-body"
-        onClick={(e) => e.stopPropagation()}
-        ref={dialogRef}
-      >
-        <h3>{title}</h3>
-        <p className="admin-muted" id="typed-confirm-body">{body}</p>
-        <label htmlFor="typed-confirm" className="gdg-confirm-label">
+    <Dialog
+      open
+      onClose={(_e, reason) => {
+        if (busy) return;
+        if (reason === 'backdropClick' || reason === 'escapeKeyDown') onCancel?.();
+      }}
+      aria-labelledby="typed-confirm-title"
+      aria-describedby="typed-confirm-body"
+    >
+      <DialogTitle id="typed-confirm-title">{title}</DialogTitle>
+      <DialogContent>
+        <DialogContentText id="typed-confirm-body">{body}</DialogContentText>
+        <p className="gdg-confirm-label">
           Type <code className="gdg-code-muted">{expected}</code> to confirm
-        </label>
-        <input
+        </p>
+        <TextField
           id="typed-confirm"
-          ref={inputRef}
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
           autoComplete="off"
+          fullWidth
+          variant="outlined"
+          autoFocus
         />
-        <div className="gdg-btn-row gdg-dialog-actions">
-          <button type="button" className="gdg-btn gdg-btn-secondary" onClick={onCancel} disabled={busy}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="gdg-btn gdg-btn-primary admin-danger"
-            disabled={!matches || busy}
-            onClick={onConfirm}
-          >
-            {busy ? 'Working…' : confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
+      </DialogContent>
+      <DialogActions>
+        <Button type="button" variant="outlined" onClick={onCancel} disabled={busy}>
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          variant="contained"
+          color="error"
+          disabled={!matches || busy}
+          onClick={onConfirm}
+        >
+          {busy ? 'Working…' : confirmLabel}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
+// Stock MUI replacement for the custom checkbox toggle: Switch with a
+// visible label. Same props ({ id, label, checked, onChange(checked), hint })
 export function Toggle({ id, label, checked, onChange, hint }) {
   return (
     <div className="admin-toggle">
-      <input id={id} type="checkbox" checked={!!checked} onChange={(e) => onChange(e.target.checked)} />
-      <label htmlFor={id} className="gdg-toggle-label">{label}</label>
+      <FormControlLabel
+        label={label}
+        control={(
+          <Switch
+            id={id}
+            checked={!!checked}
+            onChange={(e) => onChange?.(e.target.checked)}
+          />
+        )}
+      />
       {hint ? <p className="admin-hint">{hint}</p> : null}
     </div>
   );

@@ -1,6 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { authClient } from '../../lib/auth-client';
 import { API_BASE_URL } from '../../api/resources.js';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
 
 export default function AdminSettings() {
   const { data: session } = authClient.useSession();
@@ -24,27 +27,31 @@ export default function AdminSettings() {
         </div>
       </div>
       <div className="admin-cards">
-        <article className="admin-card" aria-label="Profile">
-          <h2>Profile</h2>
-          <p><strong>{user?.name || user?.email || 'Admin'}</strong></p>
-          <p className="admin-muted">{user?.email ?? 'No email on file'}</p>
-          <p className="admin-muted">User ID: {user?.id ?? '—'}</p>
-          <div className="gdg-btn-row">
-            <button type="button" className="gdg-btn gdg-btn-secondary" onClick={handleSignOut}>
-              Sign out
-            </button>
-          </div>
-        </article>
-        <article className="admin-card" aria-label="Environment">
-          <h2>Environment</h2>
-          <p className="admin-muted">API base (VITE_API_URL):</p>
-          <p><code>{API_BASE_URL || '(not set)'}</code></p>
-          <p className="admin-muted">
-            Expected: &lt;backend&gt;/GDGoC-CTU-Main/v0.0.1. Every change is
-            checked on the server (Better Auth session cookie). 401 = signed
-            out, 403 = inactive account (contact the tech/web officer).
-          </p>
-        </article>
+        <Card aria-label="Profile">
+          <CardContent>
+            <h2>Profile</h2>
+            <p><strong>{user?.name || user?.email || 'Admin'}</strong></p>
+            <p className="admin-muted">{user?.email ?? 'No email on file'}</p>
+            <p className="admin-muted">User ID: {user?.id ?? '—'}</p>
+            <div className="gdg-btn-row">
+              <Button type="button" variant="outlined" onClick={handleSignOut}>
+                Sign out
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        <Card aria-label="Environment">
+          <CardContent>
+            <h2>Environment</h2>
+            <p className="admin-muted">API base (VITE_API_URL):</p>
+            <p><code>{API_BASE_URL || '(not set)'}</code></p>
+            <p className="admin-muted">
+              Expected: &lt;backend&gt;/GDGoC-CTU-Main/v0.0.1. Every change is
+              checked on the server (Better Auth session cookie). 401 = signed
+              out, 403 = inactive account (contact the tech/web officer).
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </section>
   );

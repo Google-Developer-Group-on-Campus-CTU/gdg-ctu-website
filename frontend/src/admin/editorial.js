@@ -123,7 +123,7 @@ export function validateTeam(v) {
   if (!required(v.lastName)) errors.lastName = 'Last name is required.';
   if (!required(v.slug)) errors.slug = 'Slug is required.';
   else if (isReservedSlug(v.slug)) errors.slug = 'This slug is reserved.';
-  for (const key of ['linkedin_url', 'github_url', 'website_url']) {
+  for (const key of ['linkedinUrl', 'githubUrl', 'websiteUrl']) {
     if (v[key] && !isAnyUrl(v[key])) errors[key] = 'Must be a valid URL.';
   }
   return errors;
@@ -218,8 +218,6 @@ export const ADMIN_ENTITY_ROUTES = {
   team: { label: 'Team', list: '/admin/team', new: '/admin/team/new', detail: (id) => safeDetailPath('/admin/team', id), param: 'id' },
   partners: { label: 'Partners', list: '/admin/partners', new: '/admin/partners/new', detail: (id) => safeDetailPath('/admin/partners', id), param: 'id' },
   gallery: { label: 'Gallery', list: '/admin/gallery', new: '/admin/gallery/albums/new', detail: (id) => safeDetailPath('/admin/gallery/albums', id), param: 'id' },
-  galleryCategories: { label: 'Categories', list: '/admin/gallery-categories', new: '/admin/gallery-categories', detail: null, param: null },
-  terms: { label: 'Terms', list: '/admin/terms', new: '/admin/terms/new', detail: (id) => safeDetailPath('/admin/terms', id), param: 'id' },
   media: { label: 'Media', list: '/admin/media', new: '/admin/media', detail: null, param: null },
   messages: { label: 'Inbox', list: '/admin/messages', new: '/admin/messages', detail: null, param: null },
 };
@@ -244,7 +242,7 @@ export function adminDetailPathFor(kind, item) {
 }
 
 /** Shell paths that legitimately have no composer (dashboard + system sections). */
-const ADMIN_NEWLESS_PATHS = new Set(['/admin', '/admin/invites', '/admin/users', '/admin/settings']);
+const ADMIN_NEWLESS_PATHS = new Set(['/admin', '/admin/users', '/admin/settings']);
 
 /**
  * Longest-prefix match of the current admin path to its section's "new"

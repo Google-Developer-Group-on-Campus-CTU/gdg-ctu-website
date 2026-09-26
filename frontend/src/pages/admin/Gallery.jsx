@@ -4,9 +4,7 @@ import { albumsApi, albumItemsApi } from '../../api/resources.js';
 import { ADMIN_ENTITY_ROUTES, adminNewTargetFor, useAdminList, useDebouncedValue } from '../../admin/editorial.js';
 import { DataTable, DataTableColumnHeader } from '../../components/admin/data-table.jsx';
 import { EmptyState, StatusPill } from '../../components/admin/shared.jsx';
-
-const ACTION_LINK_CLASS =
-  'inline-flex h-10 items-center px-6 rounded-full border border-[var(--m3-outline)] bg-transparent text-[14px] font-medium tracking-[0.1px] text-[var(--m3-primary)] hover:bg-[rgba(11,87,208,0.08)]';
+import Button from '@mui/material/Button';
 
 /* Static column defs: cover thumb · sortable title link · event link · photo counts · featured · status · manage. */
 const columns = [
@@ -92,9 +90,9 @@ const columns = [
       const detail = ADMIN_ENTITY_ROUTES.gallery.detail(key);
       const label = album.title ?? album.name ?? '(untitled)';
       return (
-        <Link to={detail} className={ACTION_LINK_CLASS} aria-label={`Manage ${label}`}>
+        <Button component={Link} variant="outlined" size="small" to={detail} aria-label={`Manage ${label}`}>
           Manage
-        </Link>
+        </Button>
       );
     },
   },
@@ -158,7 +156,7 @@ export default function AdminGallery() {
         <div>
           <h1>Gallery</h1>
         </div>
-        <Link className="admin-new-btn" to={ADMIN_ENTITY_ROUTES.gallery.new}>+ New album</Link>
+        <Button component={Link} variant="contained" to={ADMIN_ENTITY_ROUTES.gallery.new}>+ New album</Button>
       </div>
 
       <DataTable

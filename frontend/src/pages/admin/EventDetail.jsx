@@ -12,15 +12,18 @@ import {
   EditorErrors,
   EditorField,
   EditorFooter,
+  MuiConfirmDialog,
+  MuiInput,
+  MuiSwitchField,
   eventEditorSchema,
   focusEditorErrors,
   toEditorPayload,
   useEditorForm,
 } from '../../components/admin/form-shell.jsx';
-import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
+import { ErrorState, LoadingSkeleton } from '../../components/admin/shared.jsx';
 import EventCard from '../../components/EventCard.jsx';
 import { Form } from '../../components/ui/form';
-import { MuiInput } from '../../components/admin/mui-fields.jsx';
+import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 import MediaPicker from '../../components/admin/MediaPicker.jsx';
 
@@ -318,7 +321,7 @@ export default function EventDetail() {
             </p>
           ) : null}
         </div>
-        {!isNew ? <Link className="gdg-btn gdg-btn-secondary" to={ADMIN_ENTITY_ROUTES.events.list}>Back to list</Link> : null}
+        {!isNew ? <Button component={Link} variant="outlined" to={ADMIN_ENTITY_ROUTES.events.list}>Back to list</Button> : null}
       </div>
 
       <DirtyGuardBanner blocker={blocker} />
@@ -333,14 +336,15 @@ export default function EventDetail() {
             title={isNew ? 'New event' : 'Edit event'}
             eyebrow="Events"
             actions={(
-              <a
-                className="gdg-btn gdg-btn-secondary"
+              <Button
+                component="a"
+                variant="outlined"
                 href={previewSlug ? publicPreview.eventSlug(previewSlug) : publicPreview.events()}
                 target="_blank"
                 rel="noreferrer"
               >
                 Public preview
-              </a>
+              </Button>
             )}
           >
             <EditorErrors errors={rhfErrors} serverError={serverError} summaryRef={summaryRef} />
@@ -355,7 +359,7 @@ export default function EventDetail() {
               {(field) => <MuiInput field={field} value={field.value ?? ''} placeholder="e.g. Intro AI workshop for students" />}
             </EditorField>
             <EditorField control={control} name="description" label="Description (markdown)" required>
-              {(field) => <textarea {...field} value={field.value ?? ''} rows={6} />}
+              {(field) => <MuiInput field={field} value={field.value ?? ''} multiline rows={6} />}
             </EditorField>
             <EditorField
               control={control}
@@ -418,7 +422,7 @@ export default function EventDetail() {
             </div>
             <EditorField control={control} name="is_active" label="Active" plain>
               {(field) => (
-                <Toggle id="is_active" label="Active" checked={!!field.value} onChange={toggleActive} />
+                <MuiSwitchField field={{ ...field, onChange: toggleActive }} id="is_active" label="Active" />
               )}
             </EditorField>
             <EditorFooter
@@ -451,9 +455,9 @@ export default function EventDetail() {
             {previewSlug ? `/events/${previewSlug}` : 'Slug generated from title'}
           </p>
           <p>
-            <a className="gdg-btn gdg-btn-secondary" href={previewSlug ? publicPreview.eventSlug(previewSlug) : publicPreview.events()} target="_blank" rel="noreferrer">
+            <Button component="a" variant="outlined" href={previewSlug ? publicPreview.eventSlug(previewSlug) : publicPreview.events()} target="_blank" rel="noreferrer">
               Open public preview ↗
-            </a>
+            </Button>
           </p>
           <hr style={{ border: 'none', borderTop: '1px solid var(--m3-outline-variant)', margin: '8px 0' }} />
           <p style={{ fontSize: 'var(--m3-typescale-label-medium-size)', fontWeight: 500, color: 'var(--m3-on-surface)' }}>
@@ -474,7 +478,7 @@ export default function EventDetail() {
         </aside>
       </div>
 
-      <TypedConfirm open={confirmDelete} title="Delete draft?" body="Hard delete is only for never-published drafts. This cannot be undone." expected={values.title} confirmLabel="Delete forever" busy={saving} onCancel={() => setConfirmDelete(false)} onConfirm={hardDelete} />
+      <MuiConfirmDialog open={confirmDelete} title="Delete draft?" body="Hard delete is only for never-published drafts. This cannot be undone." expected={values.title} confirmLabel="Delete forever" busy={saving} onCancel={() => setConfirmDelete(false)} onConfirm={hardDelete} />
     </section>
   );
 }

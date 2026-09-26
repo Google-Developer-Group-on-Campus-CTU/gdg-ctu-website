@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { albumsApi, eventsApi, galleryCategoriesApi, getStatus, getUpdatedAt, mediaApi, partnersApi, teamApi, termsApi } from '../../api/resources.js';
+import { albumsApi, eventsApi, getStatus, getUpdatedAt, mediaApi, partnersApi, teamApi } from '../../api/resources.js';
 import { toArray } from '../../api/resources.js';
 import { ADMIN_ENTITY_ROUTES, adminDetailPathFor, adminItemLabel, timeAgo } from '../../admin/editorial.js';
 import { EditorCard } from '../../components/admin/form-shell.jsx';
 import { ErrorState, LoadingSkeleton, StatusPill } from '../../components/admin/shared.jsx';
-import { Skeleton } from '../../components/ui/skeleton';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Skeleton from '@mui/material/Skeleton';
 import { authClient } from '../../lib/auth-client';
 
 const WRAPPER_CLASS =
@@ -18,8 +20,6 @@ const STAT_SECTIONS = [
   { kind: 'team', label: 'Team', className: 'admin-stat--blue' },
   { kind: 'partners', label: 'Partners', className: 'admin-stat--green' },
   { kind: 'gallery', label: 'Gallery', className: 'admin-stat--yellow' },
-  { kind: 'terms', label: 'Terms', className: 'admin-stat--blue' },
-  { kind: 'galleryCategories', label: 'Categories', className: 'admin-stat--green' },
 ];
 
 export default function AdminDashboard() {
@@ -34,7 +34,7 @@ export default function AdminDashboard() {
   const authed = !!session?.user;
 
   useEffect(() => {
-    // Wait for the session check before deciding: firing the six protected
+    // Wait for the session check before deciding: firing the four protected
     // endpoints while `isPending` sprayed 401s (× StrictMode remounts) that
     // nothing redirected away. Unauthenticated mounts still never fetch.
     if (isPending || !authed) return undefined;
@@ -55,14 +55,6 @@ export default function AdminDashboard() {
           if (e?.status === 404) return [];
           throw e;
         }),
-        termsApi.list().then(toArray).catch((e) => {
-          if (e?.status === 404) return [];
-          throw e;
-        }),
-        galleryCategoriesApi.list().then(toArray).catch((e) => {
-          if (e?.status === 404) return [];
-          throw e;
-        }),
         mediaApi.list({ limit: 20 }).then(toArray).catch((e) => {
           if (e?.status === 404) return [];
           throw e;
@@ -72,7 +64,7 @@ export default function AdminDashboard() {
       // empty dashboard off a failed request (404 = module not shipped = empty).
       const failed = settled.find((r) => r.status === 'rejected' && r.reason?.status !== 404);
       if (failed) throw failed.reason;
-      const [events, team, partners, albums, terms, categories] = settled.map((r) =>
+      const [events, team, partners, albums] = settled.map((r) =>
         r.status === 'fulfilled' ? r.value : [],
       );
       const tagged = [
@@ -80,8 +72,6 @@ export default function AdminDashboard() {
         ...team.map((i) => ({ kind: 'team', item: i })),
         ...partners.map((i) => ({ kind: 'partners', item: i })),
         ...albums.map((i) => ({ kind: 'gallery', item: i })),
-        ...terms.map((i) => ({ kind: 'terms', item: i })),
-        ...categories.map((i) => ({ kind: 'galleryCategories', item: i })),
       ];
       const needPublish = tagged.filter(({ item }) => getStatus(item) === 'draft');
       const edited = [...tagged].sort(
@@ -140,14 +130,16 @@ export default function AdminDashboard() {
             <h1>Dashboard</h1>
           </div>
         </div>
-        <div className={WRAPPER_CLASS}>
-          <div className="admin-skeleton-pad" role="status" aria-label="Loading dashboard…">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-5 w-full" aria-hidden="true" />
-            ))}
-            <span className="admin-visually-hidden">Loading dashboard…</span>
-          </div>
-        </div>
+        <Card className={WRAPPER_CLASS}>
+          <CardContent>
+            <div className="admin-skeleton-pad" role="status" aria-label="Loading dashboard…">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} variant="rounded" width="100%" height={20} aria-hidden="true" />
+              ))}
+              <span className="admin-visually-hidden">Loading dashboard…</span>
+            </div>
+          </CardContent>
+        </Card>
       </section>
     );
   }
@@ -176,7 +168,8 @@ export default function AdminDashboard() {
             <Link to={s.to} className={`admin-stat ${s.className}`}>
               <span className="admin-stat-number">{s.total}</span>
               <span className="admin-stat-label">{s.label}</span>
-              <span className="lozenge lozenge-default">{s.drafts} drafts · {s.hidden} hidden</span>
+              <StatusPill status={s.drafts > 0 ? 'warning' : 'published'} />
+              <span className="admin-muted">{s.drafts} drafts · {s.hidden} hidden</span>
             </Link>
           </li>
         ))}

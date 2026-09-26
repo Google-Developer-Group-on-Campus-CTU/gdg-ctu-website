@@ -13,6 +13,9 @@ import {
   AuthAlert,
   AuthShell,
 } from '../../components/admin/AuthForm.jsx';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
 import '../../styles/login.css';
 
 export default function AdminLogin() {
@@ -109,19 +112,19 @@ export default function AdminLogin() {
       {setupStatus === 'checking' ? (
         <>
           <header className="login-card-head">
-            <span className="gdg-badge">Admin</span>
+            <Chip size="small" label="Admin" />
             <h2>Checking admin setup…</h2>
             <p>One quick check before you sign in.</p>
           </header>
           <div className="gdg-loading" role="status">
-            <span className="gdg-spinner" aria-hidden="true" />
+            <CircularProgress size={24} aria-hidden="true" />
             <p>Checking…</p>
           </div>
         </>
       ) : (
         <>
           <header className="login-card-head">
-            <span className="gdg-badge">Admin</span>
+            <Chip size="small" label="Admin" />
             {setupNeeded ? (
               <>
                 <h2>Create the first admin</h2>
@@ -201,8 +204,7 @@ export default function AdminLogin() {
               />
             ) : null}
 
-            <button type="submit" className="login-submit" disabled={busy}>
-              {busy ? <span className="login-spinner" aria-hidden="true" /> : null}
+            <Button type="submit" variant="contained" fullWidth disabled={busy} startIcon={busy ? <CircularProgress size={16} aria-hidden="true" /> : null}>
               {busy
                 ? setupNeeded
                   ? 'Creating account…'
@@ -210,7 +212,7 @@ export default function AdminLogin() {
                 : setupNeeded
                   ? 'Create first admin'
                   : 'Sign in'}
-            </button>
+            </Button>
           </form>
         </>
       )}

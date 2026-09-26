@@ -9,7 +9,9 @@ import {
   useDebouncedValue,
 } from '../../admin/editorial.js';
 import { DataTable, DataTableColumnHeader } from '../../components/admin/data-table.jsx';
-import { EmptyState, StatusPill, TypedConfirm } from '../../components/admin/shared.jsx';
+import { EmptyState, StatusPill } from '../../components/admin/shared.jsx';
+import { MuiConfirmDialog } from '../../components/admin/form-shell.jsx';
+import Button from '@mui/material/Button';
 
 function scopeOf(event) {
   const now = Date.now();
@@ -23,9 +25,6 @@ const SCOPES = [
   { value: 'upcoming', label: 'Upcoming (endAt ≥ now)' },
   { value: 'past', label: 'Past (endAt < now)' },
 ];
-
-const ACTION_LINK_CLASS =
-  'inline-flex h-10 items-center px-6 rounded-full border border-[var(--m3-outline)] bg-transparent text-[14px] font-medium tracking-[0.1px] text-[var(--m3-primary)] hover:bg-[rgba(11,87,208,0.08)]';
 
 /* Static column defs: title (detail link) · status badge · updated · scope · row actions. */
 function useColumns({ onArchive }) {
@@ -91,19 +90,21 @@ function useColumns({ onArchive }) {
         const archived = String(event.status ?? '').toLowerCase() === 'archived';
         return (
           <span className="admin-row-actions">
-            <Link to={detail} className={ACTION_LINK_CLASS} aria-label={`Edit ${label}`}>
+            <Button component={Link} variant="outlined" size="small" to={detail} aria-label={`Edit ${label}`}>
               Edit
-            </Link>
+            </Button>
             {!archived ? (
-              <button
+              <Button
                 type="button"
-                className={`${ACTION_LINK_CLASS} admin-danger`}
+                variant="outlined"
+                size="small"
+                color="error"
                 disabled={!id || id === 'undefined'}
                 onClick={() => onArchive(event)}
                 aria-label={`Archive ${label}`}
               >
                 Archive
-              </button>
+              </Button>
             ) : null}
           </span>
         );
@@ -197,7 +198,7 @@ export default function AdminEvents() {
         <div>
           <h1>Events</h1>
         </div>
-        <Link className="admin-new-btn" to={ADMIN_ENTITY_ROUTES.events.new}>+ New event</Link>
+        <Button component={Link} variant="contained" to={ADMIN_ENTITY_ROUTES.events.new}>+ New event</Button>
       </div>
 
       {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
@@ -232,7 +233,7 @@ export default function AdminEvents() {
         <p className="admin-muted">Request ID: {requestId}</p>
       ) : null}
 
-      <TypedConfirm
+      <MuiConfirmDialog
         open={!!confirmTarget}
         title="Archive event?"
         body="Archive hides it publicly but keeps it editable and restorable (preferred over delete)."

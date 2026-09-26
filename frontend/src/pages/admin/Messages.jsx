@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getId, getUpdatedAt, messagesApi } from '../../api/resources.js';
 import {
@@ -10,8 +10,15 @@ import { DataTable, DataTableColumnHeader } from '../../components/admin/data-ta
 import {
   EmptyState,
   StatusPill,
-  TypedConfirm,
 } from '../../components/admin/shared.jsx';
+import { MuiConfirmDialog } from '../../components/admin/form-shell.jsx';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Alert from '@mui/material/Alert';
 
 /** Mirror of the Invites action-error wording for one-off row failures. */
 function actionErrorMessage(err, fallback) {
@@ -47,9 +54,6 @@ const SCOPES = [
   { value: 'archived', label: 'Archived' },
 ];
 
-const ACTION_BTN_CLASS =
-  'inline-flex h-10 items-center px-6 rounded-full border border-[var(--m3-outline)] bg-transparent text-[14px] font-medium tracking-[0.1px] text-[var(--m3-primary)] hover:bg-[rgba(11,87,208,0.08)]';
-
 function useColumns({ onView, onMark, onDelete }) {
   return useMemo(() => [
     {
@@ -72,15 +76,16 @@ function useColumns({ onView, onMark, onDelete }) {
       accessorKey: 'subject',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Subject" />,
       cell: ({ row }) => (
-        <button
+        <Button
           type="button"
-          className="admin-link-btn font-medium"
+          variant="text"
+          className="font-medium"
           style={{ textAlign: 'left' }}
           onClick={() => onView(row.original)}
           aria-label={`View message from ${row.original.name ?? row.original.email ?? 'sender'}`}
         >
           {row.original.subject?.trim() ? row.original.subject : '(no subject)'}
-        </button>
+        </Button>
       ),
     },
     {
@@ -110,32 +115,34 @@ function useColumns({ onView, onMark, onDelete }) {
         if (!id || id === 'undefined') return <span className="admin-muted" aria-hidden="true">—</span>;
         return (
           <span className="admin-row-actions">
-            <button type="button" className={ACTION_BTN_CLASS} onClick={() => onView(item)} aria-label={`View ${label}`}>
+            <Button type="button" variant="outlined" size="small" onClick={() => onView(item)} aria-label={`View ${label}`}>
               View
-            </button>
+            </Button>
             {status === 'new' ? (
-              <button type="button" className={ACTION_BTN_CLASS} onClick={() => onMark(item, 'read')} aria-label={`Mark ${label} as read`}>
+              <Button type="button" variant="outlined" size="small" onClick={() => onMark(item, 'read')} aria-label={`Mark ${label} as read`}>
                 Mark read
-              </button>
+              </Button>
             ) : null}
             {status === 'new' || status === 'read' ? (
-              <button type="button" className={ACTION_BTN_CLASS} onClick={() => onMark(item, 'replied')} aria-label={`Mark ${label} as replied`}>
+              <Button type="button" variant="outlined" size="small" onClick={() => onMark(item, 'replied')} aria-label={`Mark ${label} as replied`}>
                 Mark replied
-              </button>
+              </Button>
             ) : null}
             {status !== 'archived' ? (
-              <button type="button" className={`${ACTION_BTN_CLASS} admin-danger`} onClick={() => onMark(item, 'archived')} aria-label={`Archive ${label}`}>
+              <Button type="button" variant="outlined" size="small" color="error" onClick={() => onMark(item, 'archived')} aria-label={`Archive ${label}`}>
                 Archive
-              </button>
+              </Button>
             ) : null}
-            <button
+            <Button
               type="button"
-              className={`${ACTION_BTN_CLASS} admin-danger`}
+              variant="outlined"
+              size="small"
+              color="error"
               onClick={() => onDelete(item)}
               aria-label={`Delete message from ${label}`}
             >
               Delete
-            </button>
+            </Button>
           </span>
         );
       },
@@ -144,66 +151,48 @@ function useColumns({ onView, onMark, onDelete }) {
 }
 
 function MessageDialog({ item, busy, onMark, onClose }) {
-  const dialogRef = useRef(null);
-  useEffect(() => {
-    if (!item) return undefined;
-    const node = dialogRef.current;
-    node?.querySelector('button')?.focus();
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        onClose?.();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [item, onClose]);
-  if (!item) return null;
-  const status = statusOf(item);
-  const at = receivedAt(item);
+  const status = item ? statusOf(item) : 'new';
+  const at = item ? receivedAt(item) : '';
   return (
-    <div className="admin-dialog-backdrop" role="presentation" onClick={onClose}>
-      <div
-        ref={dialogRef}
-        className="admin-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="message-dialog-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 id="message-dialog-title">{item.subject?.trim() ? item.subject : '(no subject)'}</h3>
-        <p className="admin-muted">
-          From {item.name ?? '(unnamed)'}{item.email ? ` <${item.email}>` : ''} · {at ? new Date(at).toLocaleString() : 'unknown date'} ·{' '}
+    <Dialog
+      open={!!item}
+      onClose={busy ? undefined : onClose}
+      aria-labelledby="message-dialog-title"
+    >
+      <DialogTitle id="message-dialog-title">{item?.subject?.trim() ? item.subject : '(no subject)'}</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          From {item?.name ?? '(unnamed)'}{item?.email ? ` <${item.email}>` : ''} · {at ? new Date(at).toLocaleString() : 'unknown date'} ·{' '}
           <StatusPill status={status} />
-        </p>
-        <p style={{ whiteSpace: 'pre-wrap', marginTop: 12 }}>{item.message ?? '(empty message)'}</p>
-        <div className="admin-dialog-actions" style={{ marginTop: 24 }}>
-          <button type="button" className="gdg-btn gdg-btn-secondary" onClick={onClose} disabled={busy}>
-            Close
-          </button>
-          {status === 'new' ? (
-            <button
-              type="button"
-              className="gdg-btn gdg-btn-primary"
-              onClick={() => onMark(item, 'read')}
-              disabled={busy}
-            >
-              {busy ? 'Working…' : 'Mark read'}
-            </button>
-          ) : null}
-          {status === 'new' || status === 'read' ? (
-            <button
-              type="button"
-              className="gdg-btn gdg-btn-primary"
-              onClick={() => onMark(item, 'replied')}
-              disabled={busy}
-            >
-              {busy ? 'Working…' : 'Mark replied'}
-            </button>
-          ) : null}
-        </div>
-      </div>
-    </div>
+        </DialogContentText>
+        <p style={{ whiteSpace: 'pre-wrap', marginTop: 12 }}>{item?.message ?? '(empty message)'}</p>
+      </DialogContent>
+      <DialogActions style={{ marginTop: 8 }}>
+        <Button type="button" variant="outlined" onClick={onClose} disabled={busy}>
+          Close
+        </Button>
+        {status === 'new' ? (
+          <Button
+            type="button"
+            variant="contained"
+            onClick={() => onMark(item, 'read')}
+            disabled={busy}
+          >
+            {busy ? 'Working…' : 'Mark read'}
+          </Button>
+        ) : null}
+        {status === 'new' || status === 'read' ? (
+          <Button
+            type="button"
+            variant="contained"
+            onClick={() => onMark(item, 'replied')}
+            disabled={busy}
+          >
+            {busy ? 'Working…' : 'Mark replied'}
+          </Button>
+        ) : null}
+      </DialogActions>
+    </Dialog>
   );
 }
 
@@ -319,7 +308,7 @@ export default function AdminMessages() {
       </div>
 
       {toast ? <p role="status" aria-live="polite" className="admin-muted">{toast}</p> : null}
-      {rowError ? <div className="admin-notice admin-notice-error" role="alert">{rowError}</div> : null}
+      {rowError ? <Alert severity="error" role="alert" sx={{ mb: 2 }}>{rowError}</Alert> : null}
 
       <DataTable
         columns={columns}
@@ -353,7 +342,7 @@ export default function AdminMessages() {
         onClose={() => { if (!busy) setViewing(null); }}
       />
 
-      <TypedConfirm
+      <MuiConfirmDialog
         open={!!confirmDelete}
         title="Delete message?"
         body="This permanently deletes the message from the inbox. This cannot be undone."

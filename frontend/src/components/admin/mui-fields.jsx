@@ -1,7 +1,7 @@
 import TextField from '@mui/material/TextField';
-import InputAdornment from '@mui/material/InputAdornment';
-import IconButton from '@mui/material/IconButton';
-import { Search, X } from 'lucide-react';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormHelperText from '@mui/material/FormHelperText';
+import Switch from '@mui/material/Switch';
 import './mui-fields.css';
 
 /**
@@ -33,17 +33,19 @@ export function MuiInput({ field, maxLength, min, max, step, ...props }) {
     ...rest
   } = props;
   const invalid = ariaInvalid === true || ariaInvalid === 'true';
+  const { helperText, error: errorProp, ...textFieldRest } = rest;
   return (
     <TextField
       {...fieldRest}
-      {...rest}
+      {...textFieldRest}
       id={id}
-      className={['mui-field', rest.className].filter(Boolean).join(' ')}
+      className={['mui-field', textFieldRest.className].filter(Boolean).join(' ')}
       variant="outlined"
       fullWidth
-      value={fieldRest.value ?? rest.value ?? ''}
+      value={fieldRest.value ?? textFieldRest.value ?? ''}
       inputRef={ref}
-      error={invalid || rest.error}
+      error={invalid || !!errorProp}
+      helperText={helperText}
       inputProps={{
         maxLength,
         min,
@@ -57,69 +59,67 @@ export function MuiInput({ field, maxLength, min, max, step, ...props }) {
   );
 }
 
-const SEARCH_CLEAR_LABEL = 'Clear search';
+/**
+ * RHF-bound boolean input — the stock MUI replacement for the custom
+ * shared `Toggle`. `field` is the react-hook-form Controller field;
+ * the boolean travels via `checked`/`onChange(checked)` so page handlers
+ * keep their `(value) => …` signatures unchanged. Validation errors render
+ * as MUI `FormHelperText`, matching `MuiInput`'s `helperText` pattern.
+ *
+ *   {(field) => <MuiSwitchField field={field} id="tm-active" label="Active" />}
+ */
+export function MuiSwitchField({ field, id, label, disabled, errorText }) {
+  const { ref, value, onChange, onBlur, name } = field ?? {};
+  return (
+    <>
+      <FormControlLabel
+        label={label}
+        disabled={disabled}
+        control={(
+          <Switch
+            id={id}
+            name={name}
+            checked={!!value}
+            disabled={disabled}
+            inputRef={ref}
+            onBlur={onBlur}
+            onChange={(e) => onChange?.(e.target.checked)}
+          />
+        )}
+      />
+      {errorText ? <FormHelperText error>{errorText}</FormHelperText> : null}
+    </>
+  );
+}
 
 /**
- * Controlled toolbar search field — the shared pattern for DataTable,
- * MediaPicker, and the gallery-categories toolbar. Default MUI TextField
- * best practice: `label` names the field via `aria-label` on the native
- * input (no visible label, so toolbar layout is unchanged), `placeholder`
- * is hint text only, search-icon adornment is aria-hidden, and a clear
- * IconButton with an accessible label appears when there is a value.
- * Controlled (`value`/`onChange` stay immediate; `?q=` + 250ms debounce
- * live in the page via `useDebouncedValue`); `aria-live="polite"` count
- * rendered by the caller. When no `label` is passed (MediaPicker), the
- * input stays labelled by the owning `Field` label via `inputProps`.
+ * Toolbar search field — 100% stock MUI, zero custom modifications.
+ * Plain docs-standard outlined TextField: `label` renders as
+ * inside-placeholder text when empty and animates into the top-border
+ * notch on focus/value. `placeholder` is never set. Clearing is native
+ * (Esc / select-delete). `value`/`onChange` wiring only; `?q=` + 250ms
+ * debounce live in the page via `useDebouncedValue`.
  */
 export function MuiSearchField({
   id,
   label,
-  inputProps: inputPropsProp,
   value,
   onChange,
-  placeholder,
   disabled,
   size = 'small',
   autoComplete = 'off',
 }) {
-  const searchId = id ?? inputPropsProp?.id;
-  const hasValue = String(value ?? '') !== '';
   return (
     <TextField
-      id={searchId}
+      id={id}
       type="search"
-      className="mui-field mui-search-field"
       variant="outlined"
       size={size}
+      label={label}
       value={value ?? ''}
-      placeholder={placeholder ?? (typeof label === 'string' ? label : undefined)}
       autoComplete={autoComplete}
       disabled={disabled}
       onChange={(e) => onChange?.(e.target.value)}
-      inputProps={{ 'aria-label': label, ...inputPropsProp, id: undefined }}
-      slotProps={{
-        input: {
-          startAdornment: (
-            <InputAdornment position="start">
-              <Search size={18} aria-hidden="true" />
-            </InputAdornment>
-          ),
-          endAdornment: hasValue ? (
-            <InputAdornment position="end">
-              <IconButton
-                type="button"
-                size="small"
-                aria-label={SEARCH_CLEAR_LABEL}
-                disabled={disabled}
-                onClick={() => onChange?.('')}
-                edge="end"
-              >
-                <X size={18} aria-hidden="true" />
-              </IconButton>
-            </InputAdornment>
-          ) : null,
-        },
-      }}
     />
   );
 }

@@ -12,7 +12,6 @@ import Partners from './pages/Partners.jsx';
 import Contact from './pages/Contact.jsx';
 import AdminLogin from './pages/admin/Login.jsx';
 import AdminRegister from './pages/admin/Register.jsx';
-import AdminInvites from './pages/admin/Invites.jsx';
 import AdminUsers from './pages/admin/Users.jsx';
 import AdminDashboard from './pages/admin/Dashboard.jsx';
 import AdminEvents from './pages/admin/Events.jsx';
@@ -23,9 +22,6 @@ import AdminPartners from './pages/admin/Partners.jsx';
 import PartnerDetail from './pages/admin/PartnerDetail.jsx';
 import AdminGallery from './pages/admin/Gallery.jsx';
 import AlbumDetail from './pages/admin/AlbumDetail.jsx';
-import GalleryCategories from './pages/admin/GalleryCategories.jsx';
-import AdminTerms from './pages/admin/Terms.jsx';
-import TermDetail from './pages/admin/TermDetail.jsx';
 import AdminMedia from './pages/admin/Media.jsx';
 import AdminMessages from './pages/admin/Messages.jsx';
 import AdminSettings from './pages/admin/Settings.jsx';
@@ -87,15 +83,13 @@ const ADMIN_ENTITY_PAGES = {
   team: { list: <AdminTeam />, detail: <TeamDetail /> },
   partners: { list: <AdminPartners />, detail: <PartnerDetail /> },
   gallery: { list: <AdminGallery />, detail: <AlbumDetail /> },
-  galleryCategories: { list: <GalleryCategories />, detail: null },
-  terms: { list: <AdminTerms />, detail: <TermDetail /> },
   media: { list: <AdminMedia />, detail: null },
   messages: { list: <AdminMessages />, detail: null },
 };
 
 // Derive the admin entity routes from the canonical map: the list route always;
 // the `new` route when distinct from the list; the detail route as
-// `detail(':param')` (e.g. '/admin/events/:id', '/admin/terms/:id').
+// `detail(':param')` (e.g. '/admin/events/:id', '/admin/team/:id').
 const adminEntityRoutes = Object.entries(ADMIN_ENTITY_ROUTES).flatMap(([key, entity]) => {
   const page = ADMIN_ENTITY_PAGES[key];
   const routes = [{ path: entity.list, element: page.list }];
@@ -142,7 +136,6 @@ const router = createBrowserRouter([
         children: [
           { path: '/admin', element: <AdminDashboard /> },
           ...adminEntityRoutes,
-          { path: '/admin/invites', element: <AdminInvites /> },
           { path: '/admin/users', element: <AdminUsers /> },
           { path: '/admin/settings', element: <AdminSettings /> },
           { path: '/admin/*', element: <NotFound /> },

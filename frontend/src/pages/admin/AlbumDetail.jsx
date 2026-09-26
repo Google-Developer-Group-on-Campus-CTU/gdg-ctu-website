@@ -10,14 +10,22 @@ import {
   EditorErrors,
   EditorField,
   EditorFooter,
+  MuiConfirmDialog,
+  MuiInput,
+  MuiSwitchField,
   focusEditorErrors,
   toEditorPayload,
   useEditorForm,
   useSlugUniqueness,
 } from '../../components/admin/form-shell.jsx';
-import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
+import { ErrorState, LoadingSkeleton } from '../../components/admin/shared.jsx';
 import { Form } from '../../components/ui/form';
-import { MuiInput } from '../../components/admin/mui-fields.jsx';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import IconButton from '@mui/material/IconButton';
+import MenuItem from '@mui/material/MenuItem';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -114,6 +122,9 @@ export default function AlbumDetail() {
   const [media, setMedia] = useState([]);
   const [categories, setCategories] = useState([]);
   const [categoriesError, setCategoriesError] = useState(null);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryBusy, setNewCategoryBusy] = useState(false);
+  const [newCategoryMsg, setNewCategoryMsg] = useState(null);
   const [pickerId, setPickerId] = useState('');
   const [loading, setLoading] = useState(!isNew);
   const [error, setError] = useState(null);
@@ -191,6 +202,35 @@ export default function AlbumDetail() {
     setLoadRetry((n) => n + 1);
   };
   if (!isNew && error) return <section aria-label="Album editor"><h1>Album</h1><ErrorState error={error} onRetry={retryLoad} context="load this album" /></section>;
+
+  // Inline category creation (the /admin/gallery-categories page is retired):
+  // auto-slug client-side, display_order appends after the max, then select
+  // the new id. Payload shape unchanged (categoryId id or null).
+  const createCategoryInline = async () => {
+    const name = String(newCategoryName ?? '').trim();
+    if (!name) { setNewCategoryMsg('Type a category name first.'); return; }
+    const slug = slugify(name);
+    if (!slug) { setNewCategoryMsg('That name produces an empty URL slug — use letters or numbers.'); return; }
+    setNewCategoryBusy(true); setNewCategoryMsg(null);
+    try {
+      const nextOrder = categories.reduce(
+        (m, c) => Math.max(m, Number(c.displayOrder ?? c.display_order ?? c.order ?? 0) || 0),
+        -1,
+      ) + 1;
+      const created = await galleryCategoriesApi.create({ name, slug, displayOrder: nextOrder, isActive: true });
+      const row = created ?? {};
+      setCategories((prev) => [...prev, row].sort(
+        (a, b) => (Number(a.displayOrder ?? a.display_order ?? 0) || 0) - (Number(b.displayOrder ?? b.display_order ?? 0) || 0),
+      ));
+      const newId = row.id ?? row._id ?? row.uuid;
+      if (newId) setValue('categoryId', newId);
+      setNewCategoryName('');
+      setNewCategoryMsg(`Category "${name}" created and selected.`);
+    } catch (err) {
+      if (err?.status === 409) setNewCategoryMsg(`"${slug}" already exists — pick it from the list above.`);
+      else setNewCategoryMsg(err?.body?.message ?? err?.message ?? 'Could not create category.');
+    } finally { setNewCategoryBusy(false); }
+  };
 
   const onInvalid = () => { focusEditorErrors(summaryRef); setTab('content'); };
 
@@ -332,17 +372,15 @@ export default function AlbumDetail() {
     <section aria-label={isNew ? 'New album' : 'Edit album'}>
       <div className="admin-page-head">
         <div><h1>{isNew ? 'New album' : values.title}</h1></div>
-        <Link className="gdg-btn gdg-btn-secondary" to={ADMIN_ENTITY_ROUTES.gallery.list}>Back to albums</Link>
+        <Button component={Link} variant="outlined" to={ADMIN_ENTITY_ROUTES.gallery.list}>Back to albums</Button>
       </div>
       <DirtyGuardBanner blocker={blocker} />
 
-      <div className="admin-tabs" role="tablist" aria-label="Album sections">
-        {['content', 'photos', 'settings'].map((t) => (
-          <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? 'is-active' : ''} onClick={() => setTab(t)}>
-            {t === 'content' ? 'Content' : t === 'photos' ? `Photos (${photos.length})` : 'Settings'}
-          </button>
-        ))}
-      </div>
+      <Tabs value={tab} onChange={(_e, next) => setTab(next)} aria-label="Album sections" sx={{ mb: 2 }}>
+        <Tab value="content" label="Content" />
+        <Tab value="photos" label={`Photos (${photos.length})`} />
+        <Tab value="settings" label="Settings" />
+      </Tabs>
 
       <Form {...methods}>
         {tab === 'content' ? (
@@ -351,14 +389,15 @@ export default function AlbumDetail() {
               title={isNew ? 'New album' : 'Edit album'}
               eyebrow="Gallery"
               actions={(
-                <a
-                  className="gdg-btn gdg-btn-secondary"
+                <Button
+                  component="a"
+                  variant="outlined"
                   href={values.slug ? publicPreview.albumSlug(values.slug) : ADMIN_ENTITY_ROUTES.gallery.list}
                   target={values.slug ? '_blank' : undefined}
                   rel="noreferrer"
                 >
                   Public preview
-                </a>
+                </Button>
               )}
             >
               <EditorErrors errors={rhfErrors} serverError={serverError} summaryRef={summaryRef} />
@@ -394,21 +433,32 @@ export default function AlbumDetail() {
                   hint={categoriesError ? `Categories failed to load: ${categoriesError?.body?.message ?? categoriesError?.message ?? 'request failed'}.` : 'Drives the public ?category= album filter.'}
                 >
                   {(field) => (
-                    <select id="categoryId" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value)}>
-                      <option value="">Uncategorized</option>
+                    <MuiInput field={field} select value={field.value ?? ''}>
+                      <MenuItem value="">Uncategorized</MenuItem>
                       {categories.map((c) => {
                         const cid = c?.id ?? c?._id ?? c?.uuid;
-                        return <option key={cid ?? c.slug} value={cid ?? ''}>{c.name ?? c.slug ?? '(unnamed)'}</option>;
+                        return <MenuItem key={cid ?? c.slug} value={cid ?? ''}>{c.name ?? c.slug ?? '(unnamed)'}</MenuItem>;
                       })}
-                    </select>
+                    </MuiInput>
                   )}
                 </EditorField>
+                <div className="admin-toolbar" aria-label="Create a new category">
+                  <MuiInput
+                    field={{ value: newCategoryName, onChange: (e) => { setNewCategoryName(e?.target?.value ?? e); setNewCategoryMsg(null); }, onBlur: () => {}, name: 'newCategoryName' }}
+                    placeholder="+ New category (e.g. Meetups)"
+                    inputProps={{ 'aria-label': 'New category name' }}
+                  />
+                  <Button type="button" variant="outlined" disabled={newCategoryBusy} onClick={createCategoryInline}>
+                    {newCategoryBusy ? 'Adding…' : 'Add'}
+                  </Button>
+                </div>
+                {newCategoryMsg ? <p role="status" aria-live="polite" className="admin-muted">{newCategoryMsg}</p> : null}
                 <EditorField control={control} name="date" label="Date">
                   {(field) => <MuiInput field={field} type="date" />}
                 </EditorField>
               </div>
               <EditorField control={control} name="description" label="Description">
-                {(field) => <textarea {...field} value={field.value ?? ''} rows={4} />}
+                {(field) => <MuiInput field={field} value={field.value ?? ''} multiline rows={4} />}
               </EditorField>
               <EditorFooter
                 saving={saving}
@@ -432,13 +482,17 @@ export default function AlbumDetail() {
                     </p>
                   ) : null}
                   <label className="admin-visually-hidden" htmlFor="photo-picker">Add photo from Media</label>
-                  <select id="photo-picker" value={pickerId} onChange={(e) => setPickerId(e.target.value)}>
-                    <option value="">Pick from Media…</option>
+                  <MuiInput
+                    field={{ value: pickerId, onChange: (e) => setPickerId(e?.target?.value ?? e), onBlur: () => {}, name: 'photo-picker' }}
+                    select
+                    inputProps={{ id: 'photo-picker', 'aria-label': 'Add photo from Media' }}
+                  >
+                    <MenuItem value="">Pick from Media…</MenuItem>
                     {media.map((m) => (
-                      <option key={getId(m)} value={getId(m)}>{mediaName(getId(m))}</option>
+                      <MenuItem key={getId(m)} value={getId(m)}>{mediaName(getId(m))}</MenuItem>
                     ))}
-                  </select>
-                  <button type="button" className="gdg-btn gdg-btn-primary" disabled={!pickerId || saving} onClick={addPhoto}>Add photo</button>
+                  </MuiInput>
+                  <Button type="button" variant="contained" disabled={!pickerId || saving} onClick={addPhoto}>Add photo</Button>
                   <span className="admin-muted" aria-live="polite">Featured {featuredCount}/{MAX_FEATURED_PHOTOS}</span>
                 </div>
                 {photos.length === 0 ? null : (
@@ -451,12 +505,12 @@ export default function AlbumDetail() {
                             <TableCell>{p.caption ?? mediaName(p.media_id ?? p.mediaId)}</TableCell>
                             <TableCell>{p.order ?? i}</TableCell>
                             <TableCell>
-                              <input type="checkbox" checked={!!p.is_featured} disabled={saving} onChange={() => toggleFeaturePhoto(p)} aria-label={`Feature photo ${i + 1}`} />
+                              <Checkbox checked={!!p.is_featured} disabled={saving} onChange={() => toggleFeaturePhoto(p)} inputProps={{ 'aria-label': `Feature photo ${i + 1}` }} />
                             </TableCell>
                             <TableCell>
-                              <button type="button" onClick={() => movePhoto(i, -1)} disabled={saving || i === 0} aria-label={`Move photo ${i + 1} up`}>↑</button>{' '}
-                              <button type="button" onClick={() => movePhoto(i, 1)} disabled={saving || i === photos.length - 1} aria-label={`Move photo ${i + 1} down`}>↓</button>{' '}
-                              <button type="button" onClick={() => removePhoto(p)} disabled={saving}>Remove</button>
+                              <IconButton type="button" size="small" onClick={() => movePhoto(i, -1)} disabled={saving || i === 0} aria-label={`Move photo ${i + 1} up`}>↑</IconButton>{' '}
+                              <IconButton type="button" size="small" onClick={() => movePhoto(i, 1)} disabled={saving || i === photos.length - 1} aria-label={`Move photo ${i + 1} down`}>↓</IconButton>{' '}
+                              <Button type="button" size="small" variant="outlined" onClick={() => removePhoto(p)} disabled={saving}>Remove</Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -473,36 +527,29 @@ export default function AlbumDetail() {
           <form onSubmit={(e) => handleSubmit(persist(false), onInvalid)(e)}>
             <EditorField control={control} name="is_featured" label="Highlight album" plain>
               {(field) => (
-                <Toggle id="album-featured" label="Highlight album" checked={!!field.value} onChange={field.onChange} />
+                <MuiSwitchField field={field} id="album-featured" label="Highlight album" />
               )}
             </EditorField>
             <EditorField control={control} name="is_active" label="Active (off hides publicly)" plain>
               {(field) => (
-                <Toggle id="album-active" label="Active (off hides publicly)" checked={!!field.value} onChange={field.onChange} />
+                <MuiSwitchField field={field} id="album-active" label="Active (off hides publicly)" />
               )}
             </EditorField>
             <div className="editor-btn-row">
-              <button type="submit" className="editor-btn editor-btn-secondary" disabled={saving}>
-                {saving ? (
-                  <>
-                    <span className="editor-spinner" aria-hidden="true" />
-                    Saving…
-                  </>
-                ) : (
-                  'Save settings'
-                )}
-              </button>
+              <Button type="submit" variant="outlined" disabled={saving}>
+                {saving ? 'Saving…' : 'Save settings'}
+              </Button>
               {!isNew ? (
-                <button type="button" className="editor-btn editor-btn-danger" disabled={saving} onClick={() => setConfirm(true)}>
+                <Button type="button" variant="outlined" color="error" disabled={saving} onClick={() => setConfirm(true)}>
                   Archive / delete
-                </button>
+                </Button>
               ) : null}
             </div>
           </form>
         ) : null}
       </Form>
 
-      <TypedConfirm open={confirm} title="Archive album?" body="Archive hides it publicly but keeps it editable (preferred)." expected={values.slug} confirmLabel="Archive" busy={saving}
+      <MuiConfirmDialog open={confirm} title="Archive album?" body="Archive hides it publicly but keeps it editable (preferred)." expected={values.slug} confirmLabel="Archive" busy={saving}
         onCancel={() => setConfirm(false)}
         onConfirm={async () => {
           setSaving(true);
