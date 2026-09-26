@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { formatDate, mapEvent, publicApi, usePublicFeed } from '../api/public.js';
 import { FeedError, FeedSkeleton, friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
+import EventCard, { eventCategory } from '../components/EventCard.jsx';
 import '../styles/events.css';
 
 const REGISTER_URL =
@@ -86,41 +87,7 @@ const PAST_CATS = [
   { id: 'competitions', label: 'Competitions', tone: 'cat-red' },
 ];
 
-/* Card pill fill follows the event category: Meetup yellow, Workshop
-   green, Talk blue, Competition red. The date + location pills on a card
-   always share it. */
-const CATEGORY_TONES = {
-  meetups: 'tone-yellow',
-  workshops: 'tone-green',
-  talks: 'tone-blue',
-  competitions: 'tone-red',
-};
-
-// Stored category (CMS taxonomy) wins when present; older rows without a
-// category fall back to keyword match over title + descriptions. Anything
-// unmatched lands in Meetups so no published event ever vanishes from
-// every filter.
-const STORED_CATEGORIES = {
-  meetup: 'meetups',
-  workshop: 'workshops',
-  talk: 'talks',
-  competition: 'competitions',
-};
-
-function eventCategory(e) {
-  const stored = STORED_CATEGORIES[String(e.category ?? '').toLowerCase()];
-  if (stored) return stored;
-  const text = `${e.title ?? ''} ${e.short ?? ''} ${e.description ?? ''}`.toLowerCase();
-  if (/workshop|hands-on|hands on|lab\b|study jam|bootcamp|codelab/.test(text)) return 'workshops';
-  if (/competition|hackathon|contest|challenge|venture|olympiad/.test(text)) return 'competitions';
-  if (/talk\b|speaker|session|summit|techconnect|conference|seminar|keynote/.test(text)) return 'talks';
-  return 'meetups';
-}
-
-/* Stored category first, keyword fallback for old rows, yellow default. */
-function pillTone(event = {}) {
-  return CATEGORY_TONES[eventCategory(event)] ?? 'tone-yellow';
-}
+/* Card rendering + tones live in the shared EventCard component. */
 
 function EventDetail({ slug }) {
   const { data, loading, error, retry } = usePublicFeed(
@@ -170,43 +137,6 @@ export default function Events() {
   const { slug } = useParams();
   if (slug) return <EventDetail slug={slug} />;
   return <EventsList />;
-}
-
-function PastCard({ event }) {
-  const tone = pillTone(event);
-  const access = event.externalUrl ? 'Free Registration' : 'Free Access';
-  const locLabel = event.location ? `${event.location} | ${access}` : access;
-  const dateLabel = event.startAt ? formatDate(event.startAt) : null;
-  return (
-    <Link
-      to={event.slug ? `/events/${event.slug}` : '/events'}
-      className="past-card"
-      aria-label={event.title}
-    >
-      <img
-        className="past-frame"
-        src="/layout-assets/events/event-card-frame.svg"
-        alt=""
-        aria-hidden="true"
-        draggable="false"
-      />
-      {event.coverUrl ? (
-        <img className="past-photo" src={event.coverUrl} alt={event.coverAlt} loading="lazy" onError={hideImage} />
-      ) : (
-        <div className="past-photo past-photo--fallback" aria-hidden="true">
-          {event.title.charAt(0).toUpperCase()}
-        </div>
-      )}
-      <div className="past-head">
-        <h3>{event.title}</h3>
-      </div>
-      {dateLabel ? (
-        <span className={`mini-pill ${tone}`}>{dateLabel}</span>
-      ) : null}
-      <p className="past-desc">{event.short || event.description || 'No description.'}</p>
-      <span className={`past-loc ${tone}`}>{locLabel}</span>
-    </Link>
-  );
 }
 
 function EventsList() {
@@ -290,7 +220,7 @@ function EventsList() {
         {!upcomingLoading && !upcomingError && upcomingData?.length ? (
           <div className="past-grid">
             {upcomingData.slice(0, 4).map((event) => (
-              <PastCard key={event.id} event={event} />
+              <EventCard key={event.id} event={event} />
             ))}
           </div>
         ) : null}
@@ -454,7 +384,7 @@ function EventsList() {
         {!pastLoading && !pastError && shownPast.length > 0 ? (
           <div className="past-grid">
             {shownPast.map((event) => (
-              <PastCard key={event.id} event={event} />
+              <EventCard key={event.id} event={event} />
             ))}
           </div>
         ) : null}

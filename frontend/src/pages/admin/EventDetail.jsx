@@ -17,8 +17,8 @@ import {
   toEditorPayload,
   useEditorForm,
 } from '../../components/admin/form-shell.jsx';
-import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm, hideImage } from '../../components/admin/shared.jsx';
-import { formatDate } from '../../api/public.js';
+import { ErrorState, LoadingSkeleton, Toggle, TypedConfirm } from '../../components/admin/shared.jsx';
+import EventCard from '../../components/EventCard.jsx';
 import { Form } from '../../components/ui/form';
 import { MuiInput } from '../../components/admin/mui-fields.jsx';
 import MenuItem from '@mui/material/MenuItem';
@@ -29,15 +29,6 @@ const DEFAULT_TIMEZONE = 'Asia/Manila';
 /** Fixed event taxonomy — mirrors backend EVENT_CATEGORIES. */
 const EVENT_CATEGORIES = ['Meetup', 'Workshop', 'Talk', 'Competition'];
 const DEFAULT_CATEGORY = 'Meetup';
-
-/* Mirrors the Events page card (Events.jsx PastCard):
-   same category pill fills, same fallback letter, same past-card classes. */
-const CATEGORY_TONES = {
-  meetup: 'tone-yellow',
-  workshop: 'tone-green',
-  talk: 'tone-blue',
-  competition: 'tone-red',
-};
 
 /* Admin cover is a media id or a URL/path. Only URL-like values can be an
    <img> source — anything else (bare id) falls back like the landing page. */
@@ -194,19 +185,21 @@ export default function EventDetail() {
   const embedUrl = mapsEmbedUrl(locationText);
   const searchUrl = mapsSearchUrl(locationText);
 
-  /* Live Events-page card preview — same rules as Events.jsx PastCard:
-     title falls back like mapEvent, desc is short || description ||
-     'No description.', location pill is location + access label with the
-     same fill as the date pill, cover uses the admin URL when URL-like
-     else the fallback letter. */
-  const cardTitle = titleText.trim() ? titleText.trim() : '(Untitled event)';
-  const cardDesc = values.short_description || values.description || 'No description.';
-  const cardCover = previewCoverSrc(values.coverMediaId);
-  const cardTone = CATEGORY_TONES[String(values.category ?? '').toLowerCase()] ?? 'tone-yellow';
-  const cardAccess = (values.externalUrl ?? '').trim() ? 'Free Registration' : 'Free Access';
-  const cardLoc = (values.location ?? '').trim();
-  const cardLocLabel = cardLoc ? `${cardLoc} | ${cardAccess}` : cardAccess;
-  const cardDateLabel = values.startAt ? formatDate(values.startAt) : null;
+  /* Live card preview through the shared EventCard (preview mode never
+     navigates). Form values are shaped like a mapped event; cover uses
+     the admin URL when URL-like else the fallback letter. */
+  const previewEvent = {
+    slug: previewSlug,
+    title: values.title ?? '',
+    short: values.short_description ?? '',
+    description: values.description ?? '',
+    coverUrl: previewCoverSrc(values.coverMediaId),
+    coverAlt: (values.title ?? '').trim() || 'Event cover',
+    location: (values.location ?? '').trim(),
+    externalUrl: (values.externalUrl ?? '').trim(),
+    startAt: values.startAt ?? '',
+    category: values.category ?? '',
+  };
 
   // Live publish-gate indicator (display only — submit validation runs zod).
   const publishGate = validateEvent(values);
@@ -451,32 +444,7 @@ export default function EventDetail() {
             <p className="admin-muted" style={{ fontSize: 'var(--m3-typescale-body-small-size)' }}>
               How this event looks on the Events page.
             </p>
-            <div className="page-events">
-              <div className="past-card" aria-live="polite" aria-label={`Events page preview for ${cardTitle}`}>
-                <img
-                  className="past-frame"
-                  src="/layout-assets/events/event-card-frame.svg"
-                  alt=""
-                  aria-hidden="true"
-                  draggable="false"
-                />
-                {cardCover ? (
-                  <img className="past-photo" src={cardCover} alt={cardTitle} loading="lazy" onError={hideImage} />
-                ) : (
-                  <div className="past-photo past-photo--fallback" aria-hidden="true">
-                    {cardTitle.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div className="past-head">
-                  <h3>{cardTitle}</h3>
-                </div>
-                {cardDateLabel ? (
-                  <span className={`mini-pill ${cardTone}`}>{cardDateLabel}</span>
-                ) : null}
-                <p className="past-desc">{cardDesc}</p>
-                <span className={`past-loc ${cardTone}`}>{cardLocLabel}</span>
-              </div>
-            </div>
+            <EventCard event={previewEvent} preview />
           </div>
           <hr style={{ border: 'none', borderTop: '1px solid var(--m3-outline-variant)', margin: '8px 0' }} />
           <p className="admin-muted" style={{ wordBreak: 'break-all' }} aria-live="polite">

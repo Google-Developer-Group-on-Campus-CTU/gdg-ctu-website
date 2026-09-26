@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  formatDate,
   mapAlbum,
   mapEvent,
   mapGalleryCategory,
@@ -11,12 +10,11 @@ import {
   usePublicFeed,
 } from '../api/public.js';
 import { FeedSkeleton, friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
+import EventCard from '../components/EventCard.jsx';
 import '../styles/home.css';
 
 const REGISTER_URL =
   'https://docs.google.com/forms/d/e/1FAIpQLSe8XGfS83u5u3bbwqaUlHYmYlTNqPuYPl1aULCb8xMrN91jaQ/viewform?pli=1';
-
-const EVENT_TAG_COLORS = ['green', 'yellow', 'blue'];
 
 function TeamStrip() {
   const { data, loading, error, retry } = usePublicFeed(
@@ -227,26 +225,8 @@ function RecentEventsStrip() {
       ) : null}
       {!loading && !error && data?.length ? (
         <div className="three-cards">
-          {data.map((event, idx) => (
-            <Link
-              key={event.id}
-              to={event.slug ? `/events/${event.slug}` : '/events'}
-              className="image-card"
-              aria-label={event.title}
-            >
-              {event.coverUrl ? (
-                <img className="card-photo" src={event.coverUrl} alt={event.coverAlt} loading="lazy" onError={hideImage} />
-              ) : (
-                <img className="card-photo" src="/layout-assets/home/devfiest.jpg" alt={event.title} loading="lazy" onError={hideImage} />
-              )}
-              <div className="card-body">
-                <h3>{event.title}</h3>
-                {event.short ? <p>{event.short}</p> : null}
-                <span className={`g-tag ${EVENT_TAG_COLORS[idx % EVENT_TAG_COLORS.length]}`}>
-                  {event.status ?? (event.startAt ? formatDate(event.startAt) : 'Event')}
-                </span>
-              </div>
-            </Link>
+          {data.map((event) => (
+            <EventCard key={event.id} event={event} />
           ))}
         </div>
       ) : null}

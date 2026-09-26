@@ -100,14 +100,14 @@
 
 /* Card pill fills. Scoped to the pills so they beat the pill base
    backgrounds below (equal specificity would lose to source order). */
-.page-events .mini-pill.tone-green,
-.page-events .past-loc.tone-green { background: #34a853; }
-.page-events .mini-pill.tone-blue,
-.page-events .past-loc.tone-blue { background: #4285f4; }
-.page-events .mini-pill.tone-red,
-.page-events .past-loc.tone-red { background: #ea4335; }
-.page-events .mini-pill.tone-yellow,
-.page-events .past-loc.tone-yellow { background: #fbbc04; }
+.mini-pill.tone-green,
+.past-loc.tone-green { background: #34a853; }
+.mini-pill.tone-blue,
+.past-loc.tone-blue { background: #4285f4; }
+.mini-pill.tone-red,
+.past-loc.tone-red { background: #ea4335; }
+.mini-pill.tone-yellow,
+.past-loc.tone-yellow { background: #fbbc04; }
 
 .page-events .green-pill {
   display: inline-flex;
@@ -501,7 +501,7 @@
 .page-events .cat-pill.cat-blue { background: #4285f4; }
 .page-events .cat-pill.active { font-weight: 800; transform: translateY(-2px); }
 
-.page-events .past-grid {
+.past-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 22px;
@@ -516,7 +516,7 @@
    The SVG draws the outer card + inner squiggle outline; text and
    photos are HTML overlays positioned in % of the 427x435 frame.
    Type scales with card width via container units. */
-.page-events .past-card {
+.past-card {
   position: relative;
   display: block;
   width: 100%;
@@ -527,9 +527,9 @@
   transition: transform 0.2s ease;
 }
 
-.page-events .past-card:hover { transform: translateY(-4px); }
+.past-card:hover { transform: translateY(-4px); }
 
-.page-events .past-frame {
+.past-frame {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -539,7 +539,7 @@
 }
 
 /* Cover slot, top-left of the frame. */
-.page-events .past-photo {
+.past-photo {
   position: absolute;
   left: 8.2%;
   top: 9.2%;
@@ -551,7 +551,7 @@
   background: #fafafa;
 }
 
-.page-events .past-photo--fallback {
+.past-photo--fallback {
   display: grid;
   place-items: center;
   font-size: 10cqw;
@@ -561,7 +561,7 @@
 }
 
 /* Title block, right of the cover. */
-.page-events .past-head {
+.past-head {
   position: absolute;
   left: 51.5%;
   top: 13%;
@@ -570,7 +570,7 @@
   overflow: hidden;
 }
 
-.page-events .past-head h3 {
+.past-head h3 {
   margin: 0;
   font-size: 5.2cqw;
   font-weight: 600;
@@ -586,7 +586,7 @@
 }
 
 /* Date pill zone from the frame (x231.5 y202.5 w112 h33). */
-.page-events .mini-pill {
+.mini-pill {
   position: absolute;
   left: 54.2%;
   top: 46.6%;
@@ -607,7 +607,7 @@
 }
 
 /* Description zone inside the lower compartment. */
-.page-events .past-desc {
+.past-desc {
   position: absolute;
   left: 11.7%;
   top: 57.5%;
@@ -625,7 +625,7 @@
 }
 
 /* Location pill zone from the frame (x159.5 y349.5 w216 h33). */
-.page-events .past-loc {
+.past-loc {
   position: absolute;
   left: 37.4%;
   top: 80.3%;
@@ -751,7 +751,7 @@
 
   .page-events .track-containers { flex-direction: column; align-items: center; }
   .page-events .track-one { width: min(320px, 100%); }
-  .page-events .past-grid { grid-template-columns: 1fr; gap: 26px; }
+  .past-grid { grid-template-columns: 1fr; gap: 26px; }
 
   .page-events .cat-pills { gap: 8px; }
   .page-events .cat-pill { padding: 10px 18px; font-size: 13px; }
