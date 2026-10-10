@@ -4,6 +4,14 @@ import { formatDate, mapAlbum, mapGalleryCategory, mapPhoto, publicApi, usePubli
 import { friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
 import '../styles/gallery.css';
 
+// Bundled in frontend/public on purpose: must render even if Cloudinary/CDN is down.
+const FALLBACK_IMAGES = [
+  '/legacy-images/gallery/gdgdev1.jpg',
+  '/legacy-images/gallery/gdgmeet.jpg',
+  '/legacy-images/gallery/kadilaab2.jpg',
+  '/legacy-images/gallery/kadilaab.jpg',
+];
+
 function AlbumDetail({ slug }) {
   const { data, loading, error, retry } = usePublicFeed(
     () => publicApi.getAlbumBySlug(slug).then((a) => (a ? mapAlbum(a) : null)),
@@ -71,6 +79,52 @@ export default function Gallery() {
   return <GalleryList />;
 }
 
+function FeaturedCard({ featuredPhoto }) {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  return (
+    <figure className="featured-card">
+      {featuredPhoto?.url && !imageFailed ? (
+        <img
+          src={featuredPhoto.url}
+          alt={featuredPhoto?.alt}
+          loading="lazy"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <img
+          className="photo-fallback"
+          src={FALLBACK_IMAGES[0]}
+          alt={featuredPhoto?.alt || 'Featured GDG community moment'}
+          loading="lazy"
+        />
+      )}
+      {featuredPhoto?.caption ? <figcaption>{featuredPhoto.caption}</figcaption> : null}
+    </figure>
+  );
+}
+
+function AlbumCover({ album, fallbackIndex = 0 }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const fallbackSrc = FALLBACK_IMAGES[fallbackIndex % FALLBACK_IMAGES.length];
+
+  return album.coverUrl && !imageFailed ? (
+    <img
+      src={album.coverUrl}
+      alt={album.coverAlt}
+      loading="lazy"
+      onError={() => setImageFailed(true)}
+    />
+  ) : (
+    <img
+      className="photo-fallback"
+      src={fallbackSrc}
+      alt={album.coverAlt || 'GDG album cover'}
+      loading="lazy"
+    />
+  );
+}
+
 function GalleryList() {
   const [filter, setFilter] = useState('all');
 
@@ -94,7 +148,6 @@ function GalleryList() {
   );
 
   const albumsEmpty = !albumsLoading && !albumsError && (!albumsData || albumsData.length === 0);
-  const featuredEmpty = !featuredLoading && !featuredError && (!featuredData || featuredData.length === 0);
   const featuredPhoto = !featuredLoading && !featuredError && featuredData?.length ? featuredData[0] : null;
 
   return (
@@ -177,36 +230,32 @@ function GalleryList() {
         ) : null}
 
         {albumsEmpty ? (
-          <div className="gal-empty" role="status">
-            <strong>
+          <>
+            <span className="gdg-visually-hidden" role="status">
               {activeLabel
-                ? `No ${activeLabel.toLowerCase()} albums yet.`
-                : 'No albums published yet — check back soon.'}
-            </strong>
-            <span>
-              {activeLabel
-                ? 'Try another filter or check All.'
-                : 'We are curating new galleries from recent GDGoC events.'}
+                ? `No ${activeLabel.toLowerCase()} albums yet — showing sample photos.`
+                : 'No albums published yet — showing sample photos.'}
             </span>
-          </div>
+            <div className="album-grid" aria-hidden="true">
+              {FALLBACK_IMAGES.slice(1, FALLBACK_IMAGES.length).map((src) => (
+                <div key={src} className="moment">
+                  <img className="photo-fallback" src={src} alt="" loading="lazy" />
+                </div>
+              ))}
+            </div>
+          </>
         ) : null}
 
         {!albumsLoading && !albumsError && (albumsData ?? []).length > 0 ? (
           <div className="album-grid">
-            {(albumsData ?? []).map((album) => (
+            {(albumsData ?? []).map((album, index) => (
               <Link
                 key={album.id}
                 to={album.slug ? `/gallery/${album.slug}` : '/gallery'}
                 className="moment"
                 aria-label={`Open album ${album.title}`}
               >
-                {album.coverUrl ? (
-                  <img src={album.coverUrl} alt={album.coverAlt} loading="lazy" onError={hideImage} />
-                ) : (
-                  <div className="photo-fallback" aria-hidden="true">
-                    {album.title.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <AlbumCover key={album.coverUrl ?? album.id} album={album} fallbackIndex={index} />
               </Link>
             ))}
           </div>
@@ -221,32 +270,20 @@ function GalleryList() {
 
         {featuredLoading ? (
           <div className="featured-skeleton" aria-hidden="true" />
-        ) : null}
-
-        {!featuredLoading && featuredError ? (
-          <div className="gal-error" role="alert">
-            <p>{friendlyFeedError(featuredError)}</p>
-            <button type="button" onClick={featuredRetry}>Retry</button>
-          </div>
-        ) : null}
-
-        {featuredEmpty ? (
-          <div className="gal-empty" role="status">
-            <strong>No featured moments yet.</strong>
-            <span>Highlights will appear here once albums are featured.</span>
-          </div>
-        ) : null}
-
-        {featuredPhoto ? (
-          <figure className="featured-card">
-            {featuredPhoto.url ? (
-              <img src={featuredPhoto.url} alt={featuredPhoto.alt} loading="lazy" onError={hideImage} />
-            ) : (
-              <div className="photo-fallback" aria-hidden="true">No image</div>
-            )}
-            {featuredPhoto.caption ? <figcaption>{featuredPhoto.caption}</figcaption> : null}
-          </figure>
-        ) : null}
+        ) : (
+          <>
+            {featuredError ? (
+              <div className="gal-error" role="alert">
+                <p>{friendlyFeedError(featuredError)}</p>
+                <button type="button" onClick={featuredRetry}>Retry</button>
+              </div>
+            ) : null}
+            <FeaturedCard
+              key={featuredPhoto?.url ?? featuredPhoto?.id ?? 'featured-fallback'}
+              featuredPhoto={featuredPhoto}
+            />
+          </>
+        )}
       </section>
 
       {/* ---------- FINAL CTA ---------- */}
