@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { mapMember, mapTerm, publicApi, usePublicFeed } from '../api/public.js';
+import { mapMember, mapTerm, FALLBACK_TEAM_MEMBERS, publicApi, usePublicFeed } from '../api/public.js';
 import { apiFetch } from '../api/client.js';
-import { FeedError, friendlyFeedError } from '../components/FeedStates.jsx';
 import TeamCard from '../components/TeamCard.jsx';
+import OrgLeadCard from '../components/OrgLeadCard.jsx';
 import {
   CORE_DEPARTMENTS,
   DEPT_COLORS,
   deptTabLabel,
   getInitials,
-  isExecutiveMember,
+  isOrganizationLead,
   normalizeDepartment,
 } from '../theme/teamTheme.js';
 import '../styles/officers.css';
@@ -243,22 +243,31 @@ export default function Officers() {
   const currentTermName = terms.find((t) => t.isCurrent)?.name ?? terms[0]?.name ?? null;
   const activeTermName = selectedTerm ?? currentTermName;
 
-  const { data, loading, error, retry } = usePublicFeed(
+  const { data, loading, error } = usePublicFeed(
     () => publicApi.getTeam(activeTermName ? { termName: activeTermName } : undefined)
       .then((rows) => rows.map(mapMember).sort((a, b) => a.order - b.order)),
     `team-${activeTermName ?? 'default'}`,
   );
 
+  // When the content service is unavailable, silently show the static
+  // fallback roster rather than an error. Live data always wins when the
+  // API succeeds (empty array = "no members published yet").
+  const usingTeamFallback = !loading && !!error;
+  const resolvedData = useMemo(
+    () => (usingTeamFallback ? FALLBACK_TEAM_MEMBERS : (data ?? [])),
+    [usingTeamFallback, data],
+  );
+
   const [selected, setSelected] = useState(null);
 
-  // Executive rule: department is Executive OR the member is featured.
-  const execMembers = useMemo(() => (data ?? []).filter(isExecutiveMember), [data]);
+  // Organization Leads rule: role is a "Chief …" title (CEO, COO, CTO, …).
+  const orgLeads = useMemo(() => resolvedData.filter(isOrganizationLead), [resolvedData]);
 
   const coreBuckets = useMemo(() => {
     const buckets = new Map(CORE_DEPARTMENTS.map((dept) => [dept, []]));
     const overflow = new Map();
-    for (const m of (data ?? [])) {
-      if (isExecutiveMember(m)) continue;
+    for (const m of resolvedData) {
+      if (isOrganizationLead(m)) continue;
       const canonical = normalizeDepartment(m.department);
       if (buckets.has(canonical)) buckets.get(canonical).push(m);
       else {
@@ -268,7 +277,7 @@ export default function Officers() {
       }
     }
     return { buckets, overflow: [...overflow.entries()] };
-  }, [data]);
+  }, [resolvedData]);
 
   const coreTabs = useMemo(() => {
     const base = CORE_DEPARTMENTS.map((dept) => [dept, coreBuckets.buckets.get(dept) ?? []]);
@@ -287,7 +296,7 @@ export default function Officers() {
   const activeDeptName = coreTabs.some(([dept]) => dept === selectedDept) ? selectedDept : defaultDept;
   const activeDeptMembers = coreTabs.find(([dept]) => dept === activeDeptName)?.[1] ?? [];
 
-  const isEmpty = !loading && !error && (!data || data.length === 0);
+  const isEmpty = !loading && !usingTeamFallback && resolvedData.length === 0;
 
   return (
     <div className="page-officers">
@@ -349,11 +358,6 @@ export default function Officers() {
         </div>
       ) : null}
 
-      {!loading && error ? (
-        <div className="officers-error" role="alert">
-          <FeedError message={friendlyFeedError(error)} onRetry={retry} />
-        </div>
-      ) : null}
 
       {isEmpty ? (
         <div className="officers-empty" role="status">
@@ -362,15 +366,15 @@ export default function Officers() {
         </div>
       ) : null}
 
-      {!loading && !error && (execMembers.length > 0 || hasCoreMembers) ? (
+      {!loading && (orgLeads.length > 0 || hasCoreMembers) ? (
         <div id="team-roster" className="roster section-frame">
-          {execMembers.length > 0 ? (
-            <section className="exec-section" aria-label="Executive officers">
+          {orgLeads.length > 0 ? (
+            <section className="exec-section" aria-label="Organization leads">
               <div className="section-rule" />
-              <h2>Executive Officers</h2>
-              <div className="team-grid">
-                {execMembers.map((m) => (
-                  <TeamCard key={m.id || m.name} member={m} onSelect={setSelected} />
+              <h2>Organization Leads</h2>
+              <div className="org-lead-grid">
+                {orgLeads.map((m) => (
+                  <OrgLeadCard key={m.id || m.name} member={m} onSelect={setSelected} />
                 ))}
               </div>
             </section>

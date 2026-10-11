@@ -248,6 +248,8 @@
     box-sizing: border-box;
     z-index: 40;
   }
+  /* Push page content below the fixed topbar on mobile */
+  body { padding-top: 68px; }
   .gdg-shell-hamburger { display: flex; }
   .gdg-shell-nav-links { display: none; }
   .gdg-shell-join-top { display: none; }

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  FALLBACK_PAST_EVENTS,
+  FALLBACK_MOMENTS_ALBUMS,
+  FALLBACK_PARTNERS,
   mapAlbum,
   mapEvent,
   mapGalleryCategory,
-  mapMember,
   publicApi,
   sortPartners,
   usePublicFeed,
@@ -16,24 +18,48 @@ import '../styles/home.css';
 const REGISTER_URL =
   'https://docs.google.com/forms/d/e/1FAIpQLSe8XGfS83u5u3bbwqaUlHYmYlTNqPuYPl1aULCb8xMrN91jaQ/viewform?pli=1';
 
+const GROUPIE_IMAGES = [
+  '/2026-2027 groupie/IMG_8478.jpg',
+  '/2026-2027 groupie/IMG_8483.jpg',
+  '/2026-2027 groupie/IMG_8484.jpg',
+  '/2026-2027 groupie/IMG_8487.jpg',
+  '/2026-2027 groupie/IMG_8489.jpg',
+  '/2026-2027 groupie/IMG_8490.jpg',
+  '/legacy-images/gallery/kadilaab2.jpg',
+  '/legacy-images/gallery/kadilaab.jpg',
+  '/legacy-images/gallery/gdgmeet.jpg',
+  '/legacy-images/gallery/gdgdev5.jpg',
+  '/legacy-images/gallery/gdgdev4.jpg',
+  '/legacy-images/gallery/gdgdev3.jpg',
+  '/legacy-images/gallery/gdgdev2.jpg',
+  '/legacy-images/gallery/gdgdev1.jpg',
+  '/legacy-images/gallery/JAM4.jpg',
+  '/legacy-images/gallery/JAM3.jpg',
+  '/legacy-images/gallery/JAM2.jpg',
+  '/legacy-images/gallery/JAM1.jpg',
+  '/legacy-images/gallery/1.jpg',
+  '/legacy-images/event4.jpg',
+  '/legacy-images/EVENT2.jpg',
+  '/legacy-images/event 1.jpg',
+  '/legacy-images/partnership/p1.jpg',
+  // Partner logos
+  '/partners/icpep.png',
+  '/partners/notion.png',
+  '/partners/swudevs.png',
+];
+
 function TeamStrip() {
-  const { data, loading, error, retry } = usePublicFeed(
-    () => publicApi.getTeam({ featured: 'true' }).then((rows) => rows.map(mapMember).slice(0, 10)),
-    'home-team',
-  );
-  const empty = !loading && !error && (!data || data.length === 0);
   const [current, setCurrent] = useState(0);
   const startXRef = useRef(0);
 
   const show = useCallback(
     (idx) => {
-      if (!data || data.length === 0) return;
       let next = idx;
-      if (next < 0) next = data.length - 1;
-      if (next >= data.length) next = 0;
+      if (next < 0) next = GROUPIE_IMAGES.length - 1;
+      if (next >= GROUPIE_IMAGES.length) next = 0;
       setCurrent(next);
     },
-    [data],
+    [],
   );
 
   useEffect(() => {
@@ -93,86 +119,67 @@ function TeamStrip() {
         </p>
       </div>
 
-      {loading ? (
-        <div className="feed-skeleton">
-          <FeedSkeleton label="Loading team…" />
-        </div>
-      ) : null}
-      {!loading && error ? (
-        <div className="gdg-feed-error" role="alert">
-          <p>{friendlyFeedError(error)}</p>
-          <button type="button" className="small-blue-btn" onClick={retry}>
-            Retry
-          </button>
-        </div>
-      ) : null}
-      {empty ? (
-        <div className="feed-empty">
-          <p>No team members published yet — check back soon.</p>
-        </div>
-      ) : null}
+      <div className="team-carousel-wrap">
+        <button type="button" className="carousel-arrow carousel-prev" aria-label="Previous photo" onClick={() => show(current - 1)}>
+          ‹
+        </button>
 
-      {!loading && !error && data?.length ? (
-        <>
-          <div className="team-carousel-wrap">
-            <button type="button" className="carousel-arrow carousel-prev" aria-label="Previous photo" onClick={() => show(current - 1)}>
-              ‹
-            </button>
-
-            <div
-              className="wide-photo team-carousel"
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-              role="region"
-              aria-roledescription="carousel"
-              aria-label="Team photos"
-            >
-              <div className="carousel-track">
-                {data.map((m, idx) => (
-                  <img
-                    key={m.id}
-                    src={m.photoUrl || '/layout-assets/home/image-team.png'}
-                    alt={m.photoAlt}
-                    loading="lazy"
-                    onError={hideImage}
-                    className={`carousel-slide${idx === current ? ' active' : ''}`}
-                  />
-                ))}
-              </div>
-              <div className="carousel-dots" role="tablist" aria-label="Team carousel pagination">
-                {data.map((_, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    className={`carousel-dot${idx === current ? ' active' : ''}`}
-                    aria-label={`Go to slide ${idx + 1}`}
-                    aria-selected={idx === current}
-                    role="tab"
-                    onClick={() => show(idx)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <button type="button" className="carousel-arrow carousel-next" aria-label="Next photo" onClick={() => show(current + 1)}>
-              ›
-            </button>
+        <div
+          className="wide-photo team-carousel"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="Team photos"
+        >
+          <div className="carousel-track">
+            {GROUPIE_IMAGES.map((src, idx) => (
+              <img
+                key={src}
+                src={src}
+                alt="GDG on Campus CTU 2026-2027 group photo"
+                loading="lazy"
+                className={`carousel-slide${idx === current ? ' active' : ''}`}
+              />
+            ))}
           </div>
-          <Link to="/team" className="small-green-btn">
-            Explore the team <span className="arrow-icon">↗</span>
-          </Link>
-        </>
-      ) : null}
+          <div className="carousel-dots" role="tablist" aria-label="Team carousel pagination">
+            {GROUPIE_IMAGES.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                className={`carousel-dot${idx === current ? ' active' : ''}`}
+                aria-label={`Go to slide ${idx + 1}`}
+                aria-selected={idx === current}
+                role="tab"
+                onClick={() => show(idx)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <button type="button" className="carousel-arrow carousel-next" aria-label="Next photo" onClick={() => show(current + 1)}>
+          ›
+        </button>
+      </div>
+      <Link to="/team" className="small-green-btn">
+        Explore the team <span className="arrow-icon">↗</span>
+      </Link>
     </section>
   );
 }
 
 function RecentEventsStrip() {
-  const { data, loading, error, retry } = usePublicFeed(
+  const { data: feedData, loading, error } = usePublicFeed(
     () => publicApi.getEvents('recent').then((rows) => rows.map(mapEvent).slice(0, 3)),
     'home-recent',
   );
-  const empty = !loading && !error && (!data || data.length === 0);
+  // Content service unavailable → the static past-events list stands in
+  // (mirrors the Events page). A successful API call always wins, empty
+  // array included.
+  const usingFallback = !loading && !!error;
+  const data = usingFallback ? FALLBACK_PAST_EVENTS.slice(0, 3) : (feedData ?? []);
+  const empty = !loading && !usingFallback && data.length === 0;
   return (
     <section id="events" className="cards-section section-frame jh-events" aria-label="Recent events">
       <div className="section-rule" />
@@ -210,20 +217,12 @@ function RecentEventsStrip() {
           <FeedSkeleton label="Loading events…" />
         </div>
       ) : null}
-      {!loading && error ? (
-        <div className="gdg-feed-error" role="alert">
-          <p>{friendlyFeedError(error)}</p>
-          <button type="button" className="small-blue-btn" onClick={retry}>
-            Retry
-          </button>
-        </div>
-      ) : null}
       {empty ? (
         <div className="feed-empty">
           <p>No events published yet — check back soon.</p>
         </div>
       ) : null}
-      {!loading && !error && data?.length ? (
+      {!loading && data.length ? (
         <div className="three-cards">
           {data.map((event) => (
             <EventCard key={event.id} event={event} />
@@ -238,8 +237,11 @@ function RecentEventsStrip() {
 }
 
 function PartnersStrip() {
-  const { data, loading, error, retry } = usePublicFeed(() => publicApi.getPartners().then(sortPartners), 'home-partners');
-  const empty = !loading && !error && (!data || data.length === 0);
+  const { data: feedData, loading, error, retry } = usePublicFeed(() => publicApi.getPartners().then(sortPartners), 'home-partners');
+  // Content service unavailable → the static partner roster stands in
+  const usingFallback = !loading && !!error;
+  const data = usingFallback ? FALLBACK_PARTNERS : (feedData ?? []);
+  const empty = !loading && !usingFallback && (!data || data.length === 0);
   return (
     <section id="partners" className="cards-section section-frame jh-partners" aria-label="Our partners">
       <div className="section-rule" />
@@ -277,29 +279,18 @@ function PartnersStrip() {
           <FeedSkeleton label="Loading partners…" />
         </div>
       ) : null}
-      {!loading && error ? (
-        <div className="gdg-feed-error" role="alert">
-          <p>{friendlyFeedError(error)}</p>
-          <button type="button" className="small-blue-btn" onClick={retry}>
-            Retry
-          </button>
-        </div>
-      ) : null}
       {empty ? (
         <div className="feed-empty">
           <p>No partners published yet — check back soon.</p>
         </div>
       ) : null}
-      {!loading && !error && data?.length ? (
+      {!loading && data?.length ? (
         <div className="three-cards partner-cards">
           {data.slice(0, 3).map((p) => (
             <Link key={p.id} to="/partners" className="logo-card" aria-label={p.name}>
               {p.logoUrl ? (
                 <img src={p.logoUrl} alt={p.logoAlt} loading="lazy" onError={hideImage} />
-              ) : (
-                <span className="partner-name">{p.name}</span>
-              )}
-              {!p.logoUrl ? null : <span className="partner-name">{p.name}</span>}
+              ) : null}
             </Link>
           ))}
         </div>
@@ -323,13 +314,16 @@ function MomentsStrip() {
     ? null
     : (categories.find((c) => c.slug === filter)?.name ?? filter);
 
-  const { data, loading, error, retry } = usePublicFeed(
+  const { data: albumsData, loading, error, retry } = usePublicFeed(
     () => publicApi
       .getAlbums(activeCategory ? { category: activeCategory } : undefined)
       .then((rows) => rows.map(mapAlbum).slice(0, 3)),
     `home-moments-${filter}`,
   );
-  const empty = !loading && !error && (!data || data.length === 0);
+  // Content service unavailable → the static fallback albums stand in
+  const usingFallback = !loading && !!error;
+  const data = usingFallback ? FALLBACK_MOMENTS_ALBUMS : (albumsData ?? []);
+  const empty = !loading && !usingFallback && (!data || data.length === 0);
 
   return (
     <section id="gallery" className="gallery-section section-frame jh-gallery" aria-label="Captured moments">
@@ -394,7 +388,7 @@ function MomentsStrip() {
             <FeedSkeleton label="Loading photos…" />
           </div>
         ) : null}
-        {!loading && error ? (
+        {!loading && !usingFallback && error ? (
           <div className="gdg-feed-error" role="alert">
             <p>{friendlyFeedError(error)}</p>
             <button type="button" className="small-blue-btn" onClick={retry}>
@@ -411,7 +405,7 @@ function MomentsStrip() {
             </p>
           </div>
         ) : null}
-        {!loading && !error && data?.length ? (
+        {!loading && data?.length ? (
           <div className="gallery-grid">
             {data.map((album) => (
               <Link

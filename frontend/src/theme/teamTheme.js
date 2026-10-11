@@ -49,14 +49,15 @@ export function normalizeDepartment(name) {
   return raw;
 }
 
-export function isExecutiveDepartment(name) {
-  return normalizeDepartment(name) === 'Executive';
-}
-
-/** Executive rule: department is Executive OR the member is featured. */
-export function isExecutiveMember(member) {
+/**
+ * Organization Leads rule: the member's role is a "Chief …" title.
+ * The club's lead officers are the Chief Executive/Operations/Technology/
+ * Creatives/Community Development/Finance Officers, so the section is
+ * driven by the role text rather than the department.
+ */
+export function isOrganizationLead(member) {
   if (!member || typeof member !== 'object') return false;
-  return isExecutiveDepartment(member.department) || Boolean(member.featured);
+  return /\bchief\b/i.test(String(member.role ?? ''));
 }
 
 /** Strong dept color used for borders, tabs, and pills. */

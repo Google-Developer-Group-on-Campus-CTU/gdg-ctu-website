@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { publicApi, sortPartners, usePublicFeed } from '../api/public.js';
+import { publicApi, sortPartners, usePublicFeed, FALLBACK_PARTNERS } from '../api/public.js';
 import { FeedError, FeedSkeleton, friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
 import '../styles/partners.css';
 
@@ -11,8 +11,10 @@ export default function Partners() {
     'partners-all',
   );
 
-  const partners = data ?? [];
-  const empty = !loading && !error && partners.length === 0;
+  // Content service unavailable → the static fallback partner roster stands in
+  const usingFallback = !loading && !!error;
+  const partners = usingFallback ? FALLBACK_PARTNERS : (data ?? []);
+  const empty = !loading && !usingFallback && partners.length === 0;
 
   return (
     <main className="page-partners">
@@ -61,7 +63,7 @@ export default function Partners() {
         </p>
 
         {loading ? <FeedSkeleton count={3} label="Loading partners…" /> : null}
-        {!loading && error ? (
+        {!loading && !usingFallback && error ? (
           <div className="gdg-feed-error" role="alert">
             <FeedError message={friendlyFeedError(error)} onRetry={retry} />
           </div>
@@ -70,7 +72,7 @@ export default function Partners() {
           <p className="sub">No partners published yet — check back soon.</p>
         ) : null}
 
-        {!loading && !error && partners.length > 0 ? (
+        {!loading && partners.length > 0 ? (
           <div className="partner-grid">
             {partners.map((partner, idx) => {
               const body = partner.logoUrl ? (

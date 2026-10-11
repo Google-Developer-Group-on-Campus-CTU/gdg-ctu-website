@@ -235,27 +235,35 @@ html { scroll-behavior: smooth; }
   scroll-margin-top: 84px;
 }
 
-/* Grid: 3 portrait cards per row */
+/* Grid: 3 fixed 363px officer cards per row, centered */
 .page-officers .team-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 363px);
+  justify-content: center;
   gap: 16px;
-  max-width: 920px;
+  max-width: 1121px;
   margin: 0 auto;
   min-width: 0;
 }
 
-/* ---------- member card: pastel mat + photo + pills ---------- */
+/* ---------- member card: reference officer card (363x385, 50px radius) ----------
+   The photo stays unclipped and intact; white cutout wrappers size to the
+   pill text and punch rounded notches out of the photo corners. */
 .page-officers .team-card {
+  --photo-padding: 20px;
+  --pill-gap: 8px;
   position: relative;
+  width: 363px;
+  max-width: 100%;
+  height: 385px;
+  overflow: hidden;
+  border-radius: 50px;
   background: #fff;
-  border: 2px solid var(--off-ink);
-  border-radius: 28px;
-  padding: 14px;
+  border: 1px solid #0b0b0b;
   cursor: pointer;
-  min-width: 0;
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.2s ease;
+  justify-self: center;
 }
 
 .page-officers .team-card:hover { transform: translateY(-4px); }
@@ -265,92 +273,204 @@ html { scroll-behavior: smooth; }
   outline-offset: 2px;
 }
 
-.page-officers .team-card.tint-yellow { background: var(--tint-yellow); }
-.page-officers .team-card.tint-blue { background: var(--tint-blue); }
-.page-officers .team-card.tint-pink { background: var(--tint-pink); }
-.page-officers .team-card.tint-green { background: var(--tint-green); }
-
 .page-officers .card-photo-wrap {
   position: relative;
-  border-radius: 18px;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  aspect-ratio: 3 / 4;
-  background: #e9ecf1;
+  border-radius: inherit;
+  background: #fff;
   display: block;
 }
 
-.page-officers .card-photo {
+/* Keep the portrait intact; the white cutouts resize around it. */
+.page-officers .card-clip {
   position: absolute;
-  inset: 0;
+  top: var(--photo-padding);
+  right: var(--photo-padding);
+  bottom: var(--photo-padding);
+  left: var(--photo-padding);
+  overflow: hidden;
+  border-radius: 56px 30px 56px 30px;
+}
+
+/* Fill the photo area without stretching the portrait. */
+.page-officers .card-photo {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center top;
-  display: block;
+  object-position: center;
 }
 
 /* Initials placeholder — shown when a member has no photo or it fails
    to load. No fallback-photo masking. */
 .page-officers .card-initials {
-  position: absolute;
-  inset: 0;
   display: grid;
   place-items: center;
+  width: 100%;
+  height: 100%;
   background: linear-gradient(135deg, #eef1f5, #dfe4ea);
   color: #3c4043;
   font-weight: 700;
-  font-size: clamp(40px, 6vw, 64px);
+  font-size: 64px;
   letter-spacing: -0.02em;
 }
 
-.page-officers .card-logo {
+/* Inline CSS GDG mark (reference spec) */
+.page-officers .gdg-logo-mark {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  width: 44px;
-  height: auto;
+  left: 39px;
+  top: 38px;
+  width: 69px;
+  height: 38px;
+  z-index: 3;
+}
+
+.page-officers .gdg-logo-mark .gdg-pill {
+  position: absolute;
+  width: 11.351px;
+  height: 32.045px;
+  border: 1px solid black;
+  border-radius: 200px;
+  transform-origin: 0 0;
+}
+
+.page-officers .gdg-logo-mark .red {
+  left: 0; top: 16.789px;
+  background: #ea4335;
+  transform: matrix(.476469,.879191,.851776,-.523906,0,0);
+}
+
+.page-officers .gdg-logo-mark .blue {
+  left: 0; top: 21.211px;
+  background: #4285f4;
+  transform: matrix(.476469,-.879191,.851776,.523906,0,0);
+}
+
+.page-officers .gdg-logo-mark .yellow {
+  left: 69px; top: 21.040px;
+  background: #f9ab00;
+  transform: matrix(-.476469,-.879191,-.851776,.523906,0,0);
+}
+
+.page-officers .gdg-logo-mark .green {
+  left: 69px; top: 16.789px;
+  background: #34a853;
+  transform: matrix(-.476469,.879191,-.851776,-.523906,0,0);
+}
+
+/* These wrappers automatically follow their text dimensions. */
+.page-officers .role-cutout,
+.page-officers .name-cutout {
+  position: absolute;
   z-index: 2;
+  width: max-content;
+  background: white;
+}
+
+.page-officers .role-cutout {
+  top: var(--photo-padding);
+  right: var(--photo-padding);
+  max-width: min(190px, calc(100% - 140px)); /* Keeps long titles clear of the logo */
+  padding: 0 0 var(--pill-gap) var(--pill-gap);
+  border-bottom-left-radius: 28px;
+}
+
+.page-officers .name-cutout {
+  bottom: var(--photo-padding);
+  left: var(--photo-padding);
+  max-width: min(299px, calc(100% - 48px));
+  padding: var(--pill-gap) var(--pill-gap) 0 0;
+  border-top-right-radius: 26px;
+}
+
+/* Rounded transitions between the photo and each cutout. */
+.page-officers .role-cutout::before,
+.page-officers .role-cutout::after,
+.page-officers .name-cutout::before,
+.page-officers .name-cutout::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.page-officers .role-cutout::before,
+.page-officers .role-cutout::after {
+  width: 28px;
+  height: 28px;
+  background: radial-gradient(
+    circle at bottom left,
+    transparent 28px,
+    white 28.5px
+  );
+}
+
+.page-officers .role-cutout::before {
+  left: -28px;
+  top: 0;
+}
+
+.page-officers .role-cutout::after {
+  right: 0;
+  bottom: -28px;
+}
+
+.page-officers .name-cutout::before,
+.page-officers .name-cutout::after {
+  width: 26px;
+  height: 26px;
+  background: radial-gradient(
+    circle at top right,
+    transparent 26px,
+    white 26.5px
+  );
+}
+
+.page-officers .name-cutout::before {
+  left: 0;
+  top: -26px;
+}
+
+.page-officers .name-cutout::after {
+  right: -26px;
+  bottom: 0;
+}
+
+.page-officers .card-role-pill,
+.page-officers .card-name-pill {
+  position: relative;
+  inset: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  min-height: 30px;
+  padding: 7px 12px;
+  border: 1px solid black;
+  border-radius: 63px;
+  color: black;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+  margin: 0;
 }
 
 .page-officers .card-role-pill {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 2;
-  max-width: calc(100% - 74px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  background: #fff;
-  border: 2px solid var(--off-ink);
-  border-radius: 999px;
-  padding: 5px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--off-ink);
+  min-width: 117px;
+  background: white;
 }
 
 .page-officers .card-name-pill {
-  position: absolute;
-  left: 22px;
-  bottom: -4px;
-  z-index: 2;
-  border: 2px solid var(--off-ink);
-  border-radius: 999px;
-  padding: 7px 16px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--off-ink);
-  max-width: calc(100% - 44px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 138px;
+  min-height: 29px;
+  background: #f9ab00;
 }
-
-.page-officers .card-name-pill.name-yellow { background: var(--off-yellow); }
-.page-officers .card-name-pill.name-blue { background: var(--off-blue); }
-.page-officers .card-name-pill.name-red { background: var(--off-red); }
-.page-officers .card-name-pill.name-green { background: var(--off-green); }
 
 /* ---------- core department tabs + panel ---------- */
 .page-officers .dept-tabs {
@@ -366,6 +486,9 @@ html { scroll-behavior: smooth; }
 .page-officers .dept-tab {
   flex: 1 1 0;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 2px solid var(--off-ink);
   border-bottom: 0;
   border-radius: 14px 14px 0 0;
@@ -373,17 +496,18 @@ html { scroll-behavior: smooth; }
   font-family: inherit;
   font-size: clamp(11px, 1.6vw, 14px);
   font-weight: 600;
+  line-height: 1.3;
   color: var(--off-ink);
   cursor: pointer;
   opacity: 0.72;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.2s ease;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .page-officers .dept-tab + .dept-tab { margin-left: -2px; }
-.page-officers .dept-tab.active { opacity: 1; font-weight: 700; transform: translateY(-4px); }
+.page-officers .dept-tab.active { opacity: 1; font-weight: 700; }
 .page-officers .dept-tab.tab-amber { background: var(--off-amber); }
 .page-officers .dept-tab.tab-red { background: var(--off-red); }
 .page-officers .dept-tab.tab-blue { background: var(--off-blue); }
@@ -391,7 +515,7 @@ html { scroll-behavior: smooth; }
 .page-officers .dept-tab.tab-yellow { background: var(--off-yellow); }
 
 .page-officers .core-panel {
-  max-width: 920px;
+  max-width: 1185px;
   margin: 0 auto;
   background: #fff;
   border: 2px solid var(--off-ink);
@@ -824,7 +948,7 @@ html { scroll-behavior: smooth; }
 
 /* ---------- responsive — 1020px tablet (2 cols), 700px mobile (1 col) ---------- */
 @media (max-width: 1020px) {
-  .page-officers .team-grid,
+  .page-officers .team-grid { grid-template-columns: repeat(2, 363px); max-width: 742px; }
   .page-officers .officers-skeleton-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .page-officers .dept-tabs { overflow-x: auto; padding-bottom: 4px; }
   .page-officers .dept-tab { flex: 0 0 auto; padding: 10px 16px; }
@@ -844,7 +968,7 @@ html { scroll-behavior: smooth; }
   .page-officers .exec-section,
   .page-officers .core-section { padding: 44px 0 60px; }
 
-  .page-officers .team-grid,
+  .page-officers .team-grid { grid-template-columns: 363px; justify-content: center; gap: 14px; }
   .page-officers .officers-skeleton-grid { grid-template-columns: 1fr; gap: 14px; }
 
   .page-officers .dept-tabs { overflow-x: auto; padding-bottom: 4px; }
@@ -862,4 +986,14 @@ html { scroll-behavior: smooth; }
   .page-officers .officer-modal-photo { flex: 0 0 auto; width: 100%; height: 340px; min-height: 220px; }
   .page-officers .officer-modal-body { padding: 22px 20px; }
   .page-officers .officer-modal-body h3 { font-size: 20px; }
+}
+
+/* Narrow phones: fluid card width, cutouts follow via min() max-widths */
+@media (max-width: 420px) {
+  .page-officers .team-grid { grid-template-columns: minmax(0, 363px); }
+  .page-officers .team-card {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 363 / 385;
+  }
 }

@@ -1,4 +1,4 @@
-import { Link, Navigate, Outlet, RouterProvider, createBrowserRouter, useRouteError } from 'react-router-dom';
+import { Link, Navigate, Outlet, RouterProvider, ScrollRestoration, createBrowserRouter, useRouteError } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -30,6 +30,7 @@ import { ADMIN_ENTITY_ROUTES } from './admin/editorial.js';
 function PublicLayout() {
   return (
     <>
+      <ScrollRestoration />
       <Navbar />
       <Outlet />
       <Footer />

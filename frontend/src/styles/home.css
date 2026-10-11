@@ -457,6 +457,18 @@
   margin: 36px auto 30px;
 }
 
+.page-home .three-cards.partner-cards {
+  justify-content: center;
+  width: auto;
+}
+
+.page-home .three-cards.partner-cards .logo-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+}
+
 .page-home .image-card {
   border: 2px solid var(--ink);
   border-radius: 20px;
@@ -519,35 +531,14 @@
 .page-home .g-tag.blue { background: #e8f0fe; color: #174ea6; }
 
 .page-home .logo-card {
-  aspect-ratio: 1 / 1;
-  border: 2px solid var(--ink);
-  border-radius: 18px;
-  overflow: hidden;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 18px;
-  min-width: 0;
+  display: inline-block;
 }
-
-.page-home .partner-cards .logo-card:nth-child(2) { background: #f0339c; }
-.page-home .partner-cards .logo-card:nth-child(3) { background: #221013; }
-.page-home .partner-cards .logo-card:nth-child(2) .partner-name,
-.page-home .partner-cards .logo-card:nth-child(3) .partner-name { color: #fff; }
 
 .page-home .logo-card img {
-  max-height: 62%;
-  max-width: 82%;
+  height: 360px;
+  width: auto;
+  max-width: 480px;
   object-fit: contain;
-}
-
-.page-home .logo-card .partner-name {
-  margin-top: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink);
 }
 
 /* ---------- GALLERY ---------- */

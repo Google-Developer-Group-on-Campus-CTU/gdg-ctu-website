@@ -6,10 +6,36 @@ import '../styles/gallery.css';
 
 // Bundled in frontend/public on purpose: must render even if Cloudinary/CDN is down.
 const FALLBACK_IMAGES = [
-  '/legacy-images/gallery/gdgdev1.jpg',
-  '/legacy-images/gallery/gdgmeet.jpg',
+  // 2026-2027 group photos (most recent)
+  '/2026-2027 groupie/IMG_8478.jpg',
+  '/2026-2027 groupie/IMG_8483.jpg',
+  '/2026-2027 groupie/IMG_8484.jpg',
+  '/2026-2027 groupie/IMG_8487.jpg',
+  '/2026-2027 groupie/IMG_8489.jpg',
+  '/2026-2027 groupie/IMG_8490.jpg',
+  // Legacy gallery — most recent uploads first
   '/legacy-images/gallery/kadilaab2.jpg',
   '/legacy-images/gallery/kadilaab.jpg',
+  '/legacy-images/gallery/gdgmeet.jpg',
+  '/legacy-images/gallery/gdgdev5.jpg',
+  '/legacy-images/gallery/gdgdev4.jpg',
+  '/legacy-images/gallery/gdgdev3.jpg',
+  '/legacy-images/gallery/gdgdev2.jpg',
+  '/legacy-images/gallery/gdgdev1.jpg',
+  '/legacy-images/gallery/JAM4.jpg',
+  '/legacy-images/gallery/JAM3.jpg',
+  '/legacy-images/gallery/JAM2.jpg',
+  '/legacy-images/gallery/JAM1.jpg',
+  '/legacy-images/gallery/1.jpg',
+  // Event photos from legacy root
+  '/legacy-images/event4.jpg',
+  '/legacy-images/EVENT2.jpg',
+  '/legacy-images/event 1.jpg',
+  '/legacy-images/partnership/p1.jpg',
+  // Partner logos
+  '/partners/icpep.png',
+  '/partners/notion.png',
+  '/partners/swudevs.png',
 ];
 
 function AlbumDetail({ slug }) {
@@ -66,6 +92,11 @@ function AlbumDetail({ slug }) {
           <div className="gal-empty">
             <strong>No photos in this album yet.</strong>
             <span>Check back soon — we are still uploading.</span>
+            <div className="fallback-images" aria-hidden="true">
+              {FALLBACK_IMAGES.slice(1, FALLBACK_IMAGES.length).map((src, i) => (
+                <img key={i} src={src} alt="" loading="lazy" />
+              ))}
+            </div>
           </div>
         ) : null}
       </div>
@@ -223,10 +254,20 @@ function GalleryList() {
         ) : null}
 
         {!albumsLoading && albumsError ? (
-          <div className="gal-error" role="alert">
-            <p>{friendlyFeedError(albumsError)}</p>
-            <button type="button" onClick={albumsRetry}>Retry</button>
-          </div>
+          <>
+            <span className="gdg-visually-hidden" role="status">
+              {activeLabel
+                ? `No ${activeLabel.toLowerCase()} albums yet — showing sample photos.`
+                : 'No albums published yet — showing sample photos.'}
+            </span>
+            <div className="album-grid" aria-hidden="true">
+              {FALLBACK_IMAGES.slice(1, FALLBACK_IMAGES.length).map((src) => (
+                <div key={src} className="moment">
+                  <img className="photo-fallback" src={src} alt="" loading="lazy" />
+                </div>
+              ))}
+            </div>
+          </>
         ) : null}
 
         {albumsEmpty ? (
@@ -273,10 +314,7 @@ function GalleryList() {
         ) : (
           <>
             {featuredError ? (
-              <div className="gal-error" role="alert">
-                <p>{friendlyFeedError(featuredError)}</p>
-                <button type="button" onClick={featuredRetry}>Retry</button>
-              </div>
+              <FeaturedCard key="featured-fallback" featuredPhoto={null} />
             ) : null}
             <FeaturedCard
               key={featuredPhoto?.url ?? featuredPhoto?.id ?? 'featured-fallback'}

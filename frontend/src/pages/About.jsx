@@ -77,21 +77,46 @@ export default function About() {
         <p className="sub">Whether you&apos;re writing your first line of code or already working on your next big project, there&apos;s a place for you here.</p>
       </section>
 
-      {/* 3 — WHAT WE BELIEVE */}
-      <section className="ab-believe section-frame" aria-labelledby="believe-title">
+      {/* 3 — DRIVEN BY PURPOSE */}
+      <section className="ab-purpose section-frame" aria-labelledby="purpose-title">
         <Deco cls="ab-deco-star" src="/layout-assets/home/star-no-bg.png" />
         <Deco cls="ab-deco-arrow" src="/layout-assets/home/arrow-no-bg.png" />
+        <Deco cls="ab-deco-heart" src="/layout-assets/home/heart-no-bg.png" />
         <div className="section-rule" />
-        <div className="eyebrow"><span /> WHAT WE BELIEVE</div>
-        <h2 id="believe-title">We believe in starting<br />before you feel ready</h2>
-        <div className="belief-grid">
-          {beliefCards.map((card) => (
-            <article className="belief-card" key={card.title}>
-              <span className={`card-dot ${card.dot}`} />
-              <h3>{card.title}</h3>
-              <p>{card.text}</p>
+        <div className="purpose-head">
+          <img
+            className="purpose-icon"
+            src="/layout-assets/home/globe-no-bg.png"
+            alt=""
+            aria-hidden="true"
+          />
+          <div>
+            <h2 id="purpose-title">Driven by Purpose</h2>
+            <p className="sub">The principles that guide our community, shape our vision, and define our goals.</p>
+          </div>
+        </div>
+        <div className="purpose-grid">
+          <div className="purpose-side">
+            <article className="purpose-card">
+              <span className="card-dot dot-yellow" />
+              <h3>Vision</h3>
+              <p className="purpose-text">We envision a future where students and the community have access to cutting-edge technology and are equipped with the necessary skills to innovate, solve problems, and make a positive impact on the world.</p>
             </article>
-          ))}
+            <article className="purpose-card">
+              <span className="card-dot dot-green" />
+              <h3>Mission</h3>
+              <p className="purpose-text">Our mission is to empower students and the community with the latest technology and innovative ideas through collaborative learning, skill-building, and community outreach.</p>
+            </article>
+          </div>
+          <article className="purpose-card purpose-goals">
+            <span className="card-dot dot-blue" />
+            <h3>Goals</h3>
+            <ul className="purpose-goals-list">
+              <li>Connect and meet students, including those with diverse backgrounds and different majors, interested in developer technologies.</li>
+              <li>Learn new skills and explore technical topics through online and in-person workshops, events, talks, and projects.</li>
+              <li>Grow by using new knowledge to solve local challenges, advancing your career, skills, and connections, while fostering community through shared learning and support.</li>
+            </ul>
+          </article>
         </div>
       </section>
 
@@ -151,47 +176,21 @@ export default function About() {
         </div>
       </section>
 
-      {/* 7 — DRIVEN BY PURPOSE */}
-      <section className="ab-purpose section-frame" aria-labelledby="purpose-title">
+      {/* 7 — WHAT WE BELIEVE */}
+      <section className="ab-believe section-frame" aria-labelledby="believe-title">
         <Deco cls="ab-deco-star" src="/layout-assets/home/star-no-bg.png" />
         <Deco cls="ab-deco-arrow" src="/layout-assets/home/arrow-no-bg.png" />
-        <Deco cls="ab-deco-heart" src="/layout-assets/home/heart-no-bg.png" />
         <div className="section-rule" />
-        <div className="purpose-head">
-          <img
-            className="purpose-icon"
-            src="/layout-assets/home/globe-no-bg.png"
-            alt=""
-            aria-hidden="true"
-          />
-          <div>
-            <h2 id="purpose-title">Driven by Purpose</h2>
-            <p className="sub">The principles that guide our community, shape our vision, and define our goals.</p>
-          </div>
-        </div>
-        <div className="purpose-grid">
-          <div className="purpose-side">
-            <article className="purpose-card">
-              <span className="card-dot dot-yellow" />
-              <h3>Vision</h3>
+        <div className="eyebrow"><span /> WHAT WE BELIEVE</div>
+        <h2 id="believe-title">We believe in starting<br />before you feel ready</h2>
+        <div className="belief-grid">
+          {beliefCards.map((card) => (
+            <article className="belief-card" key={card.title}>
+              <span className={`card-dot ${card.dot}`} />
+              <h3>{card.title}</h3>
+              <p>{card.text}</p>
             </article>
-            <article className="purpose-card">
-              <span className="card-dot dot-green" />
-              <h3>Mission</h3>
-            </article>
-          </div>
-          <article className="purpose-card purpose-goals">
-            <div className="skel-stack" aria-hidden="true">
-              <span className="skel w90" />
-              <span className="skel w100" />
-              <span className="skel w85" />
-              <span className="skel w95" />
-              <span className="skel w80" />
-              <span className="skel w90" />
-            </div>
-            <span className="card-dot dot-blue" />
-            <h3>Goals</h3>
-          </article>
+          ))}
         </div>
       </section>
 

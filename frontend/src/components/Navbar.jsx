@@ -3,7 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 import '../styles/shell.css';
 
 const JOIN_FORM_URL =
-  'https://docs.google.com/forms/d/e/1FAIpQLSe8XGfS83u5u3bbwqaUlHYmYlTNqPuYPl1aULCb8xMrN91jaQ/viewform?pli=1';
+  'https://gdg.community.dev/gdg-on-campus-cebu-technological-university-cebu-philippines/';
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);

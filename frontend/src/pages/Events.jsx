@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { formatDate, mapEvent, publicApi, usePublicFeed } from '../api/public.js';
+import { FALLBACK_PAST_EVENTS, formatDate, mapEvent, publicApi, usePublicFeed } from '../api/public.js';
 import { FeedError, FeedSkeleton, friendlyFeedError, hideImage } from '../components/FeedStates.jsx';
 import EventCard, { eventCategory } from '../components/EventCard.jsx';
 import '../styles/events.css';
@@ -140,11 +140,11 @@ export default function Events() {
 }
 
 function EventsList() {
-  const { data: upcomingData, loading: upcomingLoading, error: upcomingError, retry: upcomingRetry } = usePublicFeed(
+  const { data: upcomingData, loading: upcomingLoading, error: upcomingError } = usePublicFeed(
     () => publicApi.getEvents('upcoming').then((rows) => rows.map(mapEvent)),
     'events-upcoming',
   );
-  const { data: pastData, loading: pastLoading, error: pastError, retry: pastRetry } = usePublicFeed(
+  const { data: pastData, loading: pastLoading, error: pastError } = usePublicFeed(
     () => publicApi.getEvents('past').then((rows) => rows.map(mapEvent)),
     'events-past',
   );
@@ -164,12 +164,16 @@ function EventsList() {
   const clearFlip = useCallback(() => setFlipState({ zoomedId: null, flippedId: null }), []);
 
   const upcomingEmpty = !upcomingLoading && !upcomingError && (!upcomingData || upcomingData.length === 0);
+  // When the content service is unavailable, fall back to the static past
+  // events list rather than showing an error. The API result always wins
+  // when it succeeds (empty array included).
+  const usingPastFallback = !pastLoading && !!pastError;
 
   const filteredPast = useMemo(() => {
-    const rows = pastData ?? [];
+    const rows = pastError ? FALLBACK_PAST_EVENTS : (pastData ?? []);
     if (cat === 'all') return rows;
     return rows.filter((e) => eventCategory(e) === cat);
-  }, [pastData, cat]);
+  }, [pastData, pastError, cat]);
 
   const shownPast = filteredPast.slice(0, visible);
 
@@ -212,8 +216,15 @@ function EventsList() {
 
         {upcomingLoading ? <FeedSkeleton label="Loading upcoming events…" /> : null}
         {!upcomingLoading && upcomingError ? (
-          <div className="gdg-feed-error" role="alert">
-            <FeedError message={friendlyFeedError(upcomingError)} onRetry={upcomingRetry} />
+          // Content service unavailable — treat as no upcoming events
+          <div className="empty-state">
+            <p className="sub">
+              No upcoming events right now. We&apos;re cooking up something
+              exciting for the next sprint! Follow our socials or check back soon!
+            </p>
+            <Link to="/contact" className="green-pill">
+              Follow our community <span aria-hidden="true">↗</span>
+            </Link>
           </div>
         ) : null}
 
@@ -372,16 +383,14 @@ function EventsList() {
         </div>
 
         {pastLoading ? <FeedSkeleton label="Loading past events…" /> : null}
-        {!pastLoading && pastError ? (
-          <div className="gdg-feed-error" role="alert">
-            <FeedError message={friendlyFeedError(pastError)} onRetry={pastRetry} />
-          </div>
-        ) : null}
-        {!pastLoading && !pastError && filteredPast.length === 0 ? (
+        {/* When the service is unavailable we silently use FALLBACK_PAST_EVENTS,
+            so no error UI is shown here. An empty result (successful API call
+            with 0 rows) still shows the "check back soon" message. */}
+        {!pastLoading && !usingPastFallback && filteredPast.length === 0 ? (
           <p className="sub">No past events right now — check back soon.</p>
         ) : null}
 
-        {!pastLoading && !pastError && shownPast.length > 0 ? (
+        {!pastLoading && shownPast.length > 0 ? (
           <div className="past-grid">
             {shownPast.map((event) => (
               <EventCard key={event.id} event={event} />
@@ -389,7 +398,7 @@ function EventsList() {
           </div>
         ) : null}
 
-        {!pastLoading && !pastError && visible < filteredPast.length ? (
+        {!pastLoading && visible < filteredPast.length ? (
           <button type="button" className="green-pill load-more" onClick={() => setVisible((v) => v + 4)}>
             Load More <span aria-hidden="true">↓</span>
           </button>

@@ -1,0 +1,174 @@
+/* Organization Leads card frame — from the Figma export (full-bleed photo,
+   GDG mark top-left, white details panel with name, role badge and social
+   pills). Scoped under .page-officers so it never leaks into the shared
+   .team-grid / .team-card used by the core-department section.
+   Sizing is container-relative (cqw) so the card scales as one unit. */
+
+.page-officers .org-lead-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 38px;
+  row-gap: 33px;
+  width: 100%;
+  min-width: 0;
+  margin-inline: auto;
+}
+
+.page-officers .org-lead-card {
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: 455 / 495;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 9.45%;
+  background: #e9ecf1;
+}
+
+.page-officers .org-lead-card__photo-btn {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.page-officers .org-lead-card__photo-btn:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: -4px;
+}
+
+.page-officers .org-lead-card__photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.page-officers .org-lead-card__initials {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #eef1f5, #dfe4ea);
+  color: #3c4043;
+  font-weight: 700;
+  font-size: 18cqw;
+  letter-spacing: -0.02em;
+}
+
+.page-officers .org-lead-card__logo {
+  position: absolute;
+  top: 8.08%;
+  left: 6.59%;
+  width: 19.34%;
+  height: auto;
+  pointer-events: none;
+}
+
+.page-officers .org-lead-card__details {
+  position: absolute;
+  right: 0.22%;
+  bottom: 0;
+  left: 0.22%;
+  height: 24.85%;
+  padding: 5.05cqw 5.71cqw 0 7.47cqw;
+  border-radius: 8.79cqw;
+  background: #fff;
+}
+
+.page-officers .org-lead-card__identity {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.76cqw;
+  min-width: 0;
+}
+
+.page-officers .org-lead-card__name {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: break-word;
+  font-size: 4.396cqw;
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.page-officers .org-lead-card__role {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  max-width: 46cqw;
+  height: 7.69cqw;
+  padding: 0 3cqw;
+  border: 1px solid #777;
+  border-radius: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 3.077cqw;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.page-officers .org-lead-card__socials {
+  display: flex;
+  justify-content: center;
+  gap: 0.88cqw;
+  margin-top: 2.64cqw;
+}
+
+.page-officers .org-lead-card__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.88cqw;
+  flex-shrink: 0;
+  height: 5.71cqw;
+  padding: 0 2.2cqw;
+  border: 1px solid #222;
+  border-radius: 100px;
+  color: #000;
+  font-size: 2.198cqw;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.page-officers .org-lead-card__link svg {
+  width: 3.3cqw;
+  height: 3.3cqw;
+  flex-shrink: 0;
+}
+
+.page-officers .org-lead-card__link--github { background: #5adb6c; }
+.page-officers .org-lead-card__link--linkedin { background: #4285f4; }
+.page-officers .org-lead-card__link--website { background: #ea4335; }
+.page-officers .org-lead-card__link--email { background: #f9ab00; }
+
+.page-officers a.org-lead-card__link:hover { filter: brightness(0.93); }
+
+.page-officers a.org-lead-card__link:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: 3px;
+}
+
+@media (max-width: 1000px) {
+  .page-officers .org-lead-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  .page-officers .org-lead-grid {
+    grid-template-columns: minmax(0, 455px);
+    justify-content: center;
+    gap: 24px;
+  }
+}

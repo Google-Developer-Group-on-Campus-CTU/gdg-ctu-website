@@ -120,15 +120,11 @@
 .page-about .purpose-side { display: grid; gap: 16px; align-content: stretch; }
 .page-about .purpose-card { min-height: 150px; padding: 26px; border: 2px solid var(--ink); border-radius: 24px; background: #fff; }
 .page-about .purpose-card .card-dot { display: block; margin-bottom: 18px; }
-.page-about .purpose-card h3 { margin: 0; font-size: clamp(22px, 2.6vw, 32px); font-weight: 500; letter-spacing: -.02em; }
+.page-about .purpose-card h3 { margin: 0 0 12px; font-size: clamp(22px, 2.6vw, 32px); font-weight: 500; letter-spacing: -.02em; }
+.page-about .purpose-text { margin: 0; color: var(--muted); font-size: clamp(14px, 1.5vw, 16px); font-weight: 300; line-height: 1.6; }
 .page-about .purpose-goals { display: flex; flex-direction: column; }
-.page-about .skel-stack { display: grid; gap: 12px; margin-bottom: 26px; }
-.page-about .skel { display: block; height: 13px; border-radius: 999px; background: var(--skel); }
-.page-about .skel.w80 { width: 80%; }
-.page-about .skel.w85 { width: 85%; }
-.page-about .skel.w90 { width: 90%; }
-.page-about .skel.w95 { width: 95%; }
-.page-about .skel.w100 { width: 100%; }
+.page-about .purpose-goals-list { margin: 12px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 14px; color: var(--muted); font-size: clamp(14px, 1.5vw, 16px); font-weight: 300; line-height: 1.6; }
+.page-about .purpose-goals-list li { padding-left: 4px; }
 
 /* ---------- 8 final cta ---------- */
 .page-about .ab-final { padding: 56px 0 96px; }
